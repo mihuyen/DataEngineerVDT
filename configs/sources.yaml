@@ -1,0 +1,113 @@
+sources:
+  - name: vnstock_ohlcv
+    source_name: vnstock_ohlcv
+    source_type: ohlcv
+    type: ohlcv
+    mode: batch
+    frequency: daily_after_market_close
+    bronze_bucket: bronze
+    bronze_path: ohlcv/
+    silver_path: silver/vnstock/ohlcv/
+    gold_table: fact_daily_price
+    enabled: true
+    partition_strategy: ticker/year/month/day
+    default_exchanges:
+      - HOSE
+      - HNX
+      - UPCOM
+    listing_source: kbs
+    ticker_file_fallback: configs/tickers.csv
+    notes: "Nguồn chính cho dữ liệu giá cổ phiếu theo ngày; Bronze lưu raw parquet theo ngày ingest."
+  - name: company_profile
+    source_name: company_profile
+    source_type: listed_company_profile
+    type: listed_company_profile
+    mode: batch
+    frequency: daily_or_weekly
+    bronze_bucket: bronze
+    bronze_path: company_profile/
+    silver_path: silver/company/profile/
+    gold_table: dim_stock
+    enabled: true
+    default_exchanges:
+      - HOSE
+      - HNX
+      - UPCOM
+    listing_source: kbs
+    profile_source: kbs
+    partition_strategy: year/month/day
+    notes: "Thông tin doanh nghiệp niêm yết từ API niêm yết hoặc Finnhub."
+  - name: market_index
+    source_name: market_index
+    source_type: market_index_ohlcv
+    type: market_index_ohlcv
+    mode: batch
+    frequency: daily_after_market_close
+    bronze_bucket: bronze
+    bronze_path: market_index/
+    silver_path: silver/market/index/
+    gold_table: fact_market_index
+    enabled: true
+    provider_source: vci
+    index_codes:
+      - index_code: VNINDEX
+        provider_symbol: VNINDEX
+      - index_code: VN30
+        provider_symbol: VN30
+      - index_code: HNXINDEX
+        provider_symbol: HNXINDEX
+      - index_code: UPCOMINDEX
+        provider_symbol: UPCOMINDEX
+    partition_strategy: index_code/year/month/day
+    notes: "Chỉ số VN-Index, HNX-Index, VN30 lưu raw parquet vào Bronze."
+  - name: market_news
+    source_name: market_news
+    source_type: news
+    type: news
+    mode: batch
+    frequency: every_30_to_60_minutes
+    bronze_bucket: bronze
+    bronze_path: news/
+    silver_path: silver/news/market/
+    gold_table: fact_news_sentiment_daily
+    enabled: true
+    max_age_days: 2
+    max_articles_per_source: 20
+    sources:
+      - source: VnExpress
+        categories:
+          "Vĩ mô": "https://vnexpress.net/kinh-doanh/vi-mo"
+          "Doanh nghiệp": "https://vnexpress.net/kinh-doanh/doanh-nghiep"
+          "Ebank": "https://vnexpress.net/kinh-doanh/ebank"
+          "Quốc tế": "https://vnexpress.net/kinh-doanh/quoc-te"
+          "Hàng hóa": "https://vnexpress.net/kinh-doanh/hang-hoa"
+          "Kinh tế vùng": "https://vnexpress.net/kinh-doanh/kinh-te-vung"
+          "Chứng khoán": "https://vnexpress.net/kinh-doanh/chung-khoan"
+      - source: Vietstock
+        channels:
+          "144": "Chứng khoán"
+          "733": "Doanh nghiệp"
+          "737": "Bất động sản"
+          "579": "Phân tích"
+          "4259": "Tài chính cá nhân"
+          "734": "Tài chính"
+          "2": "Kinh tế"
+          "1317": "Đông Dương"
+          "736": "Thế giới"
+      - source: CafeF
+        categories:
+          "Chứng khoán": "https://cafef.vn//thi-truong-chung-khoan.chn"
+          "Doanh nghiệp": "https://cafef.vn/doanh-nghiep.chn"
+          "Ngân hàng": "https://cafef.vn/tai-chinh-ngan-hang.chn"
+          "Vĩ mô": "https://cafef.vn/vi-mo-dau-tu.chn"
+          "Bất động sản": "https://cafef.vn/bat-dong-san.chn"
+    notes: "Tin tức thị trường từ VnExpress, Vietstock, CafeF; Ngày 7 chỉ lưu raw Bronze."
+  - name: dnse_order_book
+    type: realtime_order_book
+    mode: streaming
+    frequency: realtime_market_hours
+    bronze_path: bronze/dnse/order_book/
+    silver_path: silver/dnse/order_book/
+    gold_table: fact_realtime_vwap
+    enabled: false
+    notes: "Dữ liệu DNSE WebSocket API dùng cho VWAP realtime và Alert Engine; bật sau khi có xác thực."

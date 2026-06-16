@@ -1,0 +1,123 @@
+from __future__ import annotations
+
+from datetime import datetime, timedelta
+
+import pendulum
+from airflow import DAG
+from airflow.operators.bash import BashOperator
+
+
+PROJECT_DIR = "/opt/airflow/project"
+LOCAL_TZ = pendulum.timezone("Asia/Ho_Chi_Minh")
+COMMON_ENV = (
+    "export PYTHONIOENCODING=utf-8 && "
+    "export UV_PROJECT_ENVIRONMENT=/opt/airflow/.venv-stock && "
+    "export MINIO_ENDPOINT=${MINIO_ENDPOINT:-minio:9000} && "
+    "export MINIO_ACCESS_KEY=${MINIO_ACCESS_KEY:-minioadmin} && "
+    "export MINIO_SECRET_KEY=${MINIO_SECRET_KEY:-minioadmin} && "
+    "export MINIO_SECURE=${MINIO_SECURE:-false} && "
+    "export CLICKHOUSE_HOST=${CLICKHOUSE_HOST:-clickhouse} && "
+    "export CLICKHOUSE_PORT=${CLICKHOUSE_PORT:-8123} && "
+    "export CLICKHOUSE_USER=${CLICKHOUSE_USER:-default} && "
+    "export CLICKHOUSE_PASSWORD=${CLICKHOUSE_PASSWORD:-clickhouse} && "
+    "cd " + PROJECT_DIR
+)
+
+
+default_args = {
+    "owner": "data-engineering",
+    "depends_on_past": False,
+    "retries": 1,
+    "retry_delay": timedelta(minutes=5),
+}
+
+
+with DAG(
+    dag_id="stock_lakehouse_daily",
+    description="Daily Bronze -> Silver -> Gold pipeline for Vietnam stock lakehouse",
+    default_args=default_args,
+    start_date=datetime(2026, 6, 14, tzinfo=LOCAL_TZ),
+    schedule="0 18 * * 1-5",
+    catchup=False,
+    max_active_runs=1,
+    tags=["stock", "lakehouse", "bronze", "silver", "gold"],
+) as dag:
+    init_minio = BashOperator(
+        task_id="init_minio_buckets",
+        bash_command=f"{COMMON_ENV} && uv run python scripts/init_minio.py",
+    )
+
+    ingest_market_index = BashOperator(
+        task_id="bronze_market_index",
+        bash_command=f"{COMMON_ENV} && uv run python scripts/run_market_index_ingest.py",
+    )
+
+    ingest_news = BashOperator(
+        task_id="bronze_market_news",
+        bash_command=f"{COMMON_ENV} && uv run python scripts/run_news_ingest.py",
+    )
+
+    ingest_company_profile = BashOperator(
+        task_id="bronze_company_profile_listing",
+        bash_command=(
+            f"{COMMON_ENV} && "
+            "uv run python scripts/run_company_profile_ingest.py "
+            "--mode listing "
+            "--exchanges HOSE HNX UPCOM"
+        ),
+    )
+
+    ingest_ohlcv = BashOperator(
+        task_id="bronze_ohlcv",
+        bash_command=(
+            f"{COMMON_ENV} && "
+            "uv run python scripts/run_ohlcv_ingest.py "
+            "--exchanges HOSE HNX UPCOM "
+            "--request-delay-seconds 5 "
+            "--skip-existing"
+        ),
+        execution_timeout=timedelta(hours=4),
+    )
+
+    silver_ohlcv = BashOperator(
+        task_id="silver_ohlcv",
+        bash_command=f"{COMMON_ENV} && uv run python scripts/run_silver_transform.py --skip-existing",
+    )
+
+    silver_company_profile = BashOperator(
+        task_id="silver_company_profile",
+        bash_command=f"{COMMON_ENV} && uv run python scripts/run_company_profile_silver.py",
+    )
+
+    silver_market_index = BashOperator(
+        task_id="silver_market_index",
+        bash_command=f"{COMMON_ENV} && uv run python scripts/run_market_index_silver.py",
+    )
+
+    silver_news = BashOperator(
+        task_id="silver_news",
+        bash_command=f"{COMMON_ENV} && uv run python scripts/run_news_silver.py",
+    )
+
+    quality_all = BashOperator(
+        task_id="quality_all",
+        bash_command=f"{COMMON_ENV} && uv run python scripts/run_all_quality_checks.py",
+    )
+
+    migrate_gold = BashOperator(
+        task_id="migrate_gold_schema",
+        bash_command=f"{COMMON_ENV} && uv run python scripts/migrate_gold_schema.py",
+    )
+
+    load_gold = BashOperator(
+        task_id="load_gold",
+        bash_command=f"{COMMON_ENV} && uv run python scripts/load_gold.py",
+    )
+
+    init_minio >> [ingest_market_index, ingest_news, ingest_ohlcv, ingest_company_profile]
+    ingest_ohlcv >> silver_ohlcv
+    ingest_market_index >> silver_market_index
+    ingest_news >> silver_news
+    ingest_company_profile >> silver_company_profile
+    [silver_ohlcv, silver_company_profile, silver_market_index, silver_news] >> quality_all
+    quality_all >> migrate_gold >> load_gold

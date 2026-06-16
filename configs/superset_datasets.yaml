@@ -1,0 +1,24 @@
+database_name: ClickHouse Gold
+sqlalchemy_uri_env: SUPERSET_CLICKHOUSE_SQLALCHEMY_URI
+default_sqlalchemy_uri: clickhousedb://default:clickhouse@clickhouse:8123/stock_lakehouse
+schema_env: CLICKHOUSE_DATABASE
+default_schema: stock_lakehouse
+datasets:
+  - table_name: dim_date
+    description: Date dimension for filtering dashboard data by day, week, month, quarter, year, and trading-day flag.
+  - table_name: dim_sector
+    description: Sector dimension for grouping stocks by business sector and industry group.
+  - table_name: dim_stock
+    description: Stock dimension with ticker, company metadata, exchange, sector, shares outstanding, and latest financial snapshot.
+  - table_name: dim_index
+    description: Market index dimension for VNINDEX, VN30, HNXINDEX, and UPCOMINDEX.
+  - table_name: fact_daily_price
+    description: Daily OHLCV fact with market cap, technical indicators, and signal flags.
+  - table_name: fact_market_index
+    description: Daily market-index fact with index OHLC, liquidity, breadth metrics, SMA, and RSI.
+  - table_name: fact_news_sentiment_daily
+    description: Daily ticker-level news and sentiment aggregate for News & Sentiment dashboards.
+  - table_name: fact_realtime_vwap
+    description: Minute-level VWAP fact for realtime monitoring and intraday analytics demo.
+  - table_name: fact_alert_event
+    description: Alert-event history fact for dashboarding user notifications and anti-spam checks.

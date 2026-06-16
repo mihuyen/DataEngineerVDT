@@ -1,0 +1,11 @@
+version: 2
+
+sources:
+  - name: gold
+    schema: "{{ env_var('CLICKHOUSE_DATABASE', 'stock_lakehouse') }}"
+    description: "Gold tables loaded by Python loaders before dbt models run."
+    tables:
+      - name: fact_daily_price
+        description: "Daily OHLCV fact table used as the Day 17 dbt input."
+      - name: dim_stock
+        description: "Stock dimension with shares outstanding and company metadata."

@@ -1,0 +1,38 @@
+version: 2
+
+models:
+  - name: fact_daily_price_indicators
+    description: "Day 17 dbt model for daily price indicators and market cap."
+    columns:
+      - name: ticker
+        description: "Stock ticker."
+        tests:
+          - not_null
+      - name: trading_date
+        description: "Trading date."
+        tests:
+          - not_null
+      - name: close
+        description: "Close price."
+        tests:
+          - not_null
+      - name: market_cap
+        description: "Daily market cap = close * shares_outstanding."
+        tests:
+          - not_null
+      - name: sma_20
+        description: "20-day simple moving average after enough ticker history exists."
+      - name: ema_12
+        description: "12-day EMA inherited from the Gold Python loader for now."
+      - name: ema_26
+        description: "26-day EMA inherited from the Gold Python loader for now."
+      - name: macd
+        description: "MACD = ema_12 - ema_26."
+      - name: rsi_14
+        description: "14-day RSI."
+      - name: bb_upper
+        description: "Upper Bollinger Band."
+      - name: bb_middle
+        description: "Middle Bollinger Band."
+      - name: bb_lower
+        description: "Lower Bollinger Band."

@@ -1,0 +1,43 @@
+[project]
+name = "data-lakehouse-stock"
+version = "0.1.0"
+description = "Data Lakehouse theo dõi thị trường chứng khoán Việt Nam"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "polars",
+    "pyarrow",
+    "pandas",
+    "requests",
+    "python-dotenv",
+    "pydantic",
+    "pyyaml",
+    "vnstock>=4.0.2",
+    "minio>=7.2.20",
+    "great-expectations>=1.18.0",
+    "clickhouse-connect>=1.2.0",
+    "beautifulsoup4>=4.15.0",
+    "feedparser>=6.0.12",
+    "dbt-core>=1.11.11",
+    "dbt-clickhouse>=1.10.0",
+    "websockets>=16.0",
+    "certifi>=2026.5.20",
+]
+
+[dependency-groups]
+dev = [
+    "pytest",
+    "ruff",
+    "black",
+]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+
+[tool.black]
+line-length = 100
+target-version = ["py311"]
+
+[tool.pytest.ini_options]
+pythonpath = ["."]
