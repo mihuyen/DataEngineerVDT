@@ -14,7 +14,7 @@ const CONDITION_LABELS: Record<string, string> = {
 };
 const CONDITION_COLORS: Record<string, string> = {
   RSI_ABOVE: "#ff4d6d", RSI_BELOW: "#00d97e",
-  BB_BREAK: "#f59e0b", VWAP_DEVIATION: "#a855f7",
+  BB_BREAK: "#8b5cf6", VWAP_DEVIATION: "#a855f7",
   PRICE_ABOVE: "#3b82f6", PRICE_BELOW: "#06b6d4",
 };
 
@@ -48,7 +48,7 @@ export function AlertHistory({ onNavigate }: AlertHistoryProps) {
       <div>
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
           <h1 style={{ color: "#e2e8f0", margin: 0, fontSize: 18, fontWeight: 700, ...INTER }}>Alert History</h1>
-          <Bell size={16} color="#f59e0b" />
+          <Bell size={16} color="#8b5cf6" />
         </div>
         <p style={{ color: "#6b7fa3", margin: 0, fontSize: 12, ...INTER }}>Lịch sử cảnh báo người dùng · 30 ngày gần nhất</p>
       </div>
@@ -60,7 +60,7 @@ export function AlertHistory({ onNavigate }: AlertHistoryProps) {
           { label: "Đã gửi", value: totalSent, color: "#00d97e" },
           { label: "Lỗi gửi", value: totalFailed, color: "#ff4d6d" },
           { label: "Bỏ qua (spam)", value: totalSkipped, color: "#6b7fa3" },
-          { label: "Mã active", value: new Set(alertHistory.map((a) => a.ticker)).size, color: "#f59e0b" },
+          { label: "Mã active", value: new Set(alertHistory.map((a) => a.ticker)).size, color: "#8b5cf6" },
         ].map((kpi) => (
           <div key={kpi.label} style={CARD}>
             <div style={{ ...INTER, color: "#6b7fa3", fontSize: 10, textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 4 }}>{kpi.label}</div>
@@ -78,7 +78,7 @@ export function AlertHistory({ onNavigate }: AlertHistoryProps) {
               <XAxis dataKey="date" tick={{ fill: "#6b7fa3", fontSize: 10, ...MONO }} axisLine={false} tickLine={false} />
               <YAxis tick={{ fill: "#6b7fa3", fontSize: 10, ...MONO }} axisLine={false} tickLine={false} />
               <Tooltip contentStyle={{ background: "#1e2535", border: "1px solid rgba(255,255,255,0.1)", fontSize: 12, ...MONO }} formatter={(v: any) => [v, "Cảnh báo"]} />
-              <Bar dataKey="total" fill="#f59e0b" radius={[3, 3, 0, 0]} opacity={0.85} />
+              <Bar dataKey="total" fill="#8b5cf6" radius={[3, 3, 0, 0]} opacity={0.85} />
             </BarChart>
           </ResponsiveContainer>
         </div>
@@ -88,7 +88,7 @@ export function AlertHistory({ onNavigate }: AlertHistoryProps) {
           <ResponsiveContainer width="100%" height={140}>
             <PieChart>
               <Pie data={alertsByCondition} cx="50%" cy="50%" outerRadius={58} innerRadius={32} dataKey="count">
-                {alertsByCondition.map((entry, i) => <Cell key={i} fill={entry.fill} />)}
+                {alertsByCondition.map((entry) => <Cell key={`alert-cond-${entry.type}`} fill={entry.fill} />)}
               </Pie>
               <Tooltip contentStyle={{ background: "#1e2535", border: "1px solid rgba(255,255,255,0.1)", fontSize: 12, ...MONO }} formatter={(v: any, name: any) => [v, name]} />
             </PieChart>
@@ -140,9 +140,9 @@ export function AlertHistory({ onNavigate }: AlertHistoryProps) {
           {["all", "TELEGRAM", "EMAIL"].map((c) => (
             <button key={c} onClick={() => setFilterChannel(c)} style={{
               padding: "4px 10px", borderRadius: 4,
-              border: `1px solid ${filterChannel === c ? "#f59e0b" : "rgba(255,255,255,0.1)"}`,
+              border: `1px solid ${filterChannel === c ? "#8b5cf6" : "rgba(255,255,255,0.1)"}`,
               background: filterChannel === c ? "rgba(245,158,11,0.1)" : "transparent",
-              color: filterChannel === c ? "#f59e0b" : "#6b7fa3",
+              color: filterChannel === c ? "#8b5cf6" : "#6b7fa3",
               fontSize: 11, ...INTER, cursor: "pointer", fontWeight: filterChannel === c ? 600 : 400,
             }}>{c === "all" ? "Tất cả" : c}</button>
           ))}
@@ -176,7 +176,7 @@ export function AlertHistory({ onNavigate }: AlertHistoryProps) {
                       <span style={{ background: "rgba(255,255,255,0.06)", color: "#6b7fa3", fontSize: 11, padding: "2px 8px", borderRadius: 3, ...MONO }}>{a.user}</span>
                     </td>
                     <td style={{ padding: "9px 10px", cursor: "pointer" }} onClick={() => onNavigate("stock", a.ticker)}>
-                      <span style={{ color: "#f59e0b", fontSize: 13, fontWeight: 700, ...MONO }}>{a.ticker}</span>
+                      <span style={{ color: "#8b5cf6", fontSize: 13, fontWeight: 700, ...MONO }}>{a.ticker}</span>
                     </td>
                     <td style={{ padding: "9px 10px" }}>
                       <span style={{ background: `${condColor}18`, color: condColor, fontSize: 11, padding: "2px 8px", borderRadius: 3, ...INTER, fontWeight: 600, whiteSpace: "nowrap" }}>
@@ -194,7 +194,7 @@ export function AlertHistory({ onNavigate }: AlertHistoryProps) {
                     <td style={{ padding: "9px 10px" }}>
                       <span style={{
                         background: a.channel === "TELEGRAM" ? "rgba(59,130,246,0.1)" : "rgba(245,158,11,0.1)",
-                        color: a.channel === "TELEGRAM" ? "#3b82f6" : "#f59e0b",
+                        color: a.channel === "TELEGRAM" ? "#3b82f6" : "#8b5cf6",
                         fontSize: 11, padding: "2px 8px", borderRadius: 3, ...INTER,
                       }}>{a.channel}</span>
                     </td>
@@ -222,9 +222,9 @@ export function AlertHistory({ onNavigate }: AlertHistoryProps) {
       {/* Anti-spam explanation */}
       <div style={{ ...CARD, borderColor: "rgba(245,158,11,0.2)", background: "rgba(245,158,11,0.04)" }}>
         <div style={{ display: "flex", alignItems: "flex-start", gap: 12 }}>
-          <Bell size={16} color="#f59e0b" style={{ marginTop: 2, flexShrink: 0 }} />
+          <Bell size={16} color="#8b5cf6" style={{ marginTop: 2, flexShrink: 0 }} />
           <div>
-            <div style={{ ...INTER, color: "#f59e0b", fontSize: 12, fontWeight: 600, marginBottom: 4 }}>Cơ chế chống spam Alert Engine</div>
+            <div style={{ ...INTER, color: "#8b5cf6", fontSize: 12, fontWeight: 600, marginBottom: 4 }}>Cơ chế chống spam Alert Engine</div>
             <div style={{ ...INTER, color: "#6b7fa3", fontSize: 12, lineHeight: 1.6 }}>
               Mỗi cảnh báo được kiểm tra điều kiện <span style={{ color: "#e2e8f0", ...MONO }}>user_id + ticker + condition_type</span> trong vòng <span style={{ color: "#e2e8f0", ...MONO }}>cooldown_minutes</span> gần nhất trước khi gửi.
               Nếu đã tồn tại bản ghi tương tự trong <span style={{ color: "#e2e8f0", ...MONO }}>fact_alert_event</span>, cảnh báo sẽ bị bỏ qua và ghi trạng thái <span style={{ color: "#6b7fa3", ...MONO }}>skipped</span>.

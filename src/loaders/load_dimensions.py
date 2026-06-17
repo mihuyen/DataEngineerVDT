@@ -12,6 +12,7 @@ from src.common.clickhouse_client import insert_dataframe
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 DEFAULT_LOCAL_SILVER_DIR = PROJECT_ROOT / "data" / "silver_local"
+DEFAULT_SECTOR_MAPPING_PATH = PROJECT_ROOT / "configs" / "sector_mapping.csv"
 
 
 def make_stock_id(ticker: str) -> int:
@@ -22,6 +23,53 @@ def make_stock_id(ticker: str) -> int:
 def make_index_id(index_code: str) -> int:
     """Create a stable numeric index id from an index code."""
     return sum((index + 1) * ord(char) for index, char in enumerate(index_code.upper()))
+
+
+def load_sector_mapping(mapping_path: Path = DEFAULT_SECTOR_MAPPING_PATH) -> pl.DataFrame:
+    """Load curated ticker-to-sector mapping for dashboard-friendly sectors."""
+    if not mapping_path.exists():
+        return pl.DataFrame(
+            schema={
+                "ticker": pl.Utf8,
+                "sector_id": pl.Utf8,
+                "sector_name": pl.Utf8,
+                "industry_group": pl.Utf8,
+            }
+        )
+
+    return (
+        pl.read_csv(mapping_path)
+        .with_columns(
+            pl.col("ticker").cast(pl.Utf8).str.strip_chars().str.to_uppercase(),
+            pl.col("sector_id").cast(pl.Utf8).str.strip_chars().str.to_uppercase(),
+            pl.col("sector_name").cast(pl.Utf8).str.strip_chars(),
+            pl.col("industry_group").cast(pl.Utf8).str.strip_chars(),
+        )
+        .filter(
+            pl.col("ticker").is_not_null()
+            & (pl.col("ticker").str.len_chars() > 0)
+            & pl.col("sector_id").is_not_null()
+            & (pl.col("sector_id").str.len_chars() > 0)
+            & pl.col("sector_name").is_not_null()
+            & (pl.col("sector_name").str.len_chars() > 0)
+        )
+        .unique(subset=["ticker"], keep="first", maintain_order=True)
+    )
+
+
+def standardize_coarse_sector_expr(sector_expr: pl.Expr) -> pl.Expr:
+    """Map coarse legal company types to dashboard-friendly fallback sectors."""
+    return (
+        pl.when(sector_expr == "CÔNG_TY_CHỨNG_KHOÁN")
+        .then(pl.lit("CHUNG_KHOAN"))
+        .when(sector_expr == "CÔNG_TY_BẢO_HIỂM")
+        .then(pl.lit("BAO_HIEM"))
+        .when(sector_expr == "CÔNG_TY_QUẢN_LÝ_QUỸ")
+        .then(pl.lit("TAI_CHINH_KHAC"))
+        .when(sector_expr == "CÔNG_TY_CỔ_PHẦN")
+        .then(pl.lit("KHAC"))
+        .otherwise(sector_expr)
+    )
 
 
 def build_dim_date(start: date = date(2020, 1, 1), end: date = date(2030, 12, 31)) -> pl.DataFrame:
@@ -53,8 +101,10 @@ def build_dim_date(start: date = date(2020, 1, 1), end: date = date(2030, 12, 31
 
 def build_dim_sector(company_frame: pl.DataFrame | None = None) -> pl.DataFrame:
     """Build sector dimension from company data or a default unknown sector."""
+    sector_mapping = load_sector_mapping()
+
     if company_frame is None or company_frame.is_empty() or "sector_name" not in company_frame.columns:
-        return pl.DataFrame(
+        default_frame = pl.DataFrame(
             {
                 "sector_id": ["UNKNOWN"],
                 "sector_name": ["Unknown"],
@@ -62,8 +112,22 @@ def build_dim_sector(company_frame: pl.DataFrame | None = None) -> pl.DataFrame:
                 "description": ["Unknown sector"],
             }
         )
+        if sector_mapping.is_empty():
+            return default_frame
+        mapped_frame = sector_mapping.select("sector_id", "sector_name", "industry_group").unique()
+        return (
+            pl.concat(
+                [
+                    default_frame,
+                    mapped_frame.with_columns((pl.lit("Nhóm ngành ") + pl.col("sector_name")).alias("description")),
+                ],
+                how="diagonal_relaxed",
+            )
+            .unique(subset=["sector_id"], keep="first")
+            .sort("sector_id")
+        )
 
-    return (
+    company_sectors = (
         company_frame.select(pl.col("sector_name").fill_null("Unknown").str.strip_chars())
         .unique()
         .with_columns(
@@ -80,11 +144,26 @@ def build_dim_sector(company_frame: pl.DataFrame | None = None) -> pl.DataFrame:
         .select("sector_id", "sector_name", "industry_group", "description")
         .sort("sector_id")
     )
+    if sector_mapping.is_empty():
+        return company_sectors
+
+    mapped_sectors = (
+        sector_mapping.select("sector_id", "sector_name", "industry_group")
+        .unique(subset=["sector_id"], keep="first")
+        .with_columns((pl.lit("Nhóm ngành ") + pl.col("sector_name")).alias("description"))
+        .select("sector_id", "sector_name", "industry_group", "description")
+    )
+    return (
+        pl.concat([mapped_sectors, company_sectors], how="diagonal_relaxed")
+        .unique(subset=["sector_id"], keep="first")
+        .sort("sector_id")
+    )
 
 
 def build_dim_stock(company_frame: pl.DataFrame | None = None, tickers: list[str] | None = None) -> pl.DataFrame:
     """Build stock dimension from company profile data or a ticker list."""
     now = datetime.now()
+    sector_mapping = load_sector_mapping()
     if company_frame is not None and not company_frame.is_empty():
         frame = company_frame
         if "sector_name" in frame.columns and "sector_id" not in frame.columns:
@@ -93,6 +172,22 @@ def build_dim_stock(company_frame: pl.DataFrame | None = None, tickers: list[str
                     "sector_id"
                 )
             )
+        if not sector_mapping.is_empty():
+            frame = frame.join(
+                sector_mapping.select(
+                    "ticker",
+                    pl.col("sector_id").alias("mapped_sector_id"),
+                ),
+                on="ticker",
+                how="left",
+            ).with_columns(
+                pl.coalesce(
+                    "mapped_sector_id",
+                    standardize_coarse_sector_expr(pl.col("sector_id")),
+                ).alias("sector_id")
+            )
+        else:
+            frame = frame.with_columns(standardize_coarse_sector_expr(pl.col("sector_id")).alias("sector_id"))
         return (
             frame.with_columns(
                 pl.col("ticker").str.to_uppercase(),
@@ -131,10 +226,20 @@ def build_dim_stock(company_frame: pl.DataFrame | None = None, tickers: list[str
         )
 
     values = tickers or ["VCB"]
-    return pl.DataFrame({"ticker": [ticker.upper() for ticker in values]}).with_columns(
+    frame = pl.DataFrame({"ticker": [ticker.upper() for ticker in values]})
+    if not sector_mapping.is_empty():
+        frame = frame.join(
+            sector_mapping.select("ticker", pl.col("sector_id").alias("mapped_sector_id")),
+            on="ticker",
+            how="left",
+        )
+    else:
+        frame = frame.with_columns(pl.lit(None, dtype=pl.Utf8).alias("mapped_sector_id"))
+
+    return frame.with_columns(
         pl.col("ticker").alias("company_name"),
         pl.lit("UNKNOWN").alias("exchange"),
-        pl.lit("UNKNOWN").alias("sector_id"),
+        pl.coalesce("mapped_sector_id", pl.lit("UNKNOWN")).alias("sector_id"),
         pl.lit(None, dtype=pl.Date).alias("listed_date"),
         pl.lit("ACTIVE").alias("status"),
         pl.lit(0, dtype=pl.UInt64).alias("shares_outstanding"),

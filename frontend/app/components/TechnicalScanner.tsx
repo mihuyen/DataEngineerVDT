@@ -9,7 +9,7 @@ const INTER: React.CSSProperties = { fontFamily: "Inter, sans-serif" };
 const SIGNAL_CONFIG: Record<string, { label: string; color: string; bg: string }> = {
   overbought: { label: "Quá mua", color: "#ff4d6d", bg: "rgba(255,77,109,0.1)" },
   oversold: { label: "Quá bán", color: "#00d97e", bg: "rgba(0,217,126,0.1)" },
-  breakout: { label: "Breakout", color: "#f59e0b", bg: "rgba(245,158,11,0.1)" },
+  breakout: { label: "Breakout", color: "#8b5cf6", bg: "rgba(245,158,11,0.1)" },
   breakdown: { label: "Breakdown", color: "#a855f7", bg: "rgba(168,85,247,0.1)" },
   macd_positive: { label: "MACD+", color: "#3b82f6", bg: "rgba(59,130,246,0.1)" },
   volume_spike: { label: "Vol Spike", color: "#06b6d4", bg: "rgba(6,182,212,0.1)" },
@@ -50,7 +50,7 @@ export function TechnicalScanner({ onNavigate }: TechnicalScannerProps) {
           {["ALL", "HOSE", "HNX", "UPCOM"].map((ex) => (
             <button key={ex} onClick={() => setFilterExchange(ex)} style={{
               padding: "5px 12px", borderRadius: 5, border: "1px solid rgba(255,255,255,0.1)",
-              background: filterExchange === ex ? "#f59e0b" : "transparent",
+              background: filterExchange === ex ? "#8b5cf6" : "transparent",
               color: filterExchange === ex ? "#0b0f1a" : "#6b7fa3",
               fontSize: 12, ...INTER, cursor: "pointer", fontWeight: filterExchange === ex ? 600 : 400,
             }}>{ex}</button>
@@ -86,10 +86,10 @@ export function TechnicalScanner({ onNavigate }: TechnicalScannerProps) {
           <ResponsiveContainer width="100%" height={180}>
             <BarChart data={topRsiHigh} layout="vertical" margin={{ left: 10, right: 20 }}>
               <XAxis type="number" domain={[0, 100]} tick={{ fill: "#6b7fa3", fontSize: 10, ...MONO }} axisLine={false} tickLine={false} />
-              <YAxis type="category" dataKey="ticker" tick={{ fill: "#f59e0b", fontSize: 11, ...MONO }} axisLine={false} tickLine={false} width={35} />
+              <YAxis type="category" dataKey="ticker" tick={{ fill: "#8b5cf6", fontSize: 11, ...MONO }} axisLine={false} tickLine={false} width={35} />
               <Tooltip contentStyle={{ background: "#1e2535", border: "1px solid rgba(255,255,255,0.1)", fontSize: 12, ...MONO }} formatter={(v: any) => [v.toFixed(1), "RSI"]} />
               <Bar dataKey="rsi" radius={[0, 3, 3, 0]}>
-                {topRsiHigh.map((_, i) => <Cell key={i} fill={_.rsi > 70 ? "#ff4d6d" : "#f59e0b"} />)}
+                {topRsiHigh.map((entry, i) => <Cell key={`rsi-high-${entry.ticker}`} fill={entry.rsi > 70 ? "#ff4d6d" : "#8b5cf6"} />)}
               </Bar>
             </BarChart>
           </ResponsiveContainer>
@@ -100,10 +100,10 @@ export function TechnicalScanner({ onNavigate }: TechnicalScannerProps) {
           <ResponsiveContainer width="100%" height={180}>
             <BarChart data={topRsiLow} layout="vertical" margin={{ left: 10, right: 20 }}>
               <XAxis type="number" domain={[0, 60]} tick={{ fill: "#6b7fa3", fontSize: 10, ...MONO }} axisLine={false} tickLine={false} />
-              <YAxis type="category" dataKey="ticker" tick={{ fill: "#f59e0b", fontSize: 11, ...MONO }} axisLine={false} tickLine={false} width={35} />
+              <YAxis type="category" dataKey="ticker" tick={{ fill: "#8b5cf6", fontSize: 11, ...MONO }} axisLine={false} tickLine={false} width={35} />
               <Tooltip contentStyle={{ background: "#1e2535", border: "1px solid rgba(255,255,255,0.1)", fontSize: 12, ...MONO }} formatter={(v: any) => [v.toFixed(1), "RSI"]} />
               <Bar dataKey="rsi" radius={[0, 3, 3, 0]}>
-                {topRsiLow.map((_, i) => <Cell key={i} fill={_.rsi < 30 ? "#00d97e" : "#3b82f6"} />)}
+                {topRsiLow.map((entry, i) => <Cell key={`rsi-low-${entry.ticker}`} fill={entry.rsi < 30 ? "#00d97e" : "#3b82f6"} />)}
               </Bar>
             </BarChart>
           </ResponsiveContainer>
@@ -114,7 +114,7 @@ export function TechnicalScanner({ onNavigate }: TechnicalScannerProps) {
           <ResponsiveContainer width="100%" height={180}>
             <BarChart data={topVolSpike.map((s) => ({ ...s, ratio: +(s.volume / s.volSma20).toFixed(2) }))} layout="vertical" margin={{ left: 10, right: 20 }}>
               <XAxis type="number" tick={{ fill: "#6b7fa3", fontSize: 10, ...MONO }} axisLine={false} tickLine={false} tickFormatter={(v) => v + "x"} />
-              <YAxis type="category" dataKey="ticker" tick={{ fill: "#f59e0b", fontSize: 11, ...MONO }} axisLine={false} tickLine={false} width={35} />
+              <YAxis type="category" dataKey="ticker" tick={{ fill: "#8b5cf6", fontSize: 11, ...MONO }} axisLine={false} tickLine={false} width={35} />
               <Tooltip contentStyle={{ background: "#1e2535", border: "1px solid rgba(255,255,255,0.1)", fontSize: 12, ...MONO }} formatter={(v: any) => [v + "x SMA20", "Vol ratio"]} />
               <Bar dataKey="ratio" fill="#06b6d4" radius={[0, 3, 3, 0]} />
             </BarChart>
@@ -155,7 +155,7 @@ export function TechnicalScanner({ onNavigate }: TechnicalScannerProps) {
                     onMouseLeave={(e) => (e.currentTarget as HTMLTableRowElement).style.background = "transparent"}
                   >
                     <td style={{ padding: "9px 10px" }}>
-                      <span style={{ color: "#f59e0b", fontSize: 13, fontWeight: 700, ...MONO }}>{s.ticker}</span>
+                      <span style={{ color: "#8b5cf6", fontSize: 13, fontWeight: 700, ...MONO }}>{s.ticker}</span>
                     </td>
                     <td style={{ padding: "9px 10px", color: "#e2e8f0", fontSize: 12, ...INTER }}>{s.name}</td>
                     <td style={{ padding: "9px 10px" }}>

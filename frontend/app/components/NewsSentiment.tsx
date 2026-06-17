@@ -85,7 +85,7 @@ export function NewsSentiment({ onNavigate }: NewsSentimentProps) {
           { label: "Tin tích cực", value: totalPositive + "", color: "#00d97e" },
           { label: "Tin tiêu cực", value: totalNegative + "", color: "#ff4d6d" },
           { label: "Mã được nhắc đến", value: newsSentiment.length + "", color: "#3b82f6" },
-          { label: "Avg Sentiment Score", value: (newsSentiment.reduce((a, n) => a + n.avgScore, 0) / newsSentiment.length).toFixed(2), color: "#f59e0b" },
+          { label: "Avg Sentiment Score", value: (newsSentiment.reduce((a, n) => a + n.avgScore, 0) / newsSentiment.length).toFixed(2), color: "#8b5cf6" },
         ].map((kpi) => (
           <div key={kpi.label} style={CARD}>
             <div style={{ ...INTER, color: "#6b7fa3", fontSize: 10, textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 4 }}>{kpi.label}</div>
@@ -102,7 +102,7 @@ export function NewsSentiment({ onNavigate }: NewsSentimentProps) {
           <ResponsiveContainer width="100%" height={180}>
             <BarChart data={topByNews} layout="vertical" margin={{ left: 10, right: 20 }}>
               <XAxis type="number" tick={{ fill: "#6b7fa3", fontSize: 10, ...MONO }} axisLine={false} tickLine={false} />
-              <YAxis type="category" dataKey="ticker" tick={{ fill: "#f59e0b", fontSize: 11, ...MONO }} axisLine={false} tickLine={false} width={35} />
+              <YAxis type="category" dataKey="ticker" tick={{ fill: "#8b5cf6", fontSize: 11, ...MONO }} axisLine={false} tickLine={false} width={35} />
               <Tooltip contentStyle={{ background: "#1e2535", border: "1px solid rgba(255,255,255,0.1)", fontSize: 12, ...MONO }} formatter={(v: any) => [v + " tin", "Số tin"]} />
               <Bar dataKey="newsCount" fill="#3b82f6" radius={[0, 3, 3, 0]} />
             </BarChart>
@@ -117,7 +117,7 @@ export function NewsSentiment({ onNavigate }: NewsSentimentProps) {
               <XAxis dataKey="date" tick={{ fill: "#6b7fa3", fontSize: 10, ...MONO }} axisLine={false} tickLine={false} />
               <YAxis tick={{ fill: "#6b7fa3", fontSize: 10, ...MONO }} axisLine={false} tickLine={false} tickFormatter={(v) => v + "%"} />
               <Tooltip contentStyle={{ background: "#1e2535", border: "1px solid rgba(255,255,255,0.1)", fontSize: 12, ...MONO }} formatter={(v: any) => [v + "%", "Score"]} />
-              <Line type="monotone" dataKey="score" stroke="#f59e0b" strokeWidth={2} dot={{ fill: "#f59e0b", r: 3 }} />
+              <Line type="monotone" dataKey="score" stroke="#8b5cf6" strokeWidth={2} dot={{ fill: "#8b5cf6", r: 3 }} />
             </LineChart>
           </ResponsiveContainer>
         </div>
@@ -169,7 +169,7 @@ export function NewsSentiment({ onNavigate }: NewsSentimentProps) {
                   onMouseEnter={(e) => (e.currentTarget as HTMLTableRowElement).style.background = "rgba(255,255,255,0.03)"}
                   onMouseLeave={(e) => (e.currentTarget as HTMLTableRowElement).style.background = "transparent"}
                 >
-                  <td style={{ padding: "10px 10px" }}><span style={{ color: "#f59e0b", fontSize: 13, fontWeight: 700, ...MONO }}>{n.ticker}</span></td>
+                  <td style={{ padding: "10px 10px" }}><span style={{ color: "#8b5cf6", fontSize: 13, fontWeight: 700, ...MONO }}>{n.ticker}</span></td>
                   <td style={{ padding: "10px 10px", color: "#e2e8f0", fontSize: 12, ...INTER }}>{n.name}</td>
                   <td style={{ padding: "10px 10px", color: "#3b82f6", fontSize: 13, fontWeight: 600, ...MONO, textAlign: "right" }}>{n.newsCount}</td>
                   <td style={{ padding: "10px 10px", color: "#6b7fa3", fontSize: 12, ...MONO, textAlign: "center" }}>{n.sources}</td>
@@ -193,7 +193,23 @@ export function NewsSentiment({ onNavigate }: NewsSentimentProps) {
                     }}>{n.avgScore > 0 ? "+" : ""}{n.avgScore.toFixed(2)}</span>
                   </td>
                   <td style={{ padding: "10px 10px", color: "#6b7fa3", fontSize: 11, ...INTER, maxWidth: 280 }}>
-                    <div style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{n.headline}</div>
+                    {n.url ? (
+                      <a
+                        href={n.url}
+                        target="_blank"
+                        rel="noreferrer"
+                        onClick={(e) => e.stopPropagation()}
+                        title={n.url}
+                        style={{ color: "#e2e8f0", textDecoration: "none" }}
+                      >
+                        <div style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                          {n.headline}
+                        </div>
+                      </a>
+                    ) : (
+                      <div style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{n.headline}</div>
+                    )}
+                    {n.source && <div style={{ color: "#6b7fa3", fontSize: 10, marginTop: 2 }}>{n.source}</div>}
                   </td>
                 </tr>
               ))}

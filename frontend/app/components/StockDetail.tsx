@@ -1,9 +1,10 @@
-import { useState, useMemo } from "react";
+import { useEffect, useState, useMemo } from "react";
 import {
   ComposedChart, Line, Bar, XAxis, YAxis, Tooltip,
   ResponsiveContainer, ReferenceLine, Legend,
 } from "recharts";
-import { generateCandlestickData, stockList } from "./mockData";
+import { dataSnapshotMeta, generateCandlestickData, newsSentiment, stockList } from "./mockData";
+import { Candle, StockOption, fetchCandles, fetchStocks } from "./api";
 
 const CARD: React.CSSProperties = {
   background: "#111827", border: "1px solid rgba(255,255,255,0.07)", borderRadius: 8, padding: 16,
@@ -43,12 +44,51 @@ export function StockDetail({ initialTicker = "VCB" }: StockDetailProps) {
   const [ticker, setTicker] = useState(initialTicker);
   const [period, setPeriod] = useState("3M");
   const [indicators, setIndicators] = useState({ sma20: true, ema12: false, bb: true, rsi: true, macd: false });
+  const [stockOptions, setStockOptions] = useState<StockOption[]>(stockList);
+  const [apiData, setApiData] = useState<Candle[] | null>(null);
+  const [apiStatus, setApiStatus] = useState("Đang đọc API...");
 
-  const data = useMemo(() => generateCandlestickData(), [ticker]);
+  useEffect(() => {
+    let cancelled = false;
+    fetchStocks()
+      .then((stocks) => {
+        if (cancelled) return;
+        setStockOptions(stocks);
+        setApiStatus(`API · ${stocks.length} mã`);
+      })
+      .catch(() => {
+        if (cancelled) return;
+        setApiStatus(`Snapshot · ${stockList.length} mã`);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+    setApiData(null);
+    fetchCandles(ticker)
+      .then((candles) => {
+        if (!cancelled) setApiData(candles);
+      })
+      .catch(() => {
+        if (!cancelled) setApiData(null);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [ticker]);
+
+  const data = useMemo(() => apiData ?? generateCandlestickData(ticker), [apiData, ticker]);
   const sliced = period === "1M" ? data.slice(-21) : period === "3M" ? data.slice(-63) : period === "6M" ? data.slice(-126) : data;
-  const stock = stockList.find((s) => s.ticker === ticker) || stockList[0];
+  const stock = stockOptions.find((s) => s.ticker === ticker) || stockList.find((s) => s.ticker === ticker) || stockOptions[0] || stockList[0];
+  const stockNews = newsSentiment.filter((n) => n.ticker === ticker);
   const last = sliced[sliced.length - 1];
   const prev = sliced[sliced.length - 2];
+  if (!last || !prev || !stock) {
+    return <div style={CARD}>Đang tải dữ liệu cổ phiếu...</div>;
+  }
   const pct = ((last.close - prev.close) / prev.close * 100).toFixed(2);
   const up = last.close >= prev.close;
 
@@ -63,11 +103,12 @@ export function StockDetail({ initialTicker = "VCB" }: StockDetailProps) {
         <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
           <div>
             <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-              <span style={{ ...MONO, color: "#f59e0b", fontSize: 22, fontWeight: 700 }}>{stock.ticker}</span>
+              <span style={{ ...MONO, color: "#8b5cf6", fontSize: 22, fontWeight: 700 }}>{stock.ticker}</span>
               <span style={{ background: "rgba(59,130,246,0.15)", color: "#3b82f6", fontSize: 11, padding: "2px 8px", borderRadius: 3, ...INTER }}>{stock.exchange}</span>
               <span style={{ background: "rgba(255,255,255,0.06)", color: "#6b7fa3", fontSize: 11, padding: "2px 8px", borderRadius: 3, ...INTER }}>{stock.sector}</span>
             </div>
             <div style={{ ...INTER, color: "#6b7fa3", fontSize: 12, marginTop: 2 }}>{stock.name}</div>
+            <div style={{ ...INTER, color: "#6b7fa3", fontSize: 11, marginTop: 2 }}>{apiStatus}</div>
           </div>
         </div>
 
@@ -81,7 +122,7 @@ export function StockDetail({ initialTicker = "VCB" }: StockDetailProps) {
               color: "#e2e8f0", padding: "6px 10px", fontSize: 12, ...INTER, cursor: "pointer",
             }}
           >
-            {stockList.map((s) => (
+            {stockOptions.map((s) => (
               <option key={s.ticker} value={s.ticker}>{s.ticker} – {s.name.slice(0, 30)}</option>
             ))}
           </select>
@@ -90,7 +131,7 @@ export function StockDetail({ initialTicker = "VCB" }: StockDetailProps) {
           {["1M", "3M", "6M", "1Y"].map((p) => (
             <button key={p} onClick={() => setPeriod(p)} style={{
               padding: "5px 12px", borderRadius: 5, border: "1px solid rgba(255,255,255,0.1)",
-              background: period === p ? "#f59e0b" : "transparent",
+              background: period === p ? "#8b5cf6" : "transparent",
               color: period === p ? "#0b0f1a" : "#6b7fa3", fontSize: 12, ...INTER, cursor: "pointer", fontWeight: period === p ? 600 : 400,
             }}>{p}</button>
           ))}
@@ -112,7 +153,7 @@ export function StockDetail({ initialTicker = "VCB" }: StockDetailProps) {
         <span style={{ ...INTER, color: "#6b7fa3", fontSize: 11, textTransform: "uppercase", letterSpacing: "0.06em" }}>Chỉ báo:</span>
         {(Object.entries(indicators) as [keyof typeof indicators, boolean][]).map(([key, active]) => {
           const labels: Record<string, string> = { sma20: "SMA20", ema12: "EMA12", bb: "Bollinger Band", rsi: "RSI14", macd: "MACD" };
-          const colors: Record<string, string> = { sma20: "#f59e0b", ema12: "#a855f7", bb: "#6b7fa3", rsi: "#3b82f6", macd: "#00d97e" };
+          const colors: Record<string, string> = { sma20: "#8b5cf6", ema12: "#a855f7", bb: "#6b7fa3", rsi: "#3b82f6", macd: "#00d97e" };
           return (
             <button key={key} onClick={() => toggleIndicator(key)} style={{
               padding: "4px 10px", borderRadius: 4,
@@ -136,7 +177,7 @@ export function StockDetail({ initialTicker = "VCB" }: StockDetailProps) {
             <Tooltip content={<CustomTooltip />} />
             <Bar yAxisId="vol" dataKey="volume" fill="rgba(59,130,246,0.25)" name="Volume" radius={[1, 1, 0, 0]} />
             <Line yAxisId="price" type="monotone" dataKey="close" stroke={up ? "#00d97e" : "#ff4d6d"} strokeWidth={2} dot={false} name="Giá đóng cửa" />
-            {indicators.sma20 && <Line yAxisId="price" type="monotone" dataKey="sma20" stroke="#f59e0b" strokeWidth={1.5} dot={false} strokeDasharray="4 2" name="SMA20" />}
+            {indicators.sma20 && <Line yAxisId="price" type="monotone" dataKey="sma20" stroke="#8b5cf6" strokeWidth={1.5} dot={false} strokeDasharray="4 2" name="SMA20" />}
             {indicators.ema12 && <Line yAxisId="price" type="monotone" dataKey="ema12" stroke="#a855f7" strokeWidth={1.5} dot={false} strokeDasharray="4 2" name="EMA12" />}
             {indicators.bb && <>
               <Line yAxisId="price" type="monotone" dataKey="bbUpper" stroke="#6b7fa3" strokeWidth={1} dot={false} strokeDasharray="2 2" name="BB Upper" />
@@ -174,7 +215,7 @@ export function StockDetail({ initialTicker = "VCB" }: StockDetailProps) {
                 <Tooltip contentStyle={{ background: "#1e2535", border: "1px solid rgba(255,255,255,0.1)", fontSize: 12, ...MONO }} />
                 <ReferenceLine y={0} stroke="rgba(255,255,255,0.2)" strokeWidth={1} />
                 <Bar dataKey="macd" fill="#00d97e" opacity={0.6} name="MACD" />
-                <Line type="monotone" dataKey="macdSignal" stroke="#f59e0b" strokeWidth={1.5} dot={false} name="Signal" />
+                <Line type="monotone" dataKey="macdSignal" stroke="#8b5cf6" strokeWidth={1.5} dot={false} name="Signal" />
               </ComposedChart>
             </ResponsiveContainer>
           </div>
@@ -193,30 +234,43 @@ export function StockDetail({ initialTicker = "VCB" }: StockDetailProps) {
             </tr>
           </thead>
           <tbody>
-            {[
-              { date: "14/06/2026", title: `${stock.ticker} ghi nhận kết quả kinh doanh Q2 tích cực, vượt kỳ vọng thị trường`, source: "CafeF", sentiment: 0.78 },
-              { date: "13/06/2026", title: `Dòng tiền ngoại mua ròng ${stock.ticker} phiên thứ 5 liên tiếp`, source: "VnDirect", sentiment: 0.65 },
-              { date: "12/06/2026", title: `Phân tích kỹ thuật ${stock.ticker}: Breakout khỏi kháng cự quan trọng`, source: "SSI", sentiment: 0.52 },
-              { date: "11/06/2026", title: `${stock.ticker} thông báo kế hoạch chia cổ tức bằng tiền mặt 1.500đ/cp`, source: "HNX", sentiment: 0.88 },
-              { date: "10/06/2026", title: `Nhận định: ${stock.ticker} có thể điều chỉnh ngắn hạn trước khi tăng trở lại`, source: "VCSC", sentiment: -0.15 },
-            ].map((row, i) => (
+            {stockNews.map((row, i) => (
               <tr key={i} style={{ borderBottom: "1px solid rgba(255,255,255,0.04)" }}>
-                <td style={{ padding: "9px 10px", color: "#6b7fa3", fontSize: 11, ...MONO, whiteSpace: "nowrap" }}>{row.date}</td>
-                <td style={{ padding: "9px 10px", color: "#e2e8f0", fontSize: 12, ...INTER }}>{row.title}</td>
+                <td style={{ padding: "9px 10px", color: "#6b7fa3", fontSize: 11, ...MONO, whiteSpace: "nowrap" }}>{dataSnapshotMeta.latestPriceDate}</td>
+                <td style={{ padding: "9px 10px", color: "#e2e8f0", fontSize: 12, ...INTER }}>
+                  {row.url ? (
+                    <a
+                      href={row.url}
+                      target="_blank"
+                      rel="noreferrer"
+                      title={row.url}
+                      style={{ color: "#e2e8f0", textDecoration: "none" }}
+                    >
+                      {row.headline}
+                    </a>
+                  ) : row.headline}
+                </td>
                 <td style={{ padding: "9px 10px" }}>
-                  <span style={{ background: "rgba(255,255,255,0.06)", color: "#6b7fa3", fontSize: 11, padding: "2px 8px", borderRadius: 3, ...INTER }}>{row.source}</span>
+                  <span style={{ background: "rgba(255,255,255,0.06)", color: "#6b7fa3", fontSize: 11, padding: "2px 8px", borderRadius: 3, ...INTER }}>{row.source || `${row.sources} nguồn`}</span>
                 </td>
                 <td style={{ padding: "9px 10px" }}>
                   <span style={{
-                    background: row.sentiment > 0.3 ? "rgba(0,217,126,0.1)" : row.sentiment < -0.1 ? "rgba(255,77,109,0.1)" : "rgba(107,127,163,0.15)",
-                    color: row.sentiment > 0.3 ? "#00d97e" : row.sentiment < -0.1 ? "#ff4d6d" : "#6b7fa3",
+                    background: row.avgScore > 0.3 ? "rgba(0,217,126,0.1)" : row.avgScore < -0.1 ? "rgba(255,77,109,0.1)" : "rgba(107,127,163,0.15)",
+                    color: row.avgScore > 0.3 ? "#00d97e" : row.avgScore < -0.1 ? "#ff4d6d" : "#6b7fa3",
                     fontSize: 12, padding: "2px 8px", borderRadius: 3, ...MONO, fontWeight: 600,
                   }}>
-                    {row.sentiment > 0 ? "+" : ""}{row.sentiment.toFixed(2)}
+                    {row.avgScore > 0 ? "+" : ""}{row.avgScore.toFixed(2)}
                   </span>
                 </td>
               </tr>
             ))}
+            {stockNews.length === 0 && (
+              <tr>
+                <td colSpan={4} style={{ padding: "14px 10px", color: "#6b7fa3", fontSize: 12, ...INTER }}>
+                  Chưa có bản ghi sentiment cho {stock.ticker} trong fact_news_sentiment_daily.
+                </td>
+              </tr>
+            )}
           </tbody>
         </table>
       </div>

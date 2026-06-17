@@ -22,6 +22,8 @@ dependencies = [
     "dbt-clickhouse>=1.10.0",
     "websockets>=16.0",
     "certifi>=2026.5.20",
+    "fastapi>=0.124.0",
+    "uvicorn[standard]>=0.38.0",
 ]
 
 [dependency-groups]
