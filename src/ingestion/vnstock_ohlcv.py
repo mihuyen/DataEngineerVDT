@@ -254,23 +254,26 @@ def run_many(
         if not cleaned_ticker:
             continue
 
+        status = "FAILED"
         try:
-            results.append(
-                run(
-                    ticker=cleaned_ticker,
-                    start_date=start_date,
-                    end_date=end_date,
-                    config_path=config_path,
-                    local_output_dir=local_output_dir,
-                    skip_existing=skip_existing,
-                )
+            result = run(
+                ticker=cleaned_ticker,
+                start_date=start_date,
+                end_date=end_date,
+                config_path=config_path,
+                local_output_dir=local_output_dir,
+                skip_existing=skip_existing,
             )
+            results.append(result)
+            status = result.get("status", "SUCCESS")
+            print(f"- {cleaned_ticker}: {status}", flush=True)
         except Exception as exc:
             if not continue_on_error:
                 raise
             errors.append({"ticker": cleaned_ticker, "error": str(exc)})
+            print(f"- {cleaned_ticker}: FAILED ({exc})", flush=True)
 
-        if request_delay_seconds > 0:
+        if request_delay_seconds > 0 and status != "SKIPPED":
             sleep(request_delay_seconds)
 
     skipped = sum(1 for result in results if result.get("status") == "SKIPPED")
