@@ -47,6 +47,8 @@ export function StockDetail({ initialTicker = "VCB" }: StockDetailProps) {
   const [stockOptions, setStockOptions] = useState<StockOption[]>(stockList);
   const [apiData, setApiData] = useState<Candle[] | null>(null);
   const [apiStatus, setApiStatus] = useState("Đang đọc API...");
+  const [searchText, setSearchText] = useState("");
+  const [searchOpen, setSearchOpen] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -83,17 +85,35 @@ export function StockDetail({ initialTicker = "VCB" }: StockDetailProps) {
   const data = useMemo(() => apiData ?? generateCandlestickData(ticker), [apiData, ticker]);
   const sliced = period === "1M" ? data.slice(-21) : period === "3M" ? data.slice(-63) : period === "6M" ? data.slice(-126) : data;
   const stock = stockOptions.find((s) => s.ticker === ticker) || stockList.find((s) => s.ticker === ticker) || stockOptions[0] || stockList[0];
+  const filteredStocks = useMemo(() => {
+    const keyword = searchText.trim().toLowerCase();
+    const candidates = keyword
+      ? stockOptions.filter((s) =>
+        s.ticker.toLowerCase().includes(keyword)
+        || s.name.toLowerCase().includes(keyword)
+        || s.sector.toLowerCase().includes(keyword)
+      )
+      : stockOptions;
+    return candidates.slice(0, 80);
+  }, [searchText, stockOptions]);
   const stockNews = newsSentiment.filter((n) => n.ticker === ticker);
   const last = sliced[sliced.length - 1];
   const prev = sliced[sliced.length - 2];
   if (!last || !prev || !stock) {
     return <div style={CARD}>Đang tải dữ liệu cổ phiếu...</div>;
   }
+  const latestDate = last.date?.length === 10 ? last.date : dataSnapshotMeta.latestPriceDate;
   const pct = ((last.close - prev.close) / prev.close * 100).toFixed(2);
   const up = last.close >= prev.close;
 
   const toggleIndicator = (key: keyof typeof indicators) => {
     setIndicators((prev) => ({ ...prev, [key]: !prev[key] }));
+  };
+
+  const selectStock = (selected: StockOption) => {
+    setTicker(selected.ticker);
+    setSearchText("");
+    setSearchOpen(false);
   };
 
   return (
@@ -108,24 +128,100 @@ export function StockDetail({ initialTicker = "VCB" }: StockDetailProps) {
               <span style={{ background: "rgba(255,255,255,0.06)", color: "#6b7fa3", fontSize: 11, padding: "2px 8px", borderRadius: 3, ...INTER }}>{stock.sector}</span>
             </div>
             <div style={{ ...INTER, color: "#6b7fa3", fontSize: 12, marginTop: 2 }}>{stock.name}</div>
-            <div style={{ ...INTER, color: "#6b7fa3", fontSize: 11, marginTop: 2 }}>{apiStatus}</div>
+            <div style={{ ...INTER, color: "#6b7fa3", fontSize: 11, marginTop: 2 }}>
+              {apiStatus} · Giá đến {latestDate}
+            </div>
           </div>
         </div>
 
         <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-          {/* Ticker selector */}
-          <select
-            value={ticker}
-            onChange={(e) => setTicker(e.target.value)}
-            style={{
-              background: "#1e2535", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 5,
-              color: "#e2e8f0", padding: "6px 10px", fontSize: 12, ...INTER, cursor: "pointer",
-            }}
-          >
-            {stockOptions.map((s) => (
-              <option key={s.ticker} value={s.ticker}>{s.ticker} – {s.name.slice(0, 30)}</option>
-            ))}
-          </select>
+          {/* Ticker search */}
+          <div style={{ position: "relative", width: 320 }}>
+            <input
+              value={searchOpen ? searchText : `${stock.ticker} – ${stock.name}`}
+              onFocus={() => {
+                setSearchOpen(true);
+                setSearchText("");
+              }}
+              onChange={(e) => {
+                setSearchText(e.target.value);
+                setSearchOpen(true);
+              }}
+              onBlur={() => window.setTimeout(() => setSearchOpen(false), 140)}
+              placeholder="Tìm mã / tên công ty..."
+              style={{
+                width: "100%",
+                background: "#1e2535",
+                border: "1px solid rgba(255,255,255,0.1)",
+                borderRadius: 5,
+                color: "#e2e8f0",
+                padding: "7px 10px",
+                fontSize: 12,
+                ...INTER,
+                outline: "none",
+                boxSizing: "border-box",
+              }}
+            />
+            {searchOpen && (
+              <div style={{
+                position: "absolute",
+                top: "calc(100% + 4px)",
+                right: 0,
+                width: "100%",
+                maxHeight: 360,
+                overflowY: "auto",
+                background: "#111827",
+                border: "1px solid rgba(255,255,255,0.12)",
+                borderRadius: 6,
+                boxShadow: "0 18px 50px rgba(0,0,0,0.45)",
+                zIndex: 30,
+              }}>
+                {filteredStocks.map((s) => {
+                  const active = s.ticker === ticker;
+                  return (
+                    <button
+                      key={s.ticker}
+                      type="button"
+                      onMouseDown={(e) => {
+                        e.preventDefault();
+                        selectStock(s);
+                      }}
+                      style={{
+                        width: "100%",
+                        display: "grid",
+                        gridTemplateColumns: "64px 1fr",
+                        gap: 8,
+                        alignItems: "center",
+                        padding: "9px 10px",
+                        border: "none",
+                        borderBottom: "1px solid rgba(255,255,255,0.04)",
+                        background: active ? "rgba(139,92,246,0.2)" : "transparent",
+                        color: "#e2e8f0",
+                        cursor: "pointer",
+                        textAlign: "left",
+                      }}
+                    >
+                      <span style={{ ...MONO, color: "#8b5cf6", fontSize: 12, fontWeight: 700 }}>{s.ticker}</span>
+                      <span style={{ ...INTER, color: "#e2e8f0", fontSize: 12, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                        {s.name}
+                        <span style={{ color: "#6b7fa3" }}> · {s.exchange} · {s.sector}</span>
+                      </span>
+                    </button>
+                  );
+                })}
+                {filteredStocks.length === 0 && (
+                  <div style={{ padding: "12px 10px", color: "#6b7fa3", fontSize: 12, ...INTER }}>
+                    Không tìm thấy mã phù hợp.
+                  </div>
+                )}
+                {stockOptions.length > filteredStocks.length && searchText.trim() === "" && (
+                  <div style={{ padding: "8px 10px", color: "#6b7fa3", fontSize: 11, ...INTER, borderTop: "1px solid rgba(255,255,255,0.06)" }}>
+                    Gõ mã hoặc tên công ty để lọc trong {stockOptions.length} mã.
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
 
           {/* Period buttons */}
           {["1M", "3M", "6M", "1Y"].map((p) => (
@@ -171,7 +267,7 @@ export function StockDetail({ initialTicker = "VCB" }: StockDetailProps) {
         <div style={{ ...INTER, color: "#e2e8f0", fontSize: 13, fontWeight: 600, marginBottom: 12 }}>Biểu đồ giá & Khối lượng</div>
         <ResponsiveContainer width="100%" height={280}>
           <ComposedChart data={sliced} margin={{ left: 10, right: 20 }}>
-            <XAxis dataKey="date" tick={{ fill: "#6b7fa3", fontSize: 10, ...MONO }} axisLine={false} tickLine={false} interval={Math.floor(sliced.length / 8)} />
+            <XAxis dataKey="date" tick={{ fill: "#6b7fa3", fontSize: 10, ...MONO }} axisLine={false} tickLine={false} interval={Math.floor(sliced.length / 8)} tickFormatter={(v) => String(v).slice(5)} />
             <YAxis yAxisId="price" domain={["auto", "auto"]} tick={{ fill: "#6b7fa3", fontSize: 10, ...MONO }} axisLine={false} tickLine={false} width={70} tickFormatter={(v) => v.toLocaleString("vi-VN")} />
             <YAxis yAxisId="vol" orientation="right" tick={{ fill: "#6b7fa3", fontSize: 10, ...MONO }} axisLine={false} tickLine={false} width={60} tickFormatter={(v) => (v / 1_000_000).toFixed(1) + "M"} />
             <Tooltip content={<CustomTooltip />} />
@@ -194,7 +290,7 @@ export function StockDetail({ initialTicker = "VCB" }: StockDetailProps) {
             <div style={{ ...INTER, color: "#e2e8f0", fontSize: 13, fontWeight: 600, marginBottom: 12 }}>RSI (14)</div>
             <ResponsiveContainer width="100%" height={120}>
               <ComposedChart data={sliced} margin={{ left: 10, right: 20 }}>
-                <XAxis dataKey="date" tick={false} axisLine={false} tickLine={false} />
+                <XAxis dataKey="date" tick={false} axisLine={false} tickLine={false} tickFormatter={(v) => String(v).slice(5)} />
                 <YAxis domain={[0, 100]} tick={{ fill: "#6b7fa3", fontSize: 10, ...MONO }} axisLine={false} tickLine={false} width={30} />
                 <Tooltip contentStyle={{ background: "#1e2535", border: "1px solid rgba(255,255,255,0.1)", fontSize: 12, ...MONO }} formatter={(v: any) => [v.toFixed(1), "RSI"]} />
                 <ReferenceLine y={70} stroke="#ff4d6d" strokeDasharray="3 3" strokeWidth={1} label={{ value: "70", fill: "#ff4d6d", fontSize: 10 }} />
@@ -210,7 +306,7 @@ export function StockDetail({ initialTicker = "VCB" }: StockDetailProps) {
             <div style={{ ...INTER, color: "#e2e8f0", fontSize: 13, fontWeight: 600, marginBottom: 12 }}>MACD</div>
             <ResponsiveContainer width="100%" height={120}>
               <ComposedChart data={sliced} margin={{ left: 10, right: 20 }}>
-                <XAxis dataKey="date" tick={false} axisLine={false} tickLine={false} />
+                <XAxis dataKey="date" tick={false} axisLine={false} tickLine={false} tickFormatter={(v) => String(v).slice(5)} />
                 <YAxis tick={{ fill: "#6b7fa3", fontSize: 10, ...MONO }} axisLine={false} tickLine={false} width={40} />
                 <Tooltip contentStyle={{ background: "#1e2535", border: "1px solid rgba(255,255,255,0.1)", fontSize: 12, ...MONO }} />
                 <ReferenceLine y={0} stroke="rgba(255,255,255,0.2)" strokeWidth={1} />
@@ -236,7 +332,9 @@ export function StockDetail({ initialTicker = "VCB" }: StockDetailProps) {
           <tbody>
             {stockNews.map((row, i) => (
               <tr key={i} style={{ borderBottom: "1px solid rgba(255,255,255,0.04)" }}>
-                <td style={{ padding: "9px 10px", color: "#6b7fa3", fontSize: 11, ...MONO, whiteSpace: "nowrap" }}>{dataSnapshotMeta.latestPriceDate}</td>
+                <td style={{ padding: "9px 10px", color: "#6b7fa3", fontSize: 11, ...MONO, whiteSpace: "nowrap" }}>
+                  {row.publishedAt || row.newsDate || dataSnapshotMeta.latestNewsDate}
+                </td>
                 <td style={{ padding: "9px 10px", color: "#e2e8f0", fontSize: 12, ...INTER }}>
                   {row.url ? (
                     <a

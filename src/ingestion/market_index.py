@@ -14,12 +14,10 @@ from src.common.minio_client import create_client, upload_file
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 DEFAULT_CONFIG_PATH = PROJECT_ROOT / "configs" / "sources.yaml"
 DEFAULT_LOCAL_BRONZE_DIR = PROJECT_ROOT / "data" / "bronze_local"
-DEFAULT_INDEX_CODES = ["VNINDEX", "VN30", "HNXINDEX", "UPCOMINDEX"]
+DEFAULT_INDEX_CODES = ["VNINDEX", "VN30"]
 DEFAULT_PROVIDER_SYMBOLS = {
     "VNINDEX": "VNINDEX",
     "VN30": "VN30",
-    "HNXINDEX": "HNXINDEX",
-    "UPCOMINDEX": "UPCOMINDEX",
 }
 DEFAULT_PROVIDER_SOURCE = "vci"
 REQUIRED_COLUMNS = {"date", "open", "high", "low", "close", "volume"}

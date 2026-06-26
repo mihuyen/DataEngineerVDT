@@ -17,7 +17,7 @@ PROJECT_ROOT = Path(__file__).resolve().parents[2]
 DEFAULT_CONFIG_PATH = PROJECT_ROOT / "configs" / "sources.yaml"
 DEFAULT_LOCAL_BRONZE_DIR = PROJECT_ROOT / "data" / "bronze_local"
 REQUIRED_COLUMNS = {"date", "open", "high", "low", "close", "volume"}
-DEFAULT_EXCHANGES = ("HOSE", "HNX", "UPCOM")
+DEFAULT_EXCHANGES = ("HOSE",)
 
 
 def load_config(

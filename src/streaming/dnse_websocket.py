@@ -5,13 +5,13 @@ import hashlib
 import hmac
 import json
 import os
-import secrets
 import ssl
 import time
 from collections.abc import AsyncIterator
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import UTC, datetime
 from typing import Any
+from zoneinfo import ZoneInfo
 
 import certifi
 import polars as pl
@@ -21,6 +21,7 @@ import websockets
 DEFAULT_DNSE_WS_URL = "wss://ws-openapi.dnse.com.vn"
 DEFAULT_DNSE_ENCODING = "json"
 DEFAULT_DNSE_BOARD_ID = "G1"
+VIETNAM_TZ = ZoneInfo("Asia/Ho_Chi_Minh")
 
 
 @dataclass(frozen=True)
@@ -98,8 +99,8 @@ def create_auth_message(
     nonce: str | None = None,
 ) -> dict[str, Any]:
     """Create DNSE auth message using HMAC-SHA256."""
-    auth_timestamp = timestamp if timestamp is not None else int(time.time() * 1000)
-    auth_nonce = nonce or secrets.token_hex(16)
+    auth_timestamp = timestamp if timestamp is not None else int(time.time())
+    auth_nonce = nonce or str(int(time.time() * 1_000_000))
     message = f"{api_key}:{auth_timestamp}:{auth_nonce}"
     signature = hmac.new(
         api_secret.encode("utf-8"),
@@ -146,12 +147,19 @@ def parse_dnse_time(value: Any) -> datetime:
         nanos = value.get("Nanos", value.get("nanos", 0))
         if seconds is None:
             raise ValueError("DNSE time object missing Seconds.")
-        return datetime.fromtimestamp(float(seconds) + float(nanos or 0) / 1_000_000_000)
+        return (
+            datetime.fromtimestamp(float(seconds) + float(nanos or 0) / 1_000_000_000, UTC)
+            .astimezone(VIETNAM_TZ)
+            .replace(tzinfo=None)
+        )
     if isinstance(value, int | float):
-        return datetime.fromtimestamp(float(value))
+        return datetime.fromtimestamp(float(value), UTC).astimezone(VIETNAM_TZ).replace(tzinfo=None)
     if isinstance(value, str):
         normalized = value.replace("Z", "+00:00")
-        return datetime.fromisoformat(normalized).replace(tzinfo=None)
+        parsed = datetime.fromisoformat(normalized)
+        if parsed.tzinfo is not None:
+            return parsed.astimezone(VIETNAM_TZ).replace(tzinfo=None)
+        return parsed
     raise ValueError(f"Unsupported DNSE time value: {value!r}")
 
 

@@ -19,7 +19,7 @@ REQUIRED_COLUMNS = [
     "sector_name",
     "shares_outstanding",
 ]
-VALID_EXCHANGES = {"HOSE", "HNX", "UPCOM", "UNKNOWN"}
+VALID_EXCHANGES = {"HOSE", "UNKNOWN"}
 
 
 @dataclass(frozen=True)
@@ -86,7 +86,7 @@ def validate_company_profile(frame: pl.DataFrame) -> QualityReport:
         (
             "expect_exchange_to_be_valid",
             pl.col("exchange").is_in(sorted(VALID_EXCHANGES)),
-            "exchange must be HOSE, HNX, UPCOM, or UNKNOWN",
+            "exchange must be HOSE or UNKNOWN",
         ),
         (
             "expect_sector_id_to_not_be_null",

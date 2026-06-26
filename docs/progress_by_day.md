@@ -949,7 +949,7 @@ Lệnh chạy live khi đã có credential:
 ```bash
 export DNSE_API_KEY=...
 export DNSE_API_SECRET=...
-uv run python scripts/run_dnse_realtime_ingest.py --symbols VCB,FPT,HPG --max-messages 100 --timeout-seconds 300 --load-vwap
+uv run python scripts/run_dnse_realtime_ingest.py --symbols ALL --max-messages 100 --timeout-seconds 300 --load-vwap
 ```
 
 Output Bronze live:
@@ -963,7 +963,7 @@ data/bronze_local/dnse/trades/year=YYYY/month=MM/day=DD/data.parquet
 ```bash
 docker compose up -d zookeeper kafka
 uv run python scripts/create_realtime_kafka_topic.py
-uv run python scripts/load_realtime_vwap_demo.py --tickers VCB,FPT,HPG --minutes 10 --trades-per-minute 4
+uv run python scripts/load_realtime_vwap_demo.py --tickers ALL --minutes 10 --trades-per-minute 4
 uv run python scripts/migrate_gold_schema.py
 uv run python scripts/load_gold.py
 uv run python scripts/validate_gold.py

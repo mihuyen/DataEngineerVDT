@@ -8,13 +8,13 @@ from src.quality.market_index_expectations import validate_market_index
 def valid_market_index() -> pl.DataFrame:
     return pl.DataFrame(
         {
-            "index_code": ["VNINDEX", "VN30", "HNXINDEX", "UPCOMINDEX"],
-            "date": [date(2026, 6, 10)] * 4,
-            "open": [100.0, 100.0, 100.0, 100.0],
-            "high": [110.0, 110.0, 110.0, 110.0],
-            "low": [90.0, 90.0, 90.0, 90.0],
-            "close": [105.0, 105.0, 105.0, 105.0],
-            "volume": [1, 1, 1, 1],
+            "index_code": ["VNINDEX", "VN30"],
+            "date": [date(2026, 6, 10)] * 2,
+            "open": [100.0, 100.0],
+            "high": [110.0, 110.0],
+            "low": [90.0, 90.0],
+            "close": [105.0, 105.0],
+            "volume": [1, 1],
         }
     )
 

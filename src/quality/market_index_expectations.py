@@ -12,7 +12,7 @@ import polars as pl
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 DEFAULT_REPORT_DIR = PROJECT_ROOT / "quality_reports"
 REQUIRED_COLUMNS = ["index_code", "date", "open", "high", "low", "close", "volume"]
-EXPECTED_INDEX_CODES = {"VNINDEX", "VN30", "HNXINDEX", "UPCOMINDEX"}
+EXPECTED_INDEX_CODES = {"VNINDEX", "VN30"}
 
 
 @dataclass(frozen=True)

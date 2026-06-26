@@ -17,7 +17,33 @@ def load_silver_ohlcv(local_silver_dir: Path = DEFAULT_LOCAL_SILVER_DIR) -> pl.D
     files = sorted((local_silver_dir / "ohlcv").glob("ticker=*/year=*/month=*/data.parquet"))
     if not files:
         raise FileNotFoundError(f"No Silver OHLCV parquet files found under {local_silver_dir}")
-    return pl.concat([pl.read_parquet(file_path) for file_path in files], how="diagonal_relaxed")
+    frame = pl.concat([pl.read_parquet(file_path) for file_path in files], how="diagonal_relaxed")
+
+    company_profile_files = sorted((local_silver_dir / "company_profile").glob("year=*/month=*/data.parquet"))
+    if not company_profile_files:
+        return frame
+
+    company_profile = pl.concat(
+        [pl.read_parquet(file_path) for file_path in company_profile_files],
+        how="diagonal_relaxed",
+    )
+    if not {"ticker", "exchange"}.issubset(company_profile.columns):
+        return frame
+
+    hose_tickers = (
+        company_profile.select(
+            pl.col("ticker").cast(pl.Utf8).str.to_uppercase(),
+            pl.col("exchange").cast(pl.Utf8).str.to_uppercase(),
+        )
+        .filter(pl.col("exchange") == "HOSE")
+        .get_column("ticker")
+        .unique()
+        .to_list()
+    )
+    if not hose_tickers:
+        return frame
+
+    return frame.with_columns(pl.col("ticker").str.to_uppercase()).filter(pl.col("ticker").is_in(hose_tickers))
 
 
 def add_technical_indicators(frame: pl.DataFrame) -> pl.DataFrame:

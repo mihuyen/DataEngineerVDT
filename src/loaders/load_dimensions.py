@@ -283,18 +283,6 @@ def build_dim_index() -> pl.DataFrame:
             "exchange": "HOSE",
             "description": "Chỉ số nhóm 30 cổ phiếu vốn hóa và thanh khoản cao trên HOSE",
         },
-        {
-            "index_id": "HNXINDEX",
-            "index_name": "HNX-Index",
-            "exchange": "HNX",
-            "description": "Chỉ số đại diện Sở Giao dịch Chứng khoán Hà Nội",
-        },
-        {
-            "index_id": "UPCOMINDEX",
-            "index_name": "UPCOM-Index",
-            "exchange": "UPCOM",
-            "description": "Chỉ số đại diện thị trường UPCOM",
-        },
     ]
     return pl.DataFrame(records).select("index_id", "index_name", "exchange", "description")
 

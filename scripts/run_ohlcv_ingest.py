@@ -26,7 +26,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--exchanges",
         nargs="+",
-        help="Danh sach san can lay ma: HOSE HNX UPCOM.",
+        help="Danh sach san can lay ma. Mac dinh chi lay HOSE.",
     )
     parser.add_argument(
         "--ticker-file",

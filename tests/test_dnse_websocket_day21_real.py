@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import hashlib
 import hmac
+import time
 from datetime import datetime
 
 from src.streaming.dnse_websocket import (
@@ -10,6 +11,12 @@ from src.streaming.dnse_websocket import (
     create_auth_message,
     parse_dnse_time,
     parse_trade_message,
+)
+from scripts.run_dnse_realtime_ingest import (
+    DEFAULT_DNSE_SYMBOLS,
+    load_all_symbols_with_fallback,
+    parse_symbols,
+    read_symbols_from_file,
 )
 
 
@@ -29,6 +36,15 @@ def test_dnse_auth_message_uses_hmac_sha256() -> None:
     assert message["action"] == "auth"
     assert message["api_key"] == "test_key"
     assert message["signature"] == expected
+
+
+def test_dnse_auth_message_defaults_to_second_timestamp() -> None:
+    before = int(time.time())
+    message = create_auth_message(api_key="test_key", api_secret="test_secret")
+    after = int(time.time())
+
+    assert before <= message["timestamp"] <= after
+    assert len(str(message["timestamp"])) == 10
 
 
 def test_dnse_subscribe_message_matches_trade_channel() -> None:
@@ -51,6 +67,44 @@ def test_dnse_config_from_env_normalizes_symbols(monkeypatch) -> None:
     assert config.trade_channel == "tick.G1.json"
     assert config.quote_channel == "top_price.G1.json"
     assert config.symbols == ("VCB", "FPT")
+
+
+def test_dnse_ingest_parse_symbols_supports_all_universe() -> None:
+    assert parse_symbols("ALL") == ["ALL"]
+    assert parse_symbols(" vcb, fpt ") == ["VCB", "FPT"]
+
+
+def test_dnse_ingest_reads_ticker_file(tmp_path) -> None:
+    ticker_file = tmp_path / "tickers.csv"
+    ticker_file.write_text("symbol\nvcb\n fpt\nVCB\n", encoding="utf-8")
+
+    assert read_symbols_from_file(ticker_file) == ["FPT", "VCB"]
+
+
+def test_dnse_ingest_all_falls_back_without_clickhouse(monkeypatch, tmp_path) -> None:
+    def fail_clickhouse() -> list[str]:
+        raise RuntimeError("clickhouse down")
+
+    def fail_vnstock() -> list[str]:
+        raise RuntimeError("vnstock down")
+
+    monkeypatch.setattr("scripts.run_dnse_realtime_ingest.load_all_symbols", fail_clickhouse)
+    monkeypatch.setattr("scripts.run_dnse_realtime_ingest.load_symbols_from_vnstock", fail_vnstock)
+
+    assert load_all_symbols_with_fallback(tmp_path / "missing.csv") == DEFAULT_DNSE_SYMBOLS
+
+
+def test_dnse_ingest_all_uses_vnstock_before_builtin(monkeypatch, tmp_path) -> None:
+    def fail_clickhouse() -> list[str]:
+        raise RuntimeError("clickhouse down")
+
+    monkeypatch.setattr("scripts.run_dnse_realtime_ingest.load_all_symbols", fail_clickhouse)
+    monkeypatch.setattr(
+        "scripts.run_dnse_realtime_ingest.load_symbols_from_vnstock",
+        lambda: ["VCB", "FPT", "HPG"],
+    )
+
+    assert load_all_symbols_with_fallback(tmp_path / "missing.csv") == ["VCB", "FPT", "HPG"]
 
 
 def test_parse_dnse_time_from_seconds_and_nanos() -> None:

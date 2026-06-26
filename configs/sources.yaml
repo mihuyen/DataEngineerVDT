@@ -13,8 +13,6 @@ sources:
     partition_strategy: ticker/year/month/day
     default_exchanges:
       - HOSE
-      - HNX
-      - UPCOM
     listing_source: kbs
     ticker_file_fallback: configs/tickers.csv
     notes: "Nguồn chính cho dữ liệu giá cổ phiếu theo ngày; Bronze lưu raw parquet theo ngày ingest."
@@ -31,8 +29,6 @@ sources:
     enabled: true
     default_exchanges:
       - HOSE
-      - HNX
-      - UPCOM
     listing_source: kbs
     profile_source: kbs
     partition_strategy: year/month/day
@@ -54,12 +50,8 @@ sources:
         provider_symbol: VNINDEX
       - index_code: VN30
         provider_symbol: VN30
-      - index_code: HNXINDEX
-        provider_symbol: HNXINDEX
-      - index_code: UPCOMINDEX
-        provider_symbol: UPCOMINDEX
     partition_strategy: index_code/year/month/day
-    notes: "Chỉ số VN-Index, HNX-Index, VN30 lưu raw parquet vào Bronze."
+    notes: "Chỉ số VN-Index và VN30 cho phạm vi HOSE lưu raw parquet vào Bronze."
   - name: market_news
     source_name: market_news
     source_type: news

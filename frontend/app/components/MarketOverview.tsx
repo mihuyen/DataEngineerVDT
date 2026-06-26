@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   LineChart, Line, BarChart, Bar, XAxis, YAxis, Tooltip,
   ResponsiveContainer, Cell, PieChart, Pie,
@@ -10,6 +10,7 @@ import {
   marketStatsByExchange, breadthDataByExchange, indexHistoryByExchange,
   sectorPerformanceByExchange, stockCountsByExchange
 } from "./mockData";
+import { fetchMarketOverview } from "./api";
 
 const CARD_STYLE: React.CSSProperties = {
   background: "#111827",
@@ -42,6 +43,8 @@ function KPICard({ label, value, sub, subUp }: { label: string; value: string; s
 
 type KpiItem = { label: string; value: string; sub?: string; subUp?: boolean | null };
 
+const formatSignedPct = (value: number) => `${value > 0 ? "+" : ""}${value.toFixed(2)}%`;
+
 const CustomTooltip = ({ active, payload, label }: any) => {
   if (active && payload?.length) {
     return (
@@ -58,58 +61,109 @@ interface MarketOverviewProps { onNavigate: (page: string, ticker?: string) => v
 
 export function MarketOverview({ onNavigate }: MarketOverviewProps) {
   const [activeTab, setActiveTab] = useState<"gainers" | "losers" | "liquidity" | "sector">("gainers");
-  const [exchange, setExchange] = useState("ALL");
+  const [exchange] = useState("HOSE");
+  const [apiStatus, setApiStatus] = useState("Snapshot local");
+  const [marketData, setMarketData] = useState({
+    vnIndexHistory,
+    topGainers,
+    topLosers,
+    topLiquidity,
+    sectorPerformance,
+    marketIndicesAll,
+    marketOverviewStats,
+    breadthData,
+    indexChangeBars,
+    dataSnapshotMeta,
+    marketStatsByExchange,
+    breadthDataByExchange,
+    indexHistoryByExchange,
+    sectorPerformanceByExchange,
+    stockCountsByExchange,
+  });
+
+  useEffect(() => {
+    let cancelled = false;
+    const load = () => {
+      fetchMarketOverview()
+        .then((payload) => {
+          if (cancelled) return;
+          setMarketData((current) => ({ ...current, ...payload }));
+          setApiStatus("ClickHouse live query");
+        })
+        .catch(() => {
+          if (!cancelled) setApiStatus("Snapshot local");
+        });
+    };
+    load();
+    const timer = window.setInterval(load, 60000);
+    return () => {
+      cancelled = true;
+      window.clearInterval(timer);
+    };
+  }, []);
+
+  const {
+    vnIndexHistory: liveVnIndexHistory,
+    topGainers: liveTopGainers,
+    topLosers: liveTopLosers,
+    topLiquidity: liveTopLiquidity,
+    sectorPerformance: liveSectorPerformance,
+    marketIndicesAll: liveMarketIndicesAll,
+    marketOverviewStats: liveMarketOverviewStats,
+    breadthData: liveBreadthData,
+    indexChangeBars: liveIndexChangeBars,
+    dataSnapshotMeta: liveDataSnapshotMeta,
+    marketStatsByExchange: liveMarketStatsByExchange,
+    breadthDataByExchange: liveBreadthDataByExchange,
+    indexHistoryByExchange: liveIndexHistoryByExchange,
+    sectorPerformanceByExchange: liveSectorPerformanceByExchange,
+    stockCountsByExchange: liveStockCountsByExchange,
+  } = marketData;
 
   const formatBillion = (n: number) => (n / 1_000_000_000).toFixed(1) + " tỷ";
   const formatMillion = (n: number) => (n / 1_000_000).toFixed(2) + "M";
-  const selectedStats = marketStatsByExchange[exchange] ?? marketOverviewStats;
-  const selectedBreadthData = breadthDataByExchange[exchange] ?? breadthData;
-  const selectedIndexHistory = indexHistoryByExchange[exchange] ?? vnIndexHistory;
-  const selectedIndex = exchange === "HNX"
-    ? marketIndicesAll.find((idx) => idx.label === "HNX-Index")
-    : exchange === "UPCOM"
-      ? marketIndicesAll.find((idx) => idx.label === "UPCOM-Index")
-      : marketIndicesAll.find((idx) => idx.label === "VN-Index");
-  const selectedIndexLabel = exchange === "HNX" ? "HNX-Index" : exchange === "UPCOM" ? "UPCOM-Index" : "VN-Index";
+  const selectedStats = liveMarketStatsByExchange[exchange] ?? liveMarketOverviewStats;
+  const selectedBreadthData = liveBreadthDataByExchange[exchange] ?? liveBreadthData;
+  const selectedIndexHistory = liveIndexHistoryByExchange[exchange] ?? liveVnIndexHistory;
+  const selectedIndex = liveMarketIndicesAll.find((idx) => idx.label === "VN-Index");
+  const selectedIndexLabel = "VN-Index";
   const selectedIndexBars = exchange === "ALL"
-    ? indexChangeBars
-    : indexChangeBars.filter((idx) => {
+    ? liveIndexChangeBars
+    : liveIndexChangeBars.filter((idx) => {
       if (exchange === "HOSE") return idx.label === "VN-Index" || idx.label === "VN30";
-      if (exchange === "HNX") return idx.label === "HNX-Index";
-      return idx.label === "UPCOM-Index";
+      return false;
     });
-  const filteredGainers = (exchange === "ALL" ? topGainers : topGainers.filter((r) => r.exchange === exchange)).slice(0, 10);
-  const filteredLosers = (exchange === "ALL" ? topLosers : topLosers.filter((r) => r.exchange === exchange)).slice(0, 10);
-  const filteredLiquidity = (exchange === "ALL" ? topLiquidity : topLiquidity.filter((r) => r.exchange === exchange)).slice(0, 8);
+  const filteredGainers = (exchange === "ALL" ? liveTopGainers : liveTopGainers.filter((r) => r.exchange === exchange)).slice(0, 10);
+  const filteredLosers = (exchange === "ALL" ? liveTopLosers : liveTopLosers.filter((r) => r.exchange === exchange)).slice(0, 10);
+  const filteredLiquidity = (exchange === "ALL" ? liveTopLiquidity : liveTopLiquidity.filter((r) => r.exchange === exchange)).slice(0, 8);
   const filteredSectorPerformance = (exchange === "ALL"
-    ? sectorPerformance
-    : sectorPerformanceByExchange.filter((s) => s.exchange === exchange)
+    ? liveSectorPerformance
+    : liveSectorPerformanceByExchange.filter((s) => s.exchange === exchange)
   ).slice(0, 12);
   const selectedIndexCards = exchange === "ALL"
     ? []
-    : marketIndicesAll.filter((idx) => {
+    : liveMarketIndicesAll.filter((idx) => {
       if (exchange === "HOSE") return idx.label === "VN-Index" || idx.label === "VN30";
-      if (exchange === "HNX") return idx.label === "HNX-Index";
-      return idx.label === "UPCOM-Index";
+      return false;
     });
   const topSector = filteredSectorPerformance[0];
-  const contextLabel = exchange === "ALL" ? "Toàn thị trường" : `Sàn ${exchange}`;
+  const contextLabel = "Sàn HOSE";
   const overviewKpis: KpiItem[] = exchange === "ALL"
     ? [
       { label: "Giá trị GD", value: selectedStats.totalValue, sub: contextLabel, subUp: null },
       { label: "Khối lượng GD", value: selectedStats.totalVolume, sub: "cp toàn thị trường", subUp: null },
       { label: "Độ rộng TT", value: selectedStats.breadth, sub: selectedStats.breadthSub, subUp: null },
-      { label: "Số mã có giá", value: `${stockCountsByExchange.ALL ?? 0}`, sub: "fact_daily_price mới nhất", subUp: null },
-      { label: "Top ngành", value: topSector?.sector ?? "N/A", sub: topSector ? `${topSector.pct >= 0 ? "+" : ""}${topSector.pct.toFixed(2)}%` : undefined, subUp: topSector ? topSector.pct >= 0 : null },
-      { label: "Sàn đang xem", value: "ALL", sub: "HOSE + HNX + UPCOM", subUp: null },
+      { label: "Số mã có giá", value: `${liveStockCountsByExchange.ALL ?? 0}`, sub: "fact_daily_price mới nhất", subUp: null },
+      { label: "Top ngành", value: topSector?.sector ?? "N/A", sub: topSector ? formatSignedPct(topSector.pct) : undefined, subUp: topSector ? topSector.pct >= 0 : null },
+      { label: "Sàn đang xem", value: "HOSE", sub: "Chỉ dữ liệu HOSE", subUp: null },
     ]
     : [
       ...selectedIndexCards.map((idx) => ({ label: idx.label, value: idx.value, sub: `${idx.chg} (${idx.pct})`, subUp: idx.up })),
       { label: "Giá trị GD", value: selectedStats.totalValue, sub: contextLabel, subUp: null },
       { label: "Khối lượng GD", value: selectedStats.totalVolume, sub: "cp toàn thị trường", subUp: null },
       { label: "Độ rộng TT", value: selectedStats.breadth, sub: selectedStats.breadthSub, subUp: null },
-      { label: "Số mã có giá", value: `${stockCountsByExchange[exchange] ?? 0}`, sub: "fact_daily_price mới nhất", subUp: null },
-      { label: "Top ngành", value: topSector?.sector ?? "N/A", sub: topSector ? `${topSector.pct >= 0 ? "+" : ""}${topSector.pct.toFixed(2)}%` : undefined, subUp: topSector ? topSector.pct >= 0 : null },
+      { label: "Số mã có giá", value: `${liveStockCountsByExchange[exchange] ?? 0}`, sub: "fact_daily_price mới nhất", subUp: null },
+      { label: "Top ngành", value: topSector?.sector ?? "N/A", sub: topSector ? formatSignedPct(topSector.pct) : undefined, subUp: topSector ? topSector.pct >= 0 : null },
     ].slice(0, 6);
 
   return (
@@ -118,18 +172,9 @@ export function MarketOverview({ onNavigate }: MarketOverviewProps) {
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
         <div>
           <h1 style={{ color: "#e2e8f0", margin: 0, fontSize: 18, fontWeight: 700, fontFamily: "Inter, sans-serif" }}>Tổng quan thị trường</h1>
-          <p style={{ color: "#6b7fa3", margin: 0, fontSize: 12, fontFamily: "Inter, sans-serif" }}>Dữ liệu ClickHouse · Phiên {dataSnapshotMeta.latestPriceDate}</p>
+          <p style={{ color: "#6b7fa3", margin: 0, fontSize: 12, fontFamily: "Inter, sans-serif" }}>{apiStatus} · Phiên {liveDataSnapshotMeta.latestPriceDate}</p>
         </div>
-        <div style={{ display: "flex", gap: 8 }}>
-          {["ALL", "HOSE", "HNX", "UPCOM"].map((ex) => (
-            <button key={ex} onClick={() => setExchange(ex)} style={{
-              padding: "5px 12px", borderRadius: 5, border: "1px solid rgba(255,255,255,0.1)",
-              background: exchange === ex ? "#8b5cf6" : "transparent",
-              color: exchange === ex ? "#0b0f1a" : "#6b7fa3",
-              fontSize: 12, fontFamily: "Inter, sans-serif", cursor: "pointer", fontWeight: exchange === ex ? 600 : 400,
-            }}>{ex}</button>
-          ))}
-        </div>
+        <div style={{ color: "#8b5cf6", fontSize: 12, fontFamily: "Inter, sans-serif", fontWeight: 600 }}>HOSE</div>
       </div>
 
       {/* KPI Row */}
@@ -212,7 +257,7 @@ export function MarketOverview({ onNavigate }: MarketOverviewProps) {
               <div key={s.sector} style={{ background: bg, borderRadius: 6, padding: "10px 12px", border: `1px solid ${s.pct > 0 ? "rgba(0,217,126,0.2)" : "rgba(255,77,109,0.2)"}` }}>
                 <div style={{ color: "#e2e8f0", fontSize: 12, fontFamily: "Inter, sans-serif", marginBottom: 4 }}>{s.sector}</div>
                 <div style={{ color: s.pct > 0 ? "#00d97e" : "#ff4d6d", fontSize: 14, fontWeight: 700, fontFamily: "JetBrains Mono, monospace" }}>
-                  {s.pct > 0 ? "+" : ""}{s.pct}%
+                  {formatSignedPct(s.pct)}
                 </div>
               </div>
             );
@@ -350,8 +395,8 @@ export function MarketOverview({ onNavigate }: MarketOverviewProps) {
             <ResponsiveContainer width="100%" height={260}>
               <BarChart data={filteredSectorPerformance} margin={{ left: 10, right: 20, top: 10 }}>
                 <XAxis dataKey="sector" tick={{ fill: "#6b7fa3", fontSize: 10, fontFamily: "Inter, sans-serif" }} axisLine={false} tickLine={false} angle={-20} textAnchor="end" height={50} />
-                <YAxis tick={{ fill: "#6b7fa3", fontSize: 10, fontFamily: "JetBrains Mono, monospace" }} axisLine={false} tickLine={false} tickFormatter={(v) => v + "%"} />
-                <Tooltip contentStyle={{ background: "#1e2535", border: "1px solid rgba(255,255,255,0.1)", fontSize: 12 }} formatter={(v: any) => [v + "%", "Thay đổi"]} />
+                <YAxis tick={{ fill: "#6b7fa3", fontSize: 10, fontFamily: "JetBrains Mono, monospace" }} axisLine={false} tickLine={false} tickFormatter={(v) => `${Number(v).toFixed(2)}%`} />
+                <Tooltip contentStyle={{ background: "#1e2535", border: "1px solid rgba(255,255,255,0.1)", fontSize: 12 }} formatter={(v: any) => [formatSignedPct(Number(v)), "Thay đổi"]} />
                 <Bar dataKey="pct" radius={[3, 3, 0, 0]}>
                   {filteredSectorPerformance.map((entry) => (
                     <Cell key={`sector-${entry.sector}`} fill={entry.pct > 0 ? "#00d97e" : "#ff4d6d"} />

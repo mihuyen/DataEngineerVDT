@@ -2,6 +2,7 @@ services:
   minio:
     image: minio/minio:latest
     container_name: stock-minio
+    restart: unless-stopped
     command: server /data --console-address ":9001"
     ports:
       - "9000:9000"
@@ -15,6 +16,7 @@ services:
   clickhouse:
     image: clickhouse/clickhouse-server:latest
     container_name: stock-clickhouse
+    restart: unless-stopped
     ports:
       - "8123:8123"
       - "9002:9000"
@@ -29,6 +31,7 @@ services:
   postgres:
     image: postgres:16
     container_name: stock-postgres
+    restart: unless-stopped
     ports:
       - "5432:5432"
     environment:
@@ -41,6 +44,7 @@ services:
   zookeeper:
     image: confluentinc/cp-zookeeper:7.6.1
     container_name: stock-zookeeper
+    restart: unless-stopped
     ports:
       - "2181:2181"
     environment:
@@ -50,6 +54,7 @@ services:
   kafka:
     image: confluentinc/cp-kafka:7.6.1
     container_name: stock-kafka
+    restart: unless-stopped
     depends_on:
       - zookeeper
     ports:
@@ -72,6 +77,8 @@ services:
       dockerfile: docker/airflow.Dockerfile
     image: stock-airflow-uv:local
     container_name: stock-airflow-webserver
+    restart: unless-stopped
+    user: "${AIRFLOW_UID:-1000}:0"
     depends_on:
       - postgres
     ports:
@@ -103,6 +110,8 @@ services:
       dockerfile: docker/airflow.Dockerfile
     image: stock-airflow-uv:local
     container_name: stock-airflow-scheduler
+    restart: unless-stopped
+    user: "${AIRFLOW_UID:-1000}:0"
     depends_on:
       - postgres
       - airflow-webserver
@@ -121,6 +130,7 @@ services:
   superset:
     image: apache/superset:latest
     container_name: stock-superset
+    restart: unless-stopped
     depends_on:
       - postgres
       - clickhouse
@@ -146,6 +156,7 @@ services:
   grafana:
     image: grafana/grafana:latest
     container_name: stock-grafana
+    restart: unless-stopped
     ports:
       - "3000:3000"
     environment:

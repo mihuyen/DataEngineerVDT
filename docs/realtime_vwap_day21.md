@@ -64,7 +64,7 @@ uv run python scripts/load_realtime_vwap_demo.py
 Ví dụ tùy chỉnh:
 
 ```bash
-uv run python scripts/load_realtime_vwap_demo.py --tickers VCB,FPT,HPG --minutes 10 --trades-per-minute 4
+uv run python scripts/load_realtime_vwap_demo.py --tickers ALL --minutes 10 --trades-per-minute 4
 ```
 
 ## DNSE WebSocket thật
@@ -92,19 +92,19 @@ Biến môi trường cần có:
 ```bash
 export DNSE_API_KEY=...
 export DNSE_API_SECRET=...
-export DNSE_WS_SYMBOLS=VCB,FPT,HPG
+export DNSE_WS_SYMBOLS=ALL
 ```
 
 Chạy lấy dữ liệu thật, lưu Bronze local:
 
 ```bash
-uv run python scripts/run_dnse_realtime_ingest.py --symbols VCB,FPT,HPG --max-messages 100 --timeout-seconds 300
+uv run python scripts/run_dnse_realtime_ingest.py --symbols ALL --max-messages 100 --timeout-seconds 300
 ```
 
 Chạy lấy dữ liệu thật và load vào `fact_realtime_vwap`:
 
 ```bash
-uv run python scripts/run_dnse_realtime_ingest.py --symbols VCB,FPT,HPG --max-messages 100 --timeout-seconds 300 --load-vwap
+uv run python scripts/run_dnse_realtime_ingest.py --symbols ALL --max-messages 100 --timeout-seconds 300 --load-vwap
 ```
 
 Bronze local output:

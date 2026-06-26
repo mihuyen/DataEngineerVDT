@@ -28,7 +28,6 @@ function generateTickerList() {
     { ticker: "TPB", name: "TPBank", sector: "Ngân hàng", exchange: "HOSE" },
     { ticker: "OCB", name: "OCB Bank", sector: "Ngân hàng", exchange: "HOSE" },
     { ticker: "EIB", name: "Eximbank", sector: "Ngân hàng", exchange: "HOSE" },
-    { ticker: "SHB", name: "SHBank", sector: "Ngân hàng", exchange: "HNX" },
     { ticker: "FPT", name: "FPT Corporation", sector: "Công nghệ", exchange: "HOSE" },
     { ticker: "CMG", name: "CMC Corp", sector: "Công nghệ", exchange: "HOSE" },
     { ticker: "VGI", name: "Viettel Global", sector: "Công nghệ", exchange: "HOSE" },
@@ -37,7 +36,6 @@ function generateTickerList() {
     { ticker: "HPG", name: "Hòa Phát Group", sector: "Thép", exchange: "HOSE" },
     { ticker: "HSG", name: "Hoa Sen Group", sector: "Thép", exchange: "HOSE" },
     { ticker: "NKG", name: "Nam Kim Steel", sector: "Thép", exchange: "HOSE" },
-    { ticker: "TLH", name: "Tay Ha Steel", sector: "Thép", exchange: "HNX" },
     { ticker: "POM", name: "Pomina Steel", sector: "Thép", exchange: "HOSE" },
     { ticker: "VIC", name: "Vingroup", sector: "Bất động sản", exchange: "HOSE" },
     { ticker: "VHM", name: "Vinhomes", sector: "Bất động sản", exchange: "HOSE" },
@@ -61,8 +59,6 @@ function generateTickerList() {
     { ticker: "GAS", name: "PV Gas", sector: "Dầu khí", exchange: "HOSE" },
     { ticker: "PLX", name: "Petrolimex", sector: "Dầu khí", exchange: "HOSE" },
     { ticker: "PVD", name: "PV Drilling", sector: "Dầu khí", exchange: "HOSE" },
-    { ticker: "PVS", name: "PV Technical Services", sector: "Dầu khí", exchange: "HNX" },
-    { ticker: "BSR", name: "Binh Son Refinery", sector: "Dầu khí", exchange: "UPCOM" },
     { ticker: "GVR", name: "Vietnam Rubber", sector: "Nông nghiệp", exchange: "HOSE" },
     { ticker: "HNG", name: "HAGL Agrico", sector: "Nông nghiệp", exchange: "HOSE" },
     { ticker: "BAF", name: "BA F Animal Husbandry", sector: "Nông nghiệp", exchange: "HOSE" },
@@ -70,7 +66,6 @@ function generateTickerList() {
     { ticker: "VIC", name: "Vingroup", sector: "Đa ngành", exchange: "HOSE" },
     { ticker: "BVH", name: "Bảo Việt Holdings", sector: "Bảo hiểm", exchange: "HOSE" },
     { ticker: "BMI", name: "Bảo Minh Insurance", sector: "Bảo hiểm", exchange: "HOSE" },
-    { ticker: "PVI", name: "PVI Insurance", sector: "Bảo hiểm", exchange: "HNX" },
     { ticker: "HBC", name: "Hòa Bình Construction", sector: "Xây dựng", exchange: "HOSE" },
     { ticker: "CTD", name: "Coteccons", sector: "Xây dựng", exchange: "HOSE" },
     { ticker: "VCG", name: "Vinaconex", sector: "Xây dựng", exchange: "HOSE" },
@@ -79,14 +74,12 @@ function generateTickerList() {
     { ticker: "DHG", name: "DHG Pharma", sector: "Dược phẩm", exchange: "HOSE" },
     { ticker: "IMP", name: "IMEXPHARM", sector: "Dược phẩm", exchange: "HOSE" },
     { ticker: "DBD", name: "Danapha Pharma", sector: "Dược phẩm", exchange: "HOSE" },
-    { ticker: "TRA", name: "Traphaco", sector: "Dược phẩm", exchange: "HNX" },
     { ticker: "VFS", name: "VinFast Auto", sector: "Ô tô", exchange: "HOSE" },
     { ticker: "HHS", name: "Hoàng Huy Investment", sector: "Ô tô", exchange: "HOSE" },
     { ticker: "VOS", name: "Vietnam Ocean Ship", sector: "Vận tải", exchange: "HOSE" },
     { ticker: "HAH", name: "Hải An Transport", sector: "Vận tải", exchange: "HOSE" },
     { ticker: "GMD", name: "Gemadept", sector: "Vận tải", exchange: "HOSE" },
     { ticker: "VSC", name: "Vietnam Container", sector: "Vận tải", exchange: "HOSE" },
-    { ticker: "ACV", name: "Airports Corp Vietnam", sector: "Hàng không", exchange: "UPCOM" },
     { ticker: "HVN", name: "Vietnam Airlines", sector: "Hàng không", exchange: "HOSE" },
     { ticker: "VJC", name: "VietJet Air", sector: "Hàng không", exchange: "HOSE" },
     { ticker: "BWE", name: "Binh Duong Water", sector: "Tiện ích", exchange: "HOSE" },
@@ -108,7 +101,7 @@ function generateTickerList() {
   });
 }
 
-const EXCHANGES = ["ALL", "HOSE", "HNX", "UPCOM"];
+const EXCHANGES = ["ALL", "HOSE"];
 
 type SortKey = "ticker" | "deviation" | "volume" | "price";
 
@@ -134,29 +127,33 @@ export function RealtimeVWAP({ onNavigate }: RealtimeVWAPProps) {
   const [search, setSearch] = useState("");
   const [selectedTicker, setSelectedTicker] = useState("VCB");
   const [sector, setSector] = useState("Tất cả");
-  const [exchange, setExchange] = useState("ALL");
+  const [exchange, setExchange] = useState("HOSE");
   const [sortKey, setSortKey] = useState<SortKey>("deviation");
   const [sortDesc, setSortDesc] = useState(true);
   const [deviationThreshold, setDeviationThreshold] = useState(0);
-  const [allTickers, setAllTickers] = useState<VwapTicker[]>(vwapDeviations);
+  const [allTickers, setAllTickers] = useState<VwapTicker[]>(vwapDeviations.filter((item) => item.exchange === "HOSE"));
   const [chartData, setChartData] = useState<VwapPoint[]>(vwapData);
   const [apiStatus, setApiStatus] = useState("Đang đọc realtime API...");
+  const [universeCount, setUniverseCount] = useState(vwapDeviations.filter((item) => item.exchange === "HOSE").length);
   const SECTORS = useMemo(() => ["Tất cả", ...Array.from(new Set(allTickers.map((t) => t.sector)))], [allTickers]);
 
   useEffect(() => {
     let cancelled = false;
     const load = () => {
       fetchRealtimeVwap()
-        .then((tickers) => {
+        .then((payload) => {
           if (cancelled) return;
+          const tickers = payload.data.filter((item) => item.exchange === "HOSE" || item.exchange === "DNSE");
           setAllTickers(tickers);
-          setApiStatus(`API polling · ${tickers.length} mã`);
+          setUniverseCount(payload.universeCount || tickers.length);
+          const source = payload.source === "dnse_bronze" ? "DNSE Bronze" : "API polling";
+          setApiStatus(`${source} · ${tickers.length}/${payload.universeCount || tickers.length} mã có tick`);
           if (!tickers.find((item) => item.ticker === selectedTicker) && tickers[0]) {
             setSelectedTicker(tickers[0].ticker);
           }
         })
         .catch(() => {
-          if (!cancelled) setApiStatus(`Snapshot · ${vwapDeviations.length} mã`);
+          if (!cancelled) setApiStatus(`Snapshot · ${vwapDeviations.filter((item) => item.exchange === "HOSE").length} mã`);
         });
     };
     load();
@@ -207,6 +204,7 @@ export function RealtimeVWAP({ onNavigate }: RealtimeVWAPProps) {
   const last = chartData[chartData.length - 1];
 
   // Stats
+  const trackedCount = Math.max(universeCount, allTickers.length);
   const aboveVwap = allTickers.filter((t) => t.deviation > 0).length;
   const belowVwap = allTickers.filter((t) => t.deviation < 0).length;
   const bigDeviation = allTickers.filter((t) => Math.abs(t.deviation) >= 2).length;
@@ -230,7 +228,7 @@ export function RealtimeVWAP({ onNavigate }: RealtimeVWAPProps) {
           <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
             <h1 style={{ color: "#e2e8f0", margin: 0, fontSize: 18, fontWeight: 700, ...INTER }}>Realtime VWAP Monitoring</h1>
             <span style={{ display: "flex", alignItems: "center", gap: 4, background: "rgba(0,217,126,0.1)", color: "#00d97e", fontSize: 11, padding: "3px 8px", borderRadius: 4, ...INTER }}>
-              <Zap size={11} /> LIVE · {allTickers.length} mã
+              <Zap size={11} /> LIVE · {trackedCount} mã
             </span>
           </div>
           <p style={{ color: "#6b7fa3", margin: 0, fontSize: 12, ...INTER }}>Theo dõi VWAP intraday toàn thị trường · {apiStatus}</p>
@@ -240,7 +238,7 @@ export function RealtimeVWAP({ onNavigate }: RealtimeVWAPProps) {
       {/* Market KPIs */}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(5, 1fr)", gap: 12 }}>
         {[
-          { label: "Tổng mã theo dõi", value: allTickers.length + "", color: "#e2e8f0" },
+          { label: "Tổng mã theo dõi", value: trackedCount + "", color: "#e2e8f0", sub: `${allTickers.length} mã có tick` },
           { label: "Giá > VWAP", value: aboveVwap + "", color: "#00d97e", sub: `${((aboveVwap / allTickers.length) * 100).toFixed(0)}%` },
           { label: "Giá < VWAP", value: belowVwap + "", color: "#ff4d6d", sub: `${((belowVwap / allTickers.length) * 100).toFixed(0)}%` },
           { label: "Lệch > ±2%", value: bigDeviation + "", color: "#8b5cf6", sub: "cần chú ý" },
@@ -344,7 +342,7 @@ export function RealtimeVWAP({ onNavigate }: RealtimeVWAPProps) {
 
             {/* Ticker rows — scrollable */}
             <div style={{ maxHeight: 460, overflowY: "auto", overflowX: "hidden" }}>
-              {filtered.slice(0, 200).map((t) => {
+              {filtered.map((t) => {
                 const isSelected = t.ticker === selectedTicker;
                 return (
                   <div key={`${t.ticker}-${t.sector}`}
@@ -376,11 +374,6 @@ export function RealtimeVWAP({ onNavigate }: RealtimeVWAPProps) {
                   </div>
                 );
               })}
-              {filtered.length > 200 && (
-                <div style={{ padding: "10px", textAlign: "center", color: "#6b7fa3", fontSize: 11, ...INTER }}>
-                  ... còn {filtered.length - 200} mã. Hãy lọc để thu hẹp.
-                </div>
-              )}
             </div>
           </div>
         </div>

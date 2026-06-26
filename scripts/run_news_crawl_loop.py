@@ -17,6 +17,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--no-upload", action="store_true")
     parser.add_argument("--skip-silver", action="store_true")
     parser.add_argument("--skip-linking", action="store_true")
+    parser.add_argument("--load-gold", action="store_true")
     return parser.parse_args()
 
 
@@ -37,6 +38,8 @@ def run_cycle(args: argparse.Namespace) -> None:
         run_command(silver_cmd)
     if not args.skip_linking:
         run_command([sys.executable, "scripts/run_news_entity_linking.py"])
+    if args.load_gold:
+        run_command([sys.executable, "scripts/load_news_sentiment_gold.py"])
 
 
 def main() -> None:

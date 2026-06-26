@@ -5,6 +5,16 @@ import { technicalSignals } from "./mockData";
 const CARD: React.CSSProperties = { background: "#111827", border: "1px solid rgba(255,255,255,0.07)", borderRadius: 8, padding: 16 };
 const MONO: React.CSSProperties = { fontFamily: "JetBrains Mono, monospace" };
 const INTER: React.CSSProperties = { fontFamily: "Inter, sans-serif" };
+const TRACKED_TICKER_COUNT = 930;
+
+const formatNumber = (value: number, digits = 2) =>
+  Number.isFinite(value) ? value.toFixed(digits) : "-";
+
+const formatSigned = (value: number, digits = 2) => {
+  if (!Number.isFinite(value)) return "-";
+  const formatted = value.toFixed(digits);
+  return value > 0 ? `+${formatted}` : formatted;
+};
 
 const SIGNAL_CONFIG: Record<string, { label: string; color: string; bg: string }> = {
   overbought: { label: "Quá mua", color: "#ff4d6d", bg: "rgba(255,77,109,0.1)" },
@@ -44,7 +54,9 @@ export function TechnicalScanner({ onNavigate }: TechnicalScannerProps) {
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
         <div>
           <h1 style={{ color: "#e2e8f0", margin: 0, fontSize: 18, fontWeight: 700, ...INTER }}>Technical Signal Scanner</h1>
-          <p style={{ color: "#6b7fa3", margin: 0, fontSize: 12, ...INTER }}>Quét tín hiệu kỹ thuật toàn thị trường · Phiên 14/06/2026</p>
+          <p style={{ color: "#6b7fa3", margin: 0, fontSize: 12, ...INTER }}>
+            Quét {TRACKED_TICKER_COUNT} mã có dữ liệu phiên mới nhất · Hiển thị {technicalSignals.length} tín hiệu nổi bật
+          </p>
         </div>
         <div style={{ display: "flex", gap: 8 }}>
           {["ALL", "HOSE", "HNX", "UPCOM"].map((ex) => (
@@ -133,7 +145,7 @@ export function TechnicalScanner({ onNavigate }: TechnicalScannerProps) {
               </span>
             )}
           </span>
-          <span style={{ ...INTER, color: "#6b7fa3", fontSize: 12 }}>{filtered.length} mã</span>
+          <span style={{ ...INTER, color: "#6b7fa3", fontSize: 12 }}>{filtered.length} tín hiệu / {TRACKED_TICKER_COUNT} mã quét</span>
         </div>
         <div style={{ overflowX: "auto" }}>
           <table style={{ width: "100%", borderCollapse: "collapse" }}>
@@ -161,11 +173,11 @@ export function TechnicalScanner({ onNavigate }: TechnicalScannerProps) {
                     <td style={{ padding: "9px 10px" }}>
                       <span style={{ background: cfg.bg, color: cfg.color, fontSize: 11, padding: "2px 10px", borderRadius: 3, ...INTER, fontWeight: 600, whiteSpace: "nowrap" }}>{cfg.label}</span>
                     </td>
-                    <td style={{ padding: "9px 10px", color: s.rsi > 70 ? "#ff4d6d" : s.rsi < 30 ? "#00d97e" : "#e2e8f0", fontSize: 12, ...MONO, textAlign: "right" }}>{s.rsi.toFixed(1)}</td>
-                    <td style={{ padding: "9px 10px", color: s.macd > 0 ? "#00d97e" : "#ff4d6d", fontSize: 12, ...MONO, textAlign: "right" }}>{s.macd > 0 ? "+" : ""}{s.macd}</td>
-                    <td style={{ padding: "9px 10px", color: "#e2e8f0", fontSize: 12, ...MONO, textAlign: "right" }}>{s.close.toLocaleString("vi-VN")}</td>
-                    <td style={{ padding: "9px 10px", color: "#6b7fa3", fontSize: 11, ...MONO, textAlign: "right" }}>{s.bbUpper.toLocaleString("vi-VN")}</td>
-                    <td style={{ padding: "9px 10px", color: "#6b7fa3", fontSize: 11, ...MONO, textAlign: "right" }}>{s.bbLower.toLocaleString("vi-VN")}</td>
+                    <td style={{ padding: "9px 10px", color: s.rsi > 70 ? "#ff4d6d" : s.rsi < 30 ? "#00d97e" : "#e2e8f0", fontSize: 12, ...MONO, textAlign: "right" }}>{formatNumber(s.rsi, 2)}</td>
+                    <td style={{ padding: "9px 10px", color: s.macd > 0 ? "#00d97e" : "#ff4d6d", fontSize: 12, ...MONO, textAlign: "right" }}>{formatSigned(s.macd, 2)}</td>
+                    <td style={{ padding: "9px 10px", color: "#e2e8f0", fontSize: 12, ...MONO, textAlign: "right" }}>{formatNumber(s.close, 2)}</td>
+                    <td style={{ padding: "9px 10px", color: "#6b7fa3", fontSize: 11, ...MONO, textAlign: "right" }}>{formatNumber(s.bbUpper, 2)}</td>
+                    <td style={{ padding: "9px 10px", color: "#6b7fa3", fontSize: 11, ...MONO, textAlign: "right" }}>{formatNumber(s.bbLower, 2)}</td>
                     <td style={{ padding: "9px 10px", textAlign: "right" }}>
                       <span style={{
                         background: parseFloat(volRatio) > 1.5 ? "rgba(6,182,212,0.1)" : "transparent",
@@ -175,7 +187,7 @@ export function TechnicalScanner({ onNavigate }: TechnicalScannerProps) {
                     </td>
                     <td style={{ padding: "9px 10px", textAlign: "right" }}>
                       <span style={{ color: s.pct >= 0 ? "#00d97e" : "#ff4d6d", fontSize: 12, ...MONO, fontWeight: 600 }}>
-                        {s.pct >= 0 ? "+" : ""}{s.pct}%
+                        {formatSigned(s.pct, 2)}%
                       </span>
                     </td>
                   </tr>

@@ -81,7 +81,7 @@ with DAG(
 
     silver_ohlcv = BashOperator(
         task_id="silver_ohlcv",
-        bash_command=f"{COMMON_ENV} && uv run python scripts/run_silver_transform.py --skip-existing",
+        bash_command=f"{COMMON_ENV} && uv run python scripts/run_silver_transform.py",
     )
 
     silver_company_profile = BashOperator(
@@ -114,10 +114,15 @@ with DAG(
         bash_command=f"{COMMON_ENV} && uv run python scripts/load_gold.py",
     )
 
+    export_frontend_data = BashOperator(
+        task_id="export_frontend_data",
+        bash_command=f"{COMMON_ENV} && uv run python scripts/export_frontend_data.py",
+    )
+
     init_minio >> [ingest_market_index, ingest_news, ingest_ohlcv, ingest_company_profile]
     ingest_ohlcv >> silver_ohlcv
     ingest_market_index >> silver_market_index
     ingest_news >> silver_news
     ingest_company_profile >> silver_company_profile
     [silver_ohlcv, silver_company_profile, silver_market_index, silver_news] >> quality_all
-    quality_all >> migrate_gold >> load_gold
+    quality_all >> migrate_gold >> load_gold >> export_frontend_data

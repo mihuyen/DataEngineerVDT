@@ -14,7 +14,7 @@ OUTPUT = ROOT / "frontend" / "app" / "components" / "mockData.ts"
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-from src.common.clickhouse_client import create_client
+from src.common.clickhouse_client import create_client  # noqa: E402
 
 
 def rows(client: Any, sql: str) -> list[dict[str, Any]]:
@@ -83,6 +83,7 @@ def build_stock_query(order_by: str, limit: int) -> str:
         LEFT JOIN dim_stock s ON f.ticker = s.ticker
         LEFT JOIN dim_sector sec ON s.sector_id = sec.sector_id
         WHERE f.trading_date = (SELECT max(trading_date) FROM fact_daily_price)
+          AND s.exchange = 'HOSE'
         ORDER BY {order_by}
         LIMIT {limit}
     """
@@ -133,6 +134,7 @@ def main() -> None:
     client = create_client()
     news_link_lookup = load_news_link_lookup()
     latest_price_date = scalar(client, "SELECT max(trading_date) FROM fact_daily_price")
+    latest_news_date = scalar(client, "SELECT max(news_date) FROM fact_news_sentiment_daily")
     generated_at = datetime.now().replace(microsecond=0).isoformat()
 
     latest_stocks = rows(client, build_stock_query("f.value DESC", 200))
@@ -173,6 +175,7 @@ def main() -> None:
         LEFT JOIN dim_stock s ON f.ticker = s.ticker
         LEFT JOIN dim_sector sec ON s.sector_id = sec.sector_id
         WHERE f.trading_date = (SELECT max(trading_date) FROM fact_daily_price)
+          AND s.exchange = 'HOSE'
         GROUP BY sector
         ORDER BY abs(pct) DESC
         LIMIT 12
@@ -190,6 +193,7 @@ def main() -> None:
         LEFT JOIN dim_stock s ON f.ticker = s.ticker
         LEFT JOIN dim_sector sec ON s.sector_id = sec.sector_id
         WHERE f.trading_date = (SELECT max(trading_date) FROM fact_daily_price)
+          AND s.exchange = 'HOSE'
         GROUP BY exchange, sector
         ORDER BY exchange, abs(pct) DESC
         """,
@@ -202,13 +206,12 @@ def main() -> None:
                advance_count, decline_count, unchanged_count
         FROM fact_market_index
         WHERE trading_date = (SELECT max(trading_date) FROM fact_market_index)
+          AND index_id IN ('VNINDEX', 'VN30')
         ORDER BY index_id
         """,
     )
     index_labels = {
         "VNINDEX": "VN-Index",
-        "HNXINDEX": "HNX-Index",
-        "UPCOMINDEX": "UPCOM-Index",
         "VN30": "VN30",
     }
     market_indices = [
@@ -222,8 +225,8 @@ def main() -> None:
         }
         for r in market_index_rows
     ]
-    preferred = ["VN-Index", "HNX-Index", "VN30"]
-    preferred_all = ["VN-Index", "HNX-Index", "VN30", "UPCOM-Index"]
+    preferred = ["VN-Index", "VN30"]
+    preferred_all = ["VN-Index", "VN30"]
     market_indices_all = sorted(
         market_indices,
         key=lambda r: preferred_all.index(r["label"]) if r["label"] in preferred_all else 99,
@@ -239,8 +242,6 @@ def main() -> None:
     index_exchange_map = {
         "VNINDEX": "HOSE",
         "VN30": "HOSE",
-        "HNXINDEX": "HNX",
-        "UPCOMINDEX": "UPCOM",
     }
     market_stats_by_exchange: dict[str, dict[str, str]] = {"ALL": market_overview_stats}
     breadth_data_by_exchange: dict[str, list[dict[str, Any]]] = {}
@@ -272,6 +273,7 @@ def main() -> None:
         FROM fact_daily_price f
         LEFT JOIN dim_stock s ON f.ticker = s.ticker
         WHERE f.trading_date = (SELECT max(trading_date) FROM fact_daily_price)
+          AND s.exchange = 'HOSE'
         GROUP BY exchange
         """,
     )
@@ -302,7 +304,7 @@ def main() -> None:
             LIMIT 30
             """,
         )[::-1]
-        for key, index_id in {"ALL": "VNINDEX", "HOSE": "VNINDEX", "HNX": "HNXINDEX", "UPCOM": "UPCOMINDEX"}.items()
+        for key, index_id in {"ALL": "VNINDEX", "HOSE": "VNINDEX"}.items()
     }
 
     candle_rows = rows(
@@ -474,7 +476,8 @@ def main() -> None:
           sum(n.negative_count) AS negative,
           sum(n.neutral_count) AS neutral,
           avg(n.avg_sentiment_score) AS avgScore,
-          argMax(n.top_headline, n.news_date) AS headline
+          argMax(n.top_headline, n.news_date) AS headline,
+          max(n.news_date) AS newsDate
         FROM fact_news_sentiment_daily n
         LEFT JOIN dim_stock s ON n.ticker = s.ticker
         GROUP BY n.ticker, name
@@ -554,7 +557,7 @@ def main() -> None:
 
     content = [
         "// Generated from ClickHouse by scripts/export_frontend_data.py.",
-        f"export const dataSnapshotMeta = {as_json({'generatedAt': generated_at, 'latestPriceDate': clean(latest_price_date)})};\n",
+        f"export const dataSnapshotMeta = {as_json({'generatedAt': generated_at, 'latestPriceDate': clean(latest_price_date), 'latestNewsDate': clean(latest_news_date)})};\n",
         js_export("marketIndices", market_mini),
         js_export("marketIndicesAll", market_indices_all),
         js_export("marketOverviewStats", market_overview_stats),

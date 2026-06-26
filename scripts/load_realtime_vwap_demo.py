@@ -12,17 +12,39 @@ from src.loaders.load_fact_realtime_vwap import generate_demo_trade_ticks, load_
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Load demo realtime VWAP rows into ClickHouse.")
-    parser.add_argument("--tickers", default="VCB,FPT,HPG")
+    parser.add_argument("--tickers", default="ALL", help="Comma-separated tickers, or ALL for dim_stock.")
     parser.add_argument("--minutes", type=int, default=10)
     parser.add_argument("--trades-per-minute", type=int, default=4)
     parser.add_argument("--append", action="store_true", help="Append instead of truncating fact_realtime_vwap.")
     return parser.parse_args()
 
 
+def load_all_tickers(client: object) -> list[str]:
+    frame = query_dataframe(
+        client,
+        """
+        SELECT upper(ticker) AS ticker
+        FROM dim_stock
+        WHERE notEmpty(ticker)
+        ORDER BY ticker
+        """,
+    )
+    tickers = [str(ticker).strip().upper() for ticker in frame["ticker"].to_list() if str(ticker).strip()]
+    if not tickers:
+        raise ValueError("No tickers found in dim_stock. Run the dimension loader first.")
+    return tickers
+
+
+def parse_tickers(value: str, client: object) -> list[str]:
+    if value.strip().upper() == "ALL":
+        return load_all_tickers(client)
+    return [ticker.strip().upper() for ticker in value.split(",") if ticker.strip()]
+
+
 def main() -> None:
     args = parse_args()
     client = create_client()
-    tickers = [ticker.strip().upper() for ticker in args.tickers.split(",") if ticker.strip()]
+    tickers = parse_tickers(args.tickers, client)
     ticks = generate_demo_trade_ticks(
         tickers=tickers,
         minutes=args.minutes,
@@ -36,6 +58,7 @@ def main() -> None:
         "SELECT count() AS row_count, uniqExact(ticker) AS ticker_count FROM fact_realtime_vwap",
     )
     print("Realtime VWAP demo load completed")
+    print(f"- tickers: {len(tickers)}")
     print(f"- input_ticks: {ticks.height}")
     print(f"- loaded_rows: {frame.height}")
     print(counts.write_csv())

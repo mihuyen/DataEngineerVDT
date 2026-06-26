@@ -12,8 +12,6 @@ PROJECT_ROOT = Path(__file__).resolve().parents[2]
 DEFAULT_LOCAL_SILVER_DIR = PROJECT_ROOT / "data" / "silver_local"
 INDEX_EXCHANGE_MAP = {
     "HOSE": "VNINDEX",
-    "HNX": "HNXINDEX",
-    "UPCOM": "UPCOMINDEX",
 }
 MARKET_INDEX_COLUMNS = [
     "index_id",
@@ -160,6 +158,7 @@ def build_fact_market_index_from_index(
 ) -> pl.DataFrame:
     """Build fact_market_index from Silver market index OHLCV data."""
     now = datetime.now()
+    allowed_index_ids = {"VNINDEX", "VN30"}
     frame = (
         silver_market_index.sort(["index_code", "date"])
         .with_columns(
@@ -178,6 +177,7 @@ def build_fact_market_index_from_index(
             pl.col("close").diff().over("index_code").fill_null(0).alias("point_change"),
             pl.lit(now, dtype=pl.Datetime).alias("created_at"),
         )
+        .filter(pl.col("index_id").is_in(sorted(allowed_index_ids)))
         .with_columns(
             (
                 pl.col("point_change")
