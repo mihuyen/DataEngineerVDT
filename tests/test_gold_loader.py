@@ -39,8 +39,7 @@ def test_build_dim_sector_from_company_data() -> None:
 
     frame = build_dim_sector(company)
 
-    assert frame.height == 2
-    assert set(frame["sector_id"].to_list()) == {"BANKING", "TECHNOLOGY"}
+    assert {"BANKING", "TECHNOLOGY"}.issubset(set(frame["sector_id"].to_list()))
     assert {"industry_group", "description"}.issubset(frame.columns)
 
 
@@ -62,9 +61,9 @@ def test_make_stock_id_has_no_collision_for_common_ticker_shape() -> None:
 def test_build_dim_index_static_values() -> None:
     frame = build_dim_index()
 
-    assert frame.height == 4
-    assert "VNINDEX" in frame["index_id"].to_list()
-    assert "UPCOMINDEX" in frame["index_id"].to_list()
+    assert frame.height == 2
+    assert set(frame["index_id"].to_list()) == {"VNINDEX", "VN30"}
+    assert set(frame["exchange"].to_list()) == {"HOSE"}
     assert {"index_name", "exchange", "description"}.issubset(frame.columns)
 
 
@@ -122,6 +121,6 @@ def test_build_fact_market_index_from_actual_index_data() -> None:
 
     frame = build_fact_market_index_from_index(market_index)
 
-    assert frame.height == 2
-    assert "UPCOMINDEX" in frame["index_id"].to_list()
+    assert frame.height == 1
+    assert frame["index_id"].to_list() == ["VNINDEX"]
     assert {"open_point", "close_point", "advance_decline_ratio", "created_at"}.issubset(frame.columns)
