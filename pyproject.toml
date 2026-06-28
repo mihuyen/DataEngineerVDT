@@ -14,7 +14,6 @@ dependencies = [
     "pyyaml",
     "vnstock>=4.0.2",
     "minio>=7.2.20",
-    "great-expectations>=1.18.0",
     "clickhouse-connect>=1.2.0",
     "beautifulsoup4>=4.15.0",
     "feedparser>=6.0.12",

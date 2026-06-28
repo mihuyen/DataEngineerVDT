@@ -110,6 +110,54 @@ def _exact_match_check(name: str, upstream_count: int, downstream_count: int) ->
     )
 
 
+def read_silver_keys(root: Path, glob_pattern: str, ticker_column: str = "ticker") -> set[tuple]:
+    """Distinct (ticker, date) keys actually present in Silver parquet files."""
+    files = sorted(root.glob(glob_pattern))
+    if not files:
+        return set()
+    frame = pl.concat(
+        (pl.read_parquet(file_path).select(ticker_column, "date") for file_path in files),
+        how="diagonal_relaxed",
+    )
+    return {(row[0], row[1]) for row in frame.unique().iter_rows()}
+
+
+def read_gold_keys(ch_client: Any, table: str, ticker_column: str, date_column: str) -> set[tuple]:
+    """Distinct (ticker, date) keys actually present in a Gold ClickHouse table."""
+    result = ch_client.query(f"SELECT DISTINCT {ticker_column}, {date_column} FROM {table}")
+    return {(row[0], row[1]) for row in result.result_rows}
+
+
+def _anti_join_check(
+    name: str,
+    silver_keys: set[tuple],
+    gold_keys: set[tuple],
+    max_examples: int = 10,
+) -> ExpectationResult:
+    """Identify exactly which (ticker, date) keys are missing or extra.
+
+    `_exact_match_check` can pass on a count that happens to match while
+    Gold actually holds a different set of keys than Silver (e.g. one
+    ticker's rows silently swapped for another's) -- it only sees totals.
+    This compares the actual key sets so a mismatch names the specific rows
+    affected instead of just the size of the discrepancy.
+    """
+    missing_in_gold = silver_keys - gold_keys
+    extra_in_gold = gold_keys - silver_keys
+    success = not missing_in_gold and not extra_in_gold
+    details_parts = [f"missing_in_gold_count={len(missing_in_gold)}", f"extra_in_gold_count={len(extra_in_gold)}"]
+    if missing_in_gold:
+        details_parts.append(f"missing_in_gold_sample={sorted(missing_in_gold)[:max_examples]}")
+    if extra_in_gold:
+        details_parts.append(f"extra_in_gold_sample={sorted(extra_in_gold)[:max_examples]}")
+    return ExpectationResult(
+        name=name,
+        success=success,
+        failed_count=len(missing_in_gold) + len(extra_in_gold),
+        details=", ".join(details_parts),
+    )
+
+
 def _duplicate_key_check(ch_client: Any, name: str, table: str, key_columns: list[str]) -> ExpectationResult:
     """Fail if a Gold table has more rows than distinct business keys.
 
@@ -194,6 +242,14 @@ def build_reconciliation_report(
     silver_market_index = count_parquet_rows(local_silver_dir, "market_index/year=*/month=*/data.parquet")
     gold_market_index = int(ch_client.query("SELECT count() FROM fact_market_index").result_rows[0][0])
 
+    silver_ohlcv_keys = read_silver_keys(local_silver_dir, "ohlcv/ticker=*/year=*/month=*/data.parquet", "ticker")
+    gold_ohlcv_keys = read_gold_keys(ch_client, "fact_daily_price", "ticker", "trading_date")
+
+    silver_market_index_keys = read_silver_keys(
+        local_silver_dir, "market_index/year=*/month=*/data.parquet", "index_code"
+    )
+    gold_market_index_keys = read_gold_keys(ch_client, "fact_market_index", "index_id", "trading_date")
+
     latest_daily_price = ch_client.query("SELECT max(trading_date) FROM fact_daily_price").result_rows[0][0]
     latest_market_index = ch_client.query("SELECT max(trading_date) FROM fact_market_index").result_rows[0][0]
 
@@ -205,6 +261,7 @@ def build_reconciliation_report(
             MAX_BRONZE_TO_SILVER_DROP_RATIO,
         ),
         _exact_match_check("expect_ohlcv_silver_to_gold_exact_match", silver_ohlcv, gold_daily_price),
+        _anti_join_check("expect_ohlcv_silver_to_gold_same_keys", silver_ohlcv_keys, gold_ohlcv_keys),
         _duplicate_key_check(
             ch_client, "expect_fact_daily_price_no_duplicate_keys", "fact_daily_price", ["ticker", "trading_date"]
         ),
@@ -215,6 +272,9 @@ def build_reconciliation_report(
             MAX_BRONZE_TO_SILVER_DROP_RATIO,
         ),
         _exact_match_check("expect_market_index_silver_to_gold_exact_match", silver_market_index, gold_market_index),
+        _anti_join_check(
+            "expect_market_index_silver_to_gold_same_keys", silver_market_index_keys, gold_market_index_keys
+        ),
         _duplicate_key_check(
             ch_client,
             "expect_fact_market_index_no_duplicate_keys",

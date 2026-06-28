@@ -5,7 +5,7 @@ from dataclasses import dataclass, replace
 from datetime import datetime, timezone
 from typing import Any
 
-from src.alert_engine.notifier import DELIVERY_SENT, send_notification
+from src.alert_engine.notifier import DELIVERY_SENT, send_batch_notification
 from src.alert_engine.rules import AlertRule, evaluate_condition
 
 ALL_TICKERS_WILDCARD = "ALL"
@@ -173,10 +173,16 @@ def run_check_cycle(pg_conn: Any, ch_client: Any) -> list[CheckResult]:
     For each rule that triggers: if a matching alert (same user_id + ticker +
     condition_type) was already logged within its cooldown window, the trigger
     is skipped entirely (no notification, no new row) since it is already
-    represented by the row that opened the cooldown window. Otherwise the
-    notifier is invoked and the event is logged with delivery_status
-    reflecting why delivery did or didn't succeed (sent / send_failed /
-    channel_not_configured / unknown_channel).
+    represented by the row that opened the cooldown window. Otherwise it is
+    queued for delivery.
+
+    Rules that pass cooldown are NOT notified one-by-one: a wildcard rule
+    (ticker = "ALL") can match dozens of tickers in the same cycle, and
+    sending one Telegram/email message per ticker floods the channel with
+    that many pushes at once. Everything that fires in one cycle for the
+    same (user_id, channel) is instead grouped into a single digest message,
+    sent once, with the same delivery_status then recorded for every rule in
+    that group.
     """
     raw_rules = load_active_rules(pg_conn)
     if any(rule.ticker == ALL_TICKERS_WILDCARD for rule in raw_rules):
@@ -187,6 +193,11 @@ def run_check_cycle(pg_conn: Any, ch_client: Any) -> list[CheckResult]:
     market = fetch_latest_market_data(ch_client, sorted({rule.ticker for rule in rules}))
 
     results: list[CheckResult] = []
+    # Keyed by (user_id, channel): pending (rule, actual_value, result) for
+    # everything that fired this cycle and isn't in cooldown, so each group
+    # can be sent as one digest and have its single delivery_status written
+    # back onto every CheckResult in the group below.
+    to_notify: dict[tuple[str, str], list[tuple[AlertRule, float, CheckResult]]] = {}
     for rule in rules:
         data = market.get(rule.ticker)
         if not data:
@@ -215,16 +226,16 @@ def run_check_cycle(pg_conn: Any, ch_client: Any) -> list[CheckResult]:
             )
             continue
 
-        delivery_status = send_notification(rule, actual_value)
-        record_alert_event(ch_client, rule, actual_value, delivery_status=delivery_status)
-        results.append(
-            CheckResult(
-                rule,
-                triggered=True,
-                skipped_cooldown=False,
-                actual_value=actual_value,
-                delivery_status=delivery_status,
-            )
+        result = CheckResult(
+            rule, triggered=True, skipped_cooldown=False, actual_value=actual_value, delivery_status=None
         )
+        results.append(result)
+        to_notify.setdefault((rule.user_id, rule.channel), []).append((rule, actual_value, result))
+
+    for (_user_id, channel), pending in to_notify.items():
+        delivery_status = send_batch_notification(channel, [(rule, value) for rule, value, _ in pending])
+        for rule, actual_value, result in pending:
+            record_alert_event(ch_client, rule, actual_value, delivery_status=delivery_status)
+            result.delivery_status = delivery_status
 
     return results

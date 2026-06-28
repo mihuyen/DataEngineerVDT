@@ -9,6 +9,8 @@ from minio import Minio
 from minio.datatypes import Object
 from minio.error import S3Error
 
+from src.common.secrets import get_secret
+
 load_dotenv()
 
 
@@ -20,10 +22,18 @@ def _env_first(*names: str) -> str | None:
     return None
 
 
+def _secret_first(*names: str) -> str | None:
+    for name in names:
+        value = get_secret(name)
+        if value:
+            return value
+    return None
+
+
 def create_client() -> Minio:
     endpoint = _env_first("MINIO_ENDPOINT") or "localhost:9000"
-    access_key = _env_first("MINIO_ACCESS_KEY", "MINIO_ROOT_USER")
-    secret_key = _env_first("MINIO_SECRET_KEY", "MINIO_ROOT_PASSWORD")
+    access_key = _secret_first("MINIO_ACCESS_KEY", "MINIO_ROOT_USER")
+    secret_key = _secret_first("MINIO_SECRET_KEY", "MINIO_ROOT_PASSWORD")
     secure = os.getenv("MINIO_SECURE", "false").lower() == "true"
 
     if not access_key or not secret_key:

@@ -1,0 +1,21 @@
+[project]
+name = "stock-alert-engine"
+version = "0.1.0"
+description = "Minimal runtime deps for alert-engine and realtime-vwap-consumer -- not the full repo dependency set."
+requires-python = ">=3.11"
+dependencies = [
+    "polars>=1.0",
+    # clickhouse-connect's query_df()/insert_df() (used by realtime-vwap-consumer
+    # via src/common/clickhouse_client.py) round-trip through pandas internally,
+    # even though callers only ever see a Polars frame. pyarrow is required for
+    # polars' pandas<->arrow conversion on that path.
+    "pandas>=2.0",
+    "pyarrow>=14.0",
+    "clickhouse-connect>=1.2.0",
+    "psycopg[binary]>=3.3.4",
+    "python-dotenv>=1.0",
+    "requests>=2.32",
+]
+
+[tool.uv]
+package = false

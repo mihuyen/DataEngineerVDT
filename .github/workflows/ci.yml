@@ -1,0 +1,78 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  lint-and-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v3
+        with:
+          version: "0.11.19"
+      - run: uv sync --all-extras --dev
+      - run: uv run ruff check .
+      - run: uv run pytest tests/ -q
+
+  dbt-compile:
+    runs-on: ubuntu-latest
+    needs: lint-and-test
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v3
+        with:
+          version: "0.11.19"
+      - run: uv sync --all-extras --dev
+      # No live ClickHouse in CI, so this only checks the models/Jinja
+      # actually parse and the DAG resolves -- it can't run queries.
+      - run: uv run dbt parse --project-dir dbt --profiles-dir dbt
+        env:
+          CLICKHOUSE_HOST: localhost
+          CLICKHOUSE_PORT: "8123"
+          CLICKHOUSE_USER: default
+          CLICKHOUSE_PASSWORD: clickhouse
+          CLICKHOUSE_DATABASE: stock_lakehouse
+
+  airflow-dag-import:
+    runs-on: ubuntu-latest
+    needs: lint-and-test
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v3
+        with:
+          version: "0.11.19"
+      - run: uv sync --all-extras --dev
+      - run: uv pip install apache-airflow==2.10.5
+      # Catches syntax errors, bad imports, and broken task wiring in the DAG
+      # file without needing a running Airflow webserver/scheduler/DB.
+      - run: uv run python -c "
+          import sys; sys.path.insert(0, 'dags')
+          from stock_lakehouse_daily import dag
+          assert len(dag.tasks) > 0, 'DAG has no tasks'
+          print(f'DAG OK: {len(dag.tasks)} tasks')
+          "
+
+  docker-compose-config:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: cp .env.example .env
+      - run: docker compose config --quiet
+
+  frontend-build:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+          cache-dependency-path: frontend/package-lock.json
+      - run: npm ci
+      - run: npm run build

@@ -15,6 +15,7 @@ if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
 from src.common.clickhouse_client import create_client  # noqa: E402
+from src.common.kafka_lag import get_consumer_group_lag  # noqa: E402
 
 
 def rows(client: Any, sql: str) -> list[dict[str, Any]]:
@@ -416,15 +417,14 @@ def main() -> None:
         LIMIT 7
         """,
     )[::-1]
-    kafka_lag = rows(
-        client,
-        """
-        SELECT formatDateTime(minute_ts, '%H:%M') AS time, 0 AS lag
-        FROM fact_realtime_vwap
-        GROUP BY minute_ts
-        ORDER BY minute_ts
-        LIMIT 60
-        """,
+    # Real consumer-group lag for ClickHouse's Kafka engine consumer, read
+    # from the broker (see src/common/kafka_lag.py) -- this is a static
+    # snapshot export, so it is one current point, not a fabricated history.
+    partition_lags = get_consumer_group_lag()
+    kafka_lag = (
+        [{"time": datetime.now().strftime("%H:%M"), "lag": sum(p["lag"] for p in partition_lags)}]
+        if partition_lags
+        else []
     )
 
     vwap_data = rows(

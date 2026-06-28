@@ -1,0 +1,16 @@
+[project]
+name = "stock-dnse-producer"
+version = "0.1.0"
+description = "Minimal runtime deps for the DNSE realtime tick producer -- not the full repo dependency set."
+requires-python = ">=3.11"
+dependencies = [
+    "polars>=1.0",
+    "websockets>=16.0",
+    "certifi>=2026.5.20",
+    "kafka-python>=3.0.6",
+    "clickhouse-connect>=1.2.0",
+    "python-dotenv>=1.0",
+]
+
+[tool.uv]
+package = false

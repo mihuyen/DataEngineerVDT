@@ -70,14 +70,13 @@ services:
     build:
       context: .
       dockerfile: docker/alert-engine.Dockerfile
-    image: stock-alert-engine-uv:local
+    image: stock-alert-engine:local
     container_name: stock-alert-engine
     restart: unless-stopped
     depends_on:
       - clickhouse
       - postgres
     environment:
-      UV_PROJECT_ENVIRONMENT: /opt/venv-alert-engine
       PYTHONIOENCODING: utf-8
       CLICKHOUSE_HOST: clickhouse
       CLICKHOUSE_PORT: 8123
@@ -101,12 +100,10 @@ services:
       SMTP_USE_SSL: ${SMTP_USE_SSL:-false}
       SMTP_SUBJECT: ${SMTP_SUBJECT:-Stocky - Stock Alert}
       ALERT_CHECK_INTERVAL_SECONDS: ${ALERT_CHECK_INTERVAL_SECONDS:-60}
-    volumes:
-      - .:/app
     working_dir: /app
     command: >
-      bash -c "uv run python scripts/init_user_alerts.py &&
-      uv run python scripts/run_alert_engine.py --interval-seconds ${ALERT_CHECK_INTERVAL_SECONDS:-60}"
+      bash -c "python scripts/init_user_alerts.py &&
+      python scripts/run_alert_engine.py --interval-seconds ${ALERT_CHECK_INTERVAL_SECONDS:-60}"
 
   zookeeper:
     image: confluentinc/cp-zookeeper:7.6.1
@@ -142,14 +139,13 @@ services:
     build:
       context: .
       dockerfile: docker/alert-engine.Dockerfile
-    image: stock-alert-engine-uv:local
+    image: stock-alert-engine:local
     container_name: stock-realtime-vwap-consumer
     restart: unless-stopped
     depends_on:
       - clickhouse
       - kafka
     environment:
-      UV_PROJECT_ENVIRONMENT: /opt/venv-realtime-consumer
       PYTHONIOENCODING: utf-8
       CLICKHOUSE_HOST: clickhouse
       CLICKHOUSE_PORT: 8123
@@ -157,12 +153,44 @@ services:
       CLICKHOUSE_PASSWORD: clickhouse
       CLICKHOUSE_DATABASE: stock_lakehouse
       KAFKA_BOOTSTRAP_SERVERS: kafka:29092
-    volumes:
-      - .:/app
     working_dir: /app
     command: >
-      bash -c "uv run python scripts/init_realtime_streaming.py &&
-      uv run python scripts/run_realtime_vwap_kafka_consumer.py --interval-seconds 15"
+      bash -c "python scripts/init_realtime_streaming.py &&
+      python scripts/run_realtime_vwap_kafka_consumer.py --interval-seconds 15"
+
+  dnse-producer:
+    build:
+      context: .
+      dockerfile: docker/dnse-producer.Dockerfile
+    image: stock-dnse-producer:local
+    container_name: stock-dnse-producer
+    # Each run streams for --timeout-seconds then exits; restart picks the
+    # connection back up so this behaves as an always-on producer without
+    # needing its own internal reconnect loop.
+    restart: unless-stopped
+    depends_on:
+      - clickhouse
+      - kafka
+    environment:
+      PYTHONIOENCODING: utf-8
+      CLICKHOUSE_HOST: clickhouse
+      CLICKHOUSE_PORT: 8123
+      CLICKHOUSE_USER: default
+      CLICKHOUSE_PASSWORD: clickhouse
+      CLICKHOUSE_DATABASE: stock_lakehouse
+      KAFKA_BOOTSTRAP_SERVERS: kafka:29092
+      DNSE_API_KEY: ${DNSE_API_KEY:-}
+      DNSE_API_SECRET: ${DNSE_API_SECRET:-}
+      DNSE_WS_URL: ${DNSE_WS_URL:-}
+      DNSE_WS_ENCODING: ${DNSE_WS_ENCODING:-}
+      DNSE_WS_BOARD_ID: ${DNSE_WS_BOARD_ID:-}
+      DNSE_WS_SYMBOLS: ${DNSE_WS_SYMBOLS:-ALL}
+    working_dir: /app
+    command: >
+      python scripts/run_dnse_realtime_ingest.py
+      --produce-to-kafka
+      --max-messages 100000
+      --timeout-seconds 3600
 
   airflow-webserver:
     build:

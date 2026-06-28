@@ -5,7 +5,6 @@ from dataclasses import asdict, dataclass
 from datetime import date, datetime, timezone
 from pathlib import Path
 
-import great_expectations as gx
 import polars as pl
 
 
@@ -73,7 +72,7 @@ def validate_ohlcv(frame: pl.DataFrame, source_name: str = "vnstock_ohlcv") -> Q
             error_count=error_count,
             success=False,
             expectations=expectations,
-            gx_version=gx.__version__,
+            gx_version="n/a",
         )
 
     checks = [
@@ -145,7 +144,7 @@ def validate_ohlcv(frame: pl.DataFrame, source_name: str = "vnstock_ohlcv") -> Q
         error_count=error_count,
         success=all(expectation.success for expectation in expectations),
         expectations=expectations,
-        gx_version=gx.__version__,
+        gx_version="n/a",
     )
 
 

@@ -149,7 +149,7 @@ class FakeClickHouseClient:
 
 
 def test_run_check_cycle_triggers_and_sends(monkeypatch: pytest.MonkeyPatch) -> None:
-    monkeypatch.setattr(engine, "send_notification", lambda rule, value: "sent")
+    monkeypatch.setattr(engine, "send_batch_notification", lambda channel, triggers: "sent")
 
     pg_conn = FakePgConnection(
         [("alert-1", "demo_user", "VCB", "RSI_ABOVE", 70.0, "TELEGRAM", 30)]
@@ -174,7 +174,7 @@ def test_run_check_cycle_triggers_and_sends(monkeypatch: pytest.MonkeyPatch) -> 
 
 
 def test_run_check_cycle_records_channel_not_configured(monkeypatch: pytest.MonkeyPatch) -> None:
-    monkeypatch.setattr(engine, "send_notification", lambda rule, value: "channel_not_configured")
+    monkeypatch.setattr(engine, "send_batch_notification", lambda channel, triggers: "channel_not_configured")
 
     pg_conn = FakePgConnection(
         [("alert-1", "demo_user", "VCB", "RSI_ABOVE", 70.0, "TELEGRAM", 30)]
@@ -212,7 +212,7 @@ def test_run_check_cycle_does_not_trigger_when_condition_not_met() -> None:
 
 def test_run_check_cycle_skips_when_in_cooldown(monkeypatch: pytest.MonkeyPatch) -> None:
     send_calls = []
-    monkeypatch.setattr(engine, "send_notification", lambda rule, value: send_calls.append(rule) or "sent")
+    monkeypatch.setattr(engine, "send_batch_notification", lambda channel, triggers: send_calls.append(triggers) or "sent")
 
     pg_conn = FakePgConnection(
         [("alert-1", "demo_user", "VCB", "RSI_ABOVE", 70.0, "TELEGRAM", 30)]
@@ -263,7 +263,7 @@ def test_run_check_cycle_skips_ticker_with_no_market_data() -> None:
 
 
 def test_wildcard_rule_expands_to_every_hose_ticker(monkeypatch: pytest.MonkeyPatch) -> None:
-    monkeypatch.setattr(engine, "send_notification", lambda rule, value: "sent")
+    monkeypatch.setattr(engine, "send_batch_notification", lambda channel, triggers: "sent")
 
     pg_conn = FakePgConnection(
         [("alert-1", "demo_user", "ALL", "RSI_ABOVE", 70.0, "TELEGRAM", 30)]
@@ -284,4 +284,41 @@ def test_wildcard_rule_expands_to_every_hose_ticker(monkeypatch: pytest.MonkeyPa
     assert len(results) == 3
     triggered_tickers = {r.rule.ticker for r in results if r.triggered}
     assert triggered_tickers == {"AAA", "CCC"}
+    assert len(ch_client.inserted) == 2
+
+
+def test_wildcard_rule_sends_one_batched_notification_not_one_per_ticker(monkeypatch: pytest.MonkeyPatch) -> None:
+    """A wildcard rule matching many tickers in one cycle must send one digest,
+    not one notification per ticker -- the original per-ticker behavior is
+    what caused real Telegram/email spam once a real channel was wired up.
+    """
+    batch_calls = []
+    monkeypatch.setattr(
+        engine,
+        "send_batch_notification",
+        lambda channel, triggers: batch_calls.append((channel, triggers)) or "sent",
+    )
+
+    pg_conn = FakePgConnection(
+        [("alert-1", "demo_user", "ALL", "RSI_ABOVE", 70.0, "TELEGRAM", 30)]
+    )
+    ch_client = FakeClickHouseClient(
+        daily_rows=[
+            ("AAA", 10.0, 80.0, 11.0, 9.0),
+            ("BBB", 20.0, 50.0, 21.0, 19.0),
+            ("CCC", 30.0, 90.0, 31.0, 29.0),
+        ],
+        realtime_rows=[],
+        cooldown_hits=set(),
+        hose_tickers=["AAA", "BBB", "CCC"],
+    )
+
+    results = engine.run_check_cycle(pg_conn, ch_client)
+
+    assert len(batch_calls) == 1
+    channel, triggers = batch_calls[0]
+    assert channel == "TELEGRAM"
+    assert {rule.ticker for rule, _ in triggers} == {"AAA", "CCC"}
+    triggered_results = [r for r in results if r.triggered and not r.skipped_cooldown]
+    assert all(r.delivery_status == "sent" for r in triggered_results)
     assert len(ch_client.inserted) == 2

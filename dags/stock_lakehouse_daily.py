@@ -20,6 +20,7 @@ COMMON_ENV = (
     "export CLICKHOUSE_PORT=${CLICKHOUSE_PORT:-8123} && "
     "export CLICKHOUSE_USER=${CLICKHOUSE_USER:-default} && "
     "export CLICKHOUSE_PASSWORD=${CLICKHOUSE_PASSWORD:-clickhouse} && "
+    "export KAFKA_BOOTSTRAP_SERVERS=${KAFKA_BOOTSTRAP_SERVERS:-kafka:29092} && "
     "export POSTGRES_HOST=${POSTGRES_HOST:-postgres} && "
     "export POSTGRES_PORT=${POSTGRES_PORT:-5432} && "
     "export POSTGRES_USER=${POSTGRES_USER:-stock_user} && "
@@ -154,6 +155,11 @@ with DAG(
         bash_command=f"{COMMON_ENV} && uv run python scripts/run_alert_engine.py --run-once",
     )
 
+    backup_lakehouse = BashOperator(
+        task_id="backup_lakehouse",
+        bash_command=f"{COMMON_ENV} && uv run python scripts/run_backup.py",
+    )
+
     init_minio >> [ingest_market_index, ingest_news, ingest_ohlcv, ingest_company_profile]
     ingest_ohlcv >> silver_ohlcv
     ingest_market_index >> silver_market_index
@@ -164,4 +170,8 @@ with DAG(
     reconcile_gold >> export_gold_to_minio
     reconcile_gold >> init_user_alerts >> check_alerts
     reconcile_gold >> dbt_run >> dbt_test
+    # Backup does not gate export_frontend_data: a backup failure should not
+    # block the dashboard from getting fresh data, so it runs independently
+    # off reconcile_gold rather than joining the export fan-in below.
+    reconcile_gold >> backup_lakehouse
     [export_gold_to_minio, check_alerts, dbt_test] >> export_frontend_data

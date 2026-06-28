@@ -13,7 +13,11 @@ def test_run_all_quality_checks_references_all_datasets() -> None:
         assert script_name in content
 
 
-def test_quality_reports_record_great_expectations_version() -> None:
+def test_quality_reports_have_a_gx_version_field_without_depending_on_great_expectations() -> None:
+    """These validators are plain Python, not real GE checkpoints/suites --
+    great_expectations was only ever imported here to read __version__ for
+    this report field, so it should not appear as an import anymore.
+    """
     quality_modules = [
         Path("src/quality/ohlcv_expectations.py"),
         Path("src/quality/company_profile_expectations.py"),
@@ -24,4 +28,4 @@ def test_quality_reports_record_great_expectations_version() -> None:
     for module_path in quality_modules:
         content = module_path.read_text(encoding="utf-8")
         assert "gx_version" in content
-        assert "great_expectations" in content
+        assert "great_expectations" not in content

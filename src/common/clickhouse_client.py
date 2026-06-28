@@ -8,6 +8,8 @@ from clickhouse_connect import get_client
 from clickhouse_connect.driver.client import Client
 from dotenv import load_dotenv
 
+from src.common.secrets import get_secret
+
 load_dotenv()
 
 
@@ -17,7 +19,7 @@ def create_client(database: str | None = None) -> Client:
         host=os.getenv("CLICKHOUSE_HOST", "localhost"),
         port=int(os.getenv("CLICKHOUSE_PORT", "8123")),
         username=os.getenv("CLICKHOUSE_USER", "default"),
-        password=os.getenv("CLICKHOUSE_PASSWORD", "clickhouse"),
+        password=get_secret("CLICKHOUSE_PASSWORD", required=True),
         database=database or os.getenv("CLICKHOUSE_DATABASE", "stock_lakehouse"),
     )
 

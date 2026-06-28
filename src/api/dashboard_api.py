@@ -13,6 +13,7 @@ import polars as pl
 import requests
 
 from src.common.clickhouse_client import create_client
+from src.common.kafka_lag import get_consumer_group_lag
 from src.loaders.load_fact_realtime_vwap import build_fact_realtime_vwap
 
 
@@ -984,30 +985,17 @@ def get_pipeline_status() -> dict[str, Any]:
         ingest_history = []
 
     try:
-        # Not real Kafka consumer-group lag (no broker/offset is queried) --
-        # this is the gap between consecutive VWAP minute buckets already
-        # landed in ClickHouse, used as a rough proxy for streaming health.
-        # lagInFrame's first row has no prior row to diff against; without an
-        # explicit default it falls back to the column's zero value
-        # (1970-01-01), producing a multi-decade bogus "lag" for that single
-        # row. Passing the row's own minute_ts as the default makes the first
-        # row's lag 0 instead.
+        # Real consumer-group lag for ClickHouse's own Kafka engine consumer
+        # (group "clickhouse-realtime-vwap"), read straight from the broker:
+        # high-water-mark offset minus last committed offset, per partition.
+        # The frontend chart only has one history slot per poll (it replaces
+        # the array wholesale every 60s, it does not accumulate client-side),
+        # so this reports one current point -- total lag right now -- rather
+        # than fabricating a multi-point trend with no real history behind it.
+        partition_lags = get_consumer_group_lag()
         kafka_lag = [
-            row
-            for row in rows(
-                """
-                SELECT
-                  formatDateTime(minute_ts, '%H:%i') AS time,
-                  dateDiff('second', lagInFrame(minute_ts, 1, minute_ts) OVER (ORDER BY minute_ts), minute_ts) * 1000
-                    AS lag
-                FROM (
-                  SELECT DISTINCT minute_ts FROM fact_realtime_vwap ORDER BY minute_ts DESC LIMIT 30
-                ) AS t
-                ORDER BY minute_ts
-                """
-            )
-            if row["lag"] is not None
-        ]
+            {"time": datetime.now().strftime("%H:%M"), "lag": sum(p["lag"] for p in partition_lags)}
+        ] if partition_lags else []
     except Exception:
         kafka_lag = []
 
