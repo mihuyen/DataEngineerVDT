@@ -3,7 +3,7 @@ import {
   ComposedChart, Line, Bar, XAxis, YAxis, Tooltip,
   ResponsiveContainer, ReferenceLine, Legend,
 } from "recharts";
-import { dataSnapshotMeta, generateCandlestickData, newsSentiment as mockNewsSentiment, stockList } from "./mockData";
+import { dataSnapshotMeta, newsSentiment as mockNewsSentiment, stockList } from "./mockData";
 import { Candle, NewsSentimentRow, StockOption, fetchCandles, fetchNewsSentiment, fetchStocks } from "./api";
 
 const CARD: React.CSSProperties = {
@@ -46,6 +46,7 @@ export function StockDetail({ initialTicker = "VCB" }: StockDetailProps) {
   const [indicators, setIndicators] = useState({ sma20: true, ema12: false, bb: true, rsi: true, macd: false });
   const [stockOptions, setStockOptions] = useState<StockOption[]>(stockList);
   const [apiData, setApiData] = useState<Candle[] | null>(null);
+  const [fallbackCandles, setFallbackCandles] = useState<Candle[]>([]);
   const [apiStatus, setApiStatus] = useState("Đang đọc API...");
   const [searchText, setSearchText] = useState("");
   const [searchOpen, setSearchOpen] = useState(false);
@@ -90,14 +91,23 @@ export function StockDetail({ initialTicker = "VCB" }: StockDetailProps) {
         if (!cancelled) setApiData(candles);
       })
       .catch(() => {
-        if (!cancelled) setApiData(null);
+        if (cancelled) return;
+        setApiData(null);
+        // ~200 tickers of simulated OHLCV history live in mockCandlesticks.ts
+        // (extracted out of mockData.ts because it alone was ~99k lines /
+        // most of the production bundle). Loading it via a dynamic import
+        // only on a genuine API failure means that chunk is never fetched
+        // at all in the common case where the real API call succeeds.
+        import("./mockCandlesticks").then(({ generateCandlestickData }) => {
+          if (!cancelled) setFallbackCandles(generateCandlestickData(ticker));
+        });
       });
     return () => {
       cancelled = true;
     };
   }, [ticker]);
 
-  const data = useMemo(() => apiData ?? generateCandlestickData(ticker), [apiData, ticker]);
+  const data = useMemo(() => apiData ?? fallbackCandles, [apiData, fallbackCandles]);
   const sliced = period === "1M" ? data.slice(-21) : period === "3M" ? data.slice(-63) : period === "6M" ? data.slice(-126) : data;
   const stock = stockOptions.find((s) => s.ticker === ticker) || stockList.find((s) => s.ticker === ticker) || stockOptions[0] || stockList[0];
   const filteredStocks = useMemo(() => {

@@ -5,7 +5,7 @@ from dataclasses import dataclass, replace
 from datetime import datetime, timezone
 from typing import Any
 
-from src.alert_engine.notifier import send_notification
+from src.alert_engine.notifier import DELIVERY_SENT, send_notification
 from src.alert_engine.rules import AlertRule, evaluate_condition
 
 ALL_TICKERS_WILDCARD = "ALL"
@@ -90,10 +90,11 @@ def fetch_latest_market_data(ch_client: Any, tickers: list[str]) -> dict[str, di
 
 
 def is_in_cooldown(ch_client: Any, rule: AlertRule) -> bool:
-    # Count any logged event in the window, not just is_sent=1: if the
-    # notification channel is unconfigured (is_sent always 0), filtering on
-    # is_sent=1 would mean the same condition never enters cooldown and
-    # fact_alert_event grows by one row per rule on every check cycle forever.
+    # Count any logged event in the window regardless of delivery_status: if
+    # the notification channel is unconfigured (delivery never succeeds),
+    # filtering on a successful delivery would mean the same condition never
+    # enters cooldown and fact_alert_event grows by one row per rule on every
+    # check cycle forever.
     result = ch_client.query(
         f"""
         SELECT count() AS cnt
@@ -101,20 +102,23 @@ def is_in_cooldown(ch_client: Any, rule: AlertRule) -> bool:
         WHERE user_id = {{user_id:String}}
           AND ticker = {{ticker:String}}
           AND condition_type = {{condition_type:String}}
+          AND channel = {{channel:String}}
           AND triggered_at >= now() - INTERVAL {int(rule.cooldown_minutes)} MINUTE
         """,
         parameters={
             "user_id": rule.user_id,
             "ticker": rule.ticker,
             "condition_type": rule.condition_type,
+            "channel": rule.channel,
         },
     )
     return result.result_rows[0][0] > 0
 
 
-def record_alert_event(ch_client: Any, rule: AlertRule, actual_value: float, is_sent: bool) -> None:
+def record_alert_event(ch_client: Any, rule: AlertRule, actual_value: float, delivery_status: str) -> None:
     now = datetime.now(timezone.utc).replace(microsecond=0, tzinfo=None)
     date_id = int(now.strftime("%Y%m%d"))
+    sent = delivery_status == DELIVERY_SENT
     ch_client.insert(
         "fact_alert_event",
         [
@@ -128,8 +132,8 @@ def record_alert_event(ch_client: Any, rule: AlertRule, actual_value: float, is_
                 float(rule.threshold_value),
                 float(actual_value),
                 rule.channel,
-                1 if is_sent else 0,
-                now if is_sent else None,
+                delivery_status,
+                now if sent else None,
                 now,
             ]
         ],
@@ -143,7 +147,7 @@ def record_alert_event(ch_client: Any, rule: AlertRule, actual_value: float, is_
             "threshold_value",
             "actual_value",
             "channel",
-            "is_sent",
+            "delivery_status",
             "sent_at",
             "created_at",
         ],
@@ -156,17 +160,23 @@ class CheckResult:
     triggered: bool
     skipped_cooldown: bool
     actual_value: float | None
-    sent: bool
+    delivery_status: str | None
+
+    @property
+    def sent(self) -> bool:
+        return self.delivery_status == DELIVERY_SENT
 
 
 def run_check_cycle(pg_conn: Any, ch_client: Any) -> list[CheckResult]:
     """Evaluate every active user_alerts rule against the latest Gold data.
 
     For each rule that triggers: if a matching alert (same user_id + ticker +
-    condition_type) was already sent within its cooldown window, the event is
-    still logged to fact_alert_event with is_sent=0 (audit trail) but no
-    notification goes out. Otherwise the notifier is invoked and the event is
-    logged with is_sent reflecting whether delivery succeeded.
+    condition_type) was already logged within its cooldown window, the trigger
+    is skipped entirely (no notification, no new row) since it is already
+    represented by the row that opened the cooldown window. Otherwise the
+    notifier is invoked and the event is logged with delivery_status
+    reflecting why delivery did or didn't succeed (sent / send_failed /
+    channel_not_configured / unknown_channel).
     """
     raw_rules = load_active_rules(pg_conn)
     if any(rule.ticker == ALL_TICKERS_WILDCARD for rule in raw_rules):
@@ -181,28 +191,40 @@ def run_check_cycle(pg_conn: Any, ch_client: Any) -> list[CheckResult]:
         data = market.get(rule.ticker)
         if not data:
             results.append(
-                CheckResult(rule, triggered=False, skipped_cooldown=False, actual_value=None, sent=False)
+                CheckResult(rule, triggered=False, skipped_cooldown=False, actual_value=None, delivery_status=None)
             )
             continue
 
         actual_value = evaluate_condition(rule, data)
         if actual_value is None:
             results.append(
-                CheckResult(rule, triggered=False, skipped_cooldown=False, actual_value=None, sent=False)
+                CheckResult(rule, triggered=False, skipped_cooldown=False, actual_value=None, delivery_status=None)
             )
             continue
 
         if is_in_cooldown(ch_client, rule):
-            record_alert_event(ch_client, rule, actual_value, is_sent=False)
+            # Do not insert a row here: the condition is still inside the cooldown
+            # window opened by a previous trigger, which is already logged. Logging
+            # again on every cycle would make fact_alert_event grow unboundedly for
+            # any condition that stays true for longer than cooldown_minutes (e.g. a
+            # wildcard rule scanning hundreds of tickers every 60s).
             results.append(
-                CheckResult(rule, triggered=True, skipped_cooldown=True, actual_value=actual_value, sent=False)
+                CheckResult(
+                    rule, triggered=True, skipped_cooldown=True, actual_value=actual_value, delivery_status=None
+                )
             )
             continue
 
-        sent = send_notification(rule, actual_value)
-        record_alert_event(ch_client, rule, actual_value, is_sent=sent)
+        delivery_status = send_notification(rule, actual_value)
+        record_alert_event(ch_client, rule, actual_value, delivery_status=delivery_status)
         results.append(
-            CheckResult(rule, triggered=True, skipped_cooldown=False, actual_value=actual_value, sent=sent)
+            CheckResult(
+                rule,
+                triggered=True,
+                skipped_cooldown=False,
+                actual_value=actual_value,
+                delivery_status=delivery_status,
+            )
         )
 
     return results

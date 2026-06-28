@@ -20,6 +20,12 @@ models:
   stock_lakehouse:
     +materialized: view
     staging:
-      +materialized: view
+      # Kept as a full table rebuild every run, not incremental: marts'
+      # rolling-window calculations need the complete ticker history as
+      # input, so trimming staging incrementally would corrupt those
+      # windows near the trim boundary.
+      +materialized: table
     marts:
-      +materialized: view
+      +materialized: incremental
+      +incremental_strategy: delete_insert
+      +unique_key: ['ticker', 'date_id']

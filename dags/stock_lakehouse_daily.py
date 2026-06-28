@@ -119,6 +119,21 @@ with DAG(
         bash_command=f"{COMMON_ENV} && uv run python scripts/load_gold.py",
     )
 
+    reconcile_gold = BashOperator(
+        task_id="reconcile_gold",
+        bash_command=f"{COMMON_ENV} && uv run python scripts/run_reconciliation_check.py --fail-on-error",
+    )
+
+    dbt_run = BashOperator(
+        task_id="dbt_run",
+        bash_command=f"{COMMON_ENV}/dbt && uv run dbt run --project-dir . --profiles-dir .",
+    )
+
+    dbt_test = BashOperator(
+        task_id="dbt_test",
+        bash_command=f"{COMMON_ENV}/dbt && uv run dbt test --project-dir . --profiles-dir .",
+    )
+
     export_gold_to_minio = BashOperator(
         task_id="export_gold_to_minio",
         bash_command=f"{COMMON_ENV} && uv run python scripts/export_gold_to_minio.py",
@@ -145,7 +160,8 @@ with DAG(
     ingest_news >> silver_news
     ingest_company_profile >> silver_company_profile
     [silver_ohlcv, silver_company_profile, silver_market_index, silver_news] >> quality_all
-    quality_all >> migrate_gold >> load_gold
-    load_gold >> export_gold_to_minio
-    load_gold >> init_user_alerts >> check_alerts
-    [export_gold_to_minio, check_alerts] >> export_frontend_data
+    quality_all >> migrate_gold >> load_gold >> reconcile_gold
+    reconcile_gold >> export_gold_to_minio
+    reconcile_gold >> init_user_alerts >> check_alerts
+    reconcile_gold >> dbt_run >> dbt_test
+    [export_gold_to_minio, check_alerts, dbt_test] >> export_frontend_data

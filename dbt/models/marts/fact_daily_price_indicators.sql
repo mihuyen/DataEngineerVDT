@@ -1,4 +1,8 @@
-{{ config(materialized='view') }}
+{{ config(
+    materialized='incremental',
+    incremental_strategy='delete_insert',
+    unique_key=['ticker', 'date_id']
+) }}
 
 with base as (
     select
@@ -108,3 +112,14 @@ final as (
 
 select *
 from final
+{% if is_incremental() %}
+-- Rolling indicators (SMA20/RSI14/Bollinger) above are computed over the
+-- *entire* ticker history read from stg_fact_daily_price, so they are
+-- always correct regardless of this filter. Only the output actually
+-- written back is limited to a lookback window past this table's current
+-- watermark, mirroring scripts/load_gold.py's INDICATOR_LOOKBACK_DAYS
+-- approach: delete_insert matches by (ticker, date_id), not by partition,
+-- so narrowing this filter cannot silently drop unrelated existing rows the
+-- way a partition-level DROP would.
+where trading_date >= (select dateAdd(day, -35, max(trading_date)) from {{ this }})
+{% endif %}

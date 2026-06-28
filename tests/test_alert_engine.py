@@ -131,7 +131,12 @@ class FakeClickHouseClient:
     def query(self, sql: str, parameters: dict | None = None) -> FakeQueryResult:
         if "fact_alert_event" in sql:
             assert parameters is not None
-            key = (parameters["user_id"], parameters["ticker"], parameters["condition_type"])
+            key = (
+                parameters["user_id"],
+                parameters["ticker"],
+                parameters["condition_type"],
+                parameters["channel"],
+            )
             return FakeQueryResult([[1 if key in self._cooldown_hits else 0]])
         if "dim_stock" in sql:
             return FakeQueryResult([[ticker] for ticker in self._hose_tickers])
@@ -144,7 +149,7 @@ class FakeClickHouseClient:
 
 
 def test_run_check_cycle_triggers_and_sends(monkeypatch: pytest.MonkeyPatch) -> None:
-    monkeypatch.setattr(engine, "send_notification", lambda rule, value: True)
+    monkeypatch.setattr(engine, "send_notification", lambda rule, value: "sent")
 
     pg_conn = FakePgConnection(
         [("alert-1", "demo_user", "VCB", "RSI_ABOVE", 70.0, "TELEGRAM", 30)]
@@ -161,10 +166,32 @@ def test_run_check_cycle_triggers_and_sends(monkeypatch: pytest.MonkeyPatch) -> 
     assert results[0].triggered is True
     assert results[0].skipped_cooldown is False
     assert results[0].sent is True
+    assert results[0].delivery_status == "sent"
     assert results[0].actual_value == 72.0
     assert len(ch_client.inserted) == 1
     _, rows, columns = ch_client.inserted[0]
-    assert rows[0][columns.index("is_sent")] == 1
+    assert rows[0][columns.index("delivery_status")] == "sent"
+
+
+def test_run_check_cycle_records_channel_not_configured(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(engine, "send_notification", lambda rule, value: "channel_not_configured")
+
+    pg_conn = FakePgConnection(
+        [("alert-1", "demo_user", "VCB", "RSI_ABOVE", 70.0, "TELEGRAM", 30)]
+    )
+    ch_client = FakeClickHouseClient(
+        daily_rows=[("VCB", 95.0, 72.0, 100.0, 80.0)],
+        realtime_rows=[],
+        cooldown_hits=set(),
+    )
+
+    results = engine.run_check_cycle(pg_conn, ch_client)
+
+    assert results[0].sent is False
+    assert results[0].delivery_status == "channel_not_configured"
+    _, rows, columns = ch_client.inserted[0]
+    assert rows[0][columns.index("delivery_status")] == "channel_not_configured"
+    assert rows[0][columns.index("sent_at")] is None
 
 
 def test_run_check_cycle_does_not_trigger_when_condition_not_met() -> None:
@@ -185,7 +212,7 @@ def test_run_check_cycle_does_not_trigger_when_condition_not_met() -> None:
 
 def test_run_check_cycle_skips_when_in_cooldown(monkeypatch: pytest.MonkeyPatch) -> None:
     send_calls = []
-    monkeypatch.setattr(engine, "send_notification", lambda rule, value: send_calls.append(rule) or True)
+    monkeypatch.setattr(engine, "send_notification", lambda rule, value: send_calls.append(rule) or "sent")
 
     pg_conn = FakePgConnection(
         [("alert-1", "demo_user", "VCB", "RSI_ABOVE", 70.0, "TELEGRAM", 30)]
@@ -193,7 +220,7 @@ def test_run_check_cycle_skips_when_in_cooldown(monkeypatch: pytest.MonkeyPatch)
     ch_client = FakeClickHouseClient(
         daily_rows=[("VCB", 95.0, 72.0, 100.0, 80.0)],
         realtime_rows=[],
-        cooldown_hits={("demo_user", "VCB", "RSI_ABOVE")},
+        cooldown_hits={("demo_user", "VCB", "RSI_ABOVE", "TELEGRAM")},
     )
 
     results = engine.run_check_cycle(pg_conn, ch_client)
@@ -202,9 +229,26 @@ def test_run_check_cycle_skips_when_in_cooldown(monkeypatch: pytest.MonkeyPatch)
     assert results[0].skipped_cooldown is True
     assert results[0].sent is False
     assert send_calls == []
-    assert len(ch_client.inserted) == 1
-    _, rows, columns = ch_client.inserted[0]
-    assert rows[0][columns.index("is_sent")] == 0
+    assert len(ch_client.inserted) == 0
+
+
+def test_cooldown_is_scoped_to_notification_channel() -> None:
+    ch_client = FakeClickHouseClient(
+        daily_rows=[],
+        realtime_rows=[],
+        cooldown_hits={("demo_user", "VCB", "RSI_ABOVE", "TELEGRAM")},
+    )
+    email_rule = AlertRule(
+        alert_id="alert-email",
+        user_id="demo_user",
+        ticker="VCB",
+        condition_type="RSI_ABOVE",
+        threshold_value=70.0,
+        channel="EMAIL",
+        cooldown_minutes=30,
+    )
+
+    assert engine.is_in_cooldown(ch_client, email_rule) is False
 
 
 def test_run_check_cycle_skips_ticker_with_no_market_data() -> None:
@@ -219,7 +263,7 @@ def test_run_check_cycle_skips_ticker_with_no_market_data() -> None:
 
 
 def test_wildcard_rule_expands_to_every_hose_ticker(monkeypatch: pytest.MonkeyPatch) -> None:
-    monkeypatch.setattr(engine, "send_notification", lambda rule, value: True)
+    monkeypatch.setattr(engine, "send_notification", lambda rule, value: "sent")
 
     pg_conn = FakePgConnection(
         [("alert-1", "demo_user", "ALL", "RSI_ABOVE", 70.0, "TELEGRAM", 30)]

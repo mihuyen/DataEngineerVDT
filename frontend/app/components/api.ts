@@ -173,6 +173,8 @@ export type AlertEvent = {
   actual: number;
   channel: string;
   status: string;
+  /** Raw reason: sent | send_failed | channel_not_configured | unknown_channel */
+  deliveryStatus?: string;
   sentAt: string | null;
   cooldown: number;
 };
@@ -207,6 +209,7 @@ export type KafkaLagPoint = { time: string; lag: number };
 
 export type PipelineStatusPayload = {
   dagStatus: DagStatusRow[];
+  dagStatusSource: "airflow" | "clickhouse_fallback";
   dataQualityErrors: DataQualityError[];
   ingestHistory: IngestHistoryPoint[];
   kafkaLag: KafkaLagPoint[];

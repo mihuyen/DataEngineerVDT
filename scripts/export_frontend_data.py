@@ -517,7 +517,8 @@ def main() -> None:
           threshold_value AS threshold,
           actual_value AS actual,
           channel,
-          if(is_sent = 1, 'sent', 'failed') AS status,
+          if(delivery_status = 'sent', 'sent', 'failed') AS status,
+          delivery_status AS deliveryStatus,
           ifNull(formatDateTime(sent_at, '%H:%M:%S'), '') AS sentAt,
           formatDateTime(triggered_at, '%H:%M:%S') AS triggeredAt,
           30 AS cooldown

@@ -1,12 +1,21 @@
-import { useState } from "react";
+import { Suspense, lazy, useState } from "react";
 import { Layout, Page } from "./components/Layout";
-import { MarketOverview } from "./components/MarketOverview";
-import { StockDetail } from "./components/StockDetail";
-import { TechnicalScanner } from "./components/TechnicalScanner";
-import { PipelineMonitor } from "./components/PipelineMonitor";
-import { RealtimeVWAP } from "./components/RealtimeVWAP";
-import { NewsSentiment } from "./components/NewsSentiment";
-import { AlertHistory } from "./components/AlertHistory";
+
+const MarketOverview = lazy(() => import("./components/MarketOverview").then((m) => ({ default: m.MarketOverview })));
+const StockDetail = lazy(() => import("./components/StockDetail").then((m) => ({ default: m.StockDetail })));
+const TechnicalScanner = lazy(() =>
+  import("./components/TechnicalScanner").then((m) => ({ default: m.TechnicalScanner }))
+);
+const PipelineMonitor = lazy(() =>
+  import("./components/PipelineMonitor").then((m) => ({ default: m.PipelineMonitor }))
+);
+const RealtimeVWAP = lazy(() => import("./components/RealtimeVWAP").then((m) => ({ default: m.RealtimeVWAP })));
+const NewsSentiment = lazy(() => import("./components/NewsSentiment").then((m) => ({ default: m.NewsSentiment })));
+const AlertHistory = lazy(() => import("./components/AlertHistory").then((m) => ({ default: m.AlertHistory })));
+
+const PageFallback = () => (
+  <div style={{ padding: 24, color: "#6b7fa3", fontFamily: "Inter, sans-serif", fontSize: 13 }}>Đang tải...</div>
+);
 
 export default function App() {
   const [currentPage, setCurrentPage] = useState<Page>("market");
@@ -40,7 +49,7 @@ export default function App() {
 
   return (
     <Layout currentPage={currentPage} onNavigate={(page) => setCurrentPage(page)}>
-      {renderPage()}
+      <Suspense fallback={<PageFallback />}>{renderPage()}</Suspense>
     </Layout>
   );
 }

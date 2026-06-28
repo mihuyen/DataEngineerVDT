@@ -59,7 +59,11 @@ export function PipelineMonitor() {
           setDataQualityErrors(payload.dataQualityErrors);
           setIngestHistory(payload.ingestHistory);
           setKafkaLag(payload.kafkaLag);
-          setApiStatus("ClickHouse live query");
+          setApiStatus(
+            payload.dagStatusSource === "airflow"
+              ? "Airflow REST API trực tiếp"
+              : "ClickHouse (Airflow không phản hồi)"
+          );
         })
         .catch(() => {
           if (!cancelled) setApiStatus("Snapshot local");
@@ -97,7 +101,7 @@ export function PipelineMonitor() {
           { label: "DAG đang chạy", value: runningCount, color: "#8b5cf6", bg: "rgba(245,158,11,0.08)" },
           { label: "Lỗi GX Validation", value: totalErrors, color: "#ff4d6d", bg: "rgba(255,77,109,0.08)" },
           { label: "Bản ghi ingest mới nhất", value: formatRecords(latestIngestRecords), color: "#3b82f6", bg: "rgba(59,130,246,0.08)" },
-          { label: "Kafka Consumer Lag", value: `${latestLag}ms`, color: "#00d97e", bg: "rgba(0,217,126,0.08)" },
+          { label: "Độ trễ VWAP (proxy)", value: `${latestLag}ms`, color: "#00d97e", bg: "rgba(0,217,126,0.08)" },
         ].map((kpi) => (
           <div key={kpi.label} style={{ ...CARD, background: kpi.bg, borderColor: `${kpi.color}30` }}>
             <div style={{ ...INTER, color: "#6b7fa3", fontSize: 10, textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 4 }}>{kpi.label}</div>
@@ -132,7 +136,7 @@ export function PipelineMonitor() {
 
         {/* Kafka lag */}
         <div style={CARD}>
-          <div style={{ ...INTER, color: "#e2e8f0", fontSize: 13, fontWeight: 600, marginBottom: 12 }}>Kafka Consumer Lag (ms)</div>
+          <div style={{ ...INTER, color: "#e2e8f0", fontSize: 13, fontWeight: 600, marginBottom: 12 }}>Khoảng cách giữa các phút VWAP (ms, proxy cho độ trễ)</div>
           <ResponsiveContainer width="100%" height={160}>
             <LineChart data={kafkaLag} margin={{ left: 10, right: 10 }}>
               <XAxis dataKey="time" tick={{ fill: "#6b7fa3", fontSize: 10, ...MONO }} axisLine={false} tickLine={false} interval={3} />

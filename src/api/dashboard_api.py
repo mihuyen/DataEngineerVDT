@@ -10,6 +10,7 @@ from typing import Any
 from fastapi import FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
 import polars as pl
+import requests
 
 from src.common.clickhouse_client import create_client
 from src.loaders.load_fact_realtime_vwap import build_fact_realtime_vwap
@@ -18,6 +19,10 @@ from src.loaders.load_fact_realtime_vwap import build_fact_realtime_vwap
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 DEFAULT_DNSE_BRONZE_DIR = PROJECT_ROOT / "data" / "bronze_local" / "dnse" / "trades"
 QUALITY_REPORTS_DIR = PROJECT_ROOT / "quality_reports"
+
+AIRFLOW_BASE_URL = os.getenv("AIRFLOW_BASE_URL", "http://localhost:8080")
+AIRFLOW_DAG_ID = os.getenv("AIRFLOW_DAG_ID", "stock_lakehouse_daily")
+AIRFLOW_AUTH = (os.getenv("AIRFLOW_USER", "admin"), os.getenv("AIRFLOW_PASSWORD", "admin"))
 
 ALERT_CONDITION_COLORS = {
     "RSI_ABOVE": "#ff4d6d",
@@ -782,7 +787,7 @@ def get_alerts(limit: int = Query(200, ge=1, le=2000)) -> dict[str, Any]:
           threshold_value AS threshold,
           actual_value AS actual,
           channel AS channel,
-          is_sent AS isSent,
+          delivery_status AS deliveryStatus,
           sent_at AS sentAt,
           formatDateTime(ifNull(sent_at, triggered_at), '%Y-%m-%d %H:%i') AS sentAtFormatted
         FROM fact_alert_event
@@ -800,7 +805,8 @@ def get_alerts(limit: int = Query(200, ge=1, le=2000)) -> dict[str, Any]:
             "threshold": row["threshold"],
             "actual": row["actual"],
             "channel": row["channel"],
-            "status": "sent" if row["isSent"] else "skipped",
+            "status": "sent" if row["deliveryStatus"] == "sent" else "failed",
+            "deliveryStatus": row["deliveryStatus"],
             "sentAt": row["sentAtFormatted"] if row["sentAt"] else None,
             "cooldown": 0,
         }
@@ -828,6 +834,92 @@ def get_alerts(limit: int = Query(200, ge=1, le=2000)) -> dict[str, Any]:
     return {"count": len(alerts), "data": alerts, "byDay": by_day, "byCondition": by_condition}
 
 
+TASK_RECORD_TABLES = {
+    "bronze_ohlcv": "fact_daily_price",
+    "silver_ohlcv": "fact_daily_price",
+    "bronze_market_index": "fact_market_index",
+    "silver_market_index": "fact_market_index",
+    "bronze_market_news": "fact_news_sentiment_daily",
+    "silver_news": "fact_news_sentiment_daily",
+    "check_alerts": "fact_alert_event",
+}
+
+AIRFLOW_STATE_MAP = {
+    "success": "success",
+    "failed": "failed",
+    "upstream_failed": "failed",
+    "running": "running",
+    "queued": "running",
+    "scheduled": "running",
+}
+
+
+def format_duration(seconds: float | None) -> str:
+    if seconds is None:
+        return "—"
+    seconds = int(seconds)
+    if seconds < 60:
+        return f"{seconds}s"
+    minutes, seconds = divmod(seconds, 60)
+    return f"{minutes}m{seconds}s"
+
+
+def fetch_airflow_dag_status() -> list[dict[str, Any]] | None:
+    """Read real task-level state for the latest DAG run from the Airflow REST API.
+
+    Returns None (caller falls back to the ClickHouse-derived approximation)
+    if Airflow is unreachable or has no runs yet — this keeps the dashboard
+    usable while the scheduler/webserver is still starting up.
+    """
+    try:
+        runs_resp = requests.get(
+            f"{AIRFLOW_BASE_URL}/api/v1/dags/{AIRFLOW_DAG_ID}/dagRuns",
+            params={"order_by": "-execution_date", "limit": 1},
+            auth=AIRFLOW_AUTH,
+            timeout=5,
+        )
+        runs_resp.raise_for_status()
+        dag_runs = runs_resp.json().get("dag_runs", [])
+        if not dag_runs:
+            return None
+        dag_run_id = dag_runs[0]["dag_run_id"]
+
+        tasks_resp = requests.get(
+            f"{AIRFLOW_BASE_URL}/api/v1/dags/{AIRFLOW_DAG_ID}/dagRuns/{dag_run_id}/taskInstances",
+            auth=AIRFLOW_AUTH,
+            timeout=5,
+        )
+        tasks_resp.raise_for_status()
+        task_instances = tasks_resp.json().get("task_instances", [])
+    except (requests.RequestException, KeyError, ValueError):
+        return None
+
+    record_counts: dict[str, int] = {}
+    for table in set(TASK_RECORD_TABLES.values()):
+        try:
+            record_counts[table] = int(scalar(f"SELECT count(*) FROM {table}", default=0) or 0)
+        except Exception:
+            record_counts[table] = 0
+
+    dag_status = []
+    for task in sorted(task_instances, key=lambda t: t.get("start_date") or ""):
+        airflow_state = task.get("state") or "scheduled"
+        status = AIRFLOW_STATE_MAP.get(airflow_state, "failed")
+        table = TASK_RECORD_TABLES.get(task["task_id"])
+        dag_status.append(
+            {
+                "dag": task["task_id"],
+                "status": status,
+                "lastRun": (task.get("start_date") or "—")[:19].replace("T", " "),
+                "duration": format_duration(task.get("duration")),
+                "records": record_counts.get(table, 0) if table else 0,
+                "tasks": 1,
+                "failed": 1 if status == "failed" else 0,
+            }
+        )
+    return dag_status or None
+
+
 def load_quality_reports() -> list[dict[str, Any]]:
     if not QUALITY_REPORTS_DIR.exists():
         return []
@@ -842,24 +934,30 @@ def load_quality_reports() -> list[dict[str, Any]]:
 
 @app.get("/api/pipeline/status")
 def get_pipeline_status() -> dict[str, Any]:
-    dag_status = []
-    for table, date_col in PIPELINE_TABLES:
-        try:
-            last_run = scalar(f"SELECT max({date_col}) FROM {table}")
-            records = scalar(f"SELECT count(*) FROM {table}", default=0)
-        except Exception:
-            last_run, records = None, 0
-        dag_status.append(
-            {
-                "dag": table,
-                "status": "success" if records else "failed",
-                "lastRun": last_run or "—",
-                "duration": "—",
-                "records": records or 0,
-                "tasks": 1,
-                "failed": 0 if records else 1,
-            }
-        )
+    dag_status = fetch_airflow_dag_status()
+    airflow_source = "airflow"
+    if dag_status is None:
+        # Airflow REST API unreachable (e.g. webserver still starting up):
+        # fall back to inferring status from Gold table freshness/row counts.
+        airflow_source = "clickhouse_fallback"
+        dag_status = []
+        for table, date_col in PIPELINE_TABLES:
+            try:
+                last_run = scalar(f"SELECT max({date_col}) FROM {table}")
+                records = scalar(f"SELECT count(*) FROM {table}", default=0)
+            except Exception:
+                last_run, records = None, 0
+            dag_status.append(
+                {
+                    "dag": table,
+                    "status": "success" if records else "failed",
+                    "lastRun": last_run or "—",
+                    "duration": "—",
+                    "records": records or 0,
+                    "tasks": 1,
+                    "failed": 0 if records else 1,
+                }
+            )
 
     data_quality_errors = [
         {
@@ -886,13 +984,22 @@ def get_pipeline_status() -> dict[str, Any]:
         ingest_history = []
 
     try:
+        # Not real Kafka consumer-group lag (no broker/offset is queried) --
+        # this is the gap between consecutive VWAP minute buckets already
+        # landed in ClickHouse, used as a rough proxy for streaming health.
+        # lagInFrame's first row has no prior row to diff against; without an
+        # explicit default it falls back to the column's zero value
+        # (1970-01-01), producing a multi-decade bogus "lag" for that single
+        # row. Passing the row's own minute_ts as the default makes the first
+        # row's lag 0 instead.
         kafka_lag = [
             row
             for row in rows(
                 """
                 SELECT
                   formatDateTime(minute_ts, '%H:%i') AS time,
-                  dateDiff('second', lagInFrame(minute_ts) OVER (ORDER BY minute_ts), minute_ts) * 1000 AS lag
+                  dateDiff('second', lagInFrame(minute_ts, 1, minute_ts) OVER (ORDER BY minute_ts), minute_ts) * 1000
+                    AS lag
                 FROM (
                   SELECT DISTINCT minute_ts FROM fact_realtime_vwap ORDER BY minute_ts DESC LIMIT 30
                 ) AS t
@@ -906,6 +1013,7 @@ def get_pipeline_status() -> dict[str, Any]:
 
     return {
         "dagStatus": dag_status,
+        "dagStatusSource": airflow_source,
         "dataQualityErrors": data_quality_errors,
         "ingestHistory": ingest_history,
         "kafkaLag": kafka_lag,

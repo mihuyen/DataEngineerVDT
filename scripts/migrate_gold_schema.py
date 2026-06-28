@@ -10,9 +10,19 @@ from src.common.clickhouse_client import create_client, execute
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 DDL_DIR = PROJECT_ROOT / "sql" / "ddl"
-GOLD_TABLES = [
+
+# fact_realtime_vwap and fact_alert_event are owned by the continuous
+# realtime-vwap-consumer and alert-engine services. DROP TABLE here would
+# destroy their history on every DAG run regardless of what load_gold.py
+# does downstream (it ran before load_gold.py's own truncate-avoidance fix
+# could matter at all) -- this table set must never be dropped, only created
+# if missing.
+NO_DROP_TABLES = [
     "fact_alert_event",
     "fact_realtime_vwap",
+]
+
+GOLD_TABLES = [
     "fact_news_sentiment_daily",
     "fact_market_index",
     "fact_daily_price",
@@ -24,10 +34,13 @@ GOLD_TABLES = [
 
 
 def main() -> None:
-    """Recreate Gold tables from the current DDL files.
+    """Recreate batch Gold tables from the current DDL files.
 
-    Local development note: this drops and recreates Gold tables so schema changes
-    from the design document are applied cleanly.
+    Local development note: this drops and recreates the batch dimension/fact
+    tables so schema changes from the design document are applied cleanly --
+    they are always fully repopulated by load_gold.py anyway. Tables owned by
+    continuous services (NO_DROP_TABLES) are only created if missing, never
+    dropped, since they are not repopulated from Silver by anything.
     """
     client = create_client()
     for table_name in GOLD_TABLES:
@@ -35,6 +48,9 @@ def main() -> None:
         print(f"- dropped: {table_name}")
 
     for ddl_file in sorted(DDL_DIR.glob("*.sql")):
+        table_name = ddl_file.stem
+        if table_name in NO_DROP_TABLES:
+            print(f"- skipped drop (owned by continuous service): {table_name}")
         execute(client, ddl_file.read_text(encoding="utf-8"))
         print(f"- created: {ddl_file.name}")
 

@@ -1,0 +1,20 @@
+apiVersion: 1
+
+contactPoints:
+  - orgId: 1
+    name: ops-default
+    receivers:
+      - uid: ops-default-log
+        type: email
+        settings:
+          # No SMTP server is configured in this environment (same
+          # limitation as the Alert Engine's own email channel - see the
+          # report's limitations section), so delivery will fail and only
+          # show up in Grafana's own logs. The alert RULE still fires and is
+          # visible under Alerting > Alert rules regardless of whether the
+          # notification itself is delivered; wire a real contact point
+          # (Slack/Telegram/PagerDuty webhook) here before relying on this
+          # in production.
+          addresses: ops-placeholder@example.com
+          singleEmail: true
+        disableResolveMessage: false

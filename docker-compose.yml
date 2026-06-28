@@ -91,6 +91,15 @@ services:
       POSTGRES_DB: ${POSTGRES_DB:-stock_lakehouse}
       TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN:-}
       TELEGRAM_CHAT_ID: ${TELEGRAM_CHAT_ID:-}
+      SMTP_HOST: ${SMTP_HOST:-}
+      SMTP_PORT: ${SMTP_PORT:-587}
+      SMTP_USERNAME: ${SMTP_USERNAME:-}
+      SMTP_PASSWORD: ${SMTP_PASSWORD:-}
+      SMTP_FROM: ${SMTP_FROM:-}
+      SMTP_TO: ${SMTP_TO:-}
+      SMTP_USE_TLS: ${SMTP_USE_TLS:-true}
+      SMTP_USE_SSL: ${SMTP_USE_SSL:-false}
+      SMTP_SUBJECT: ${SMTP_SUBJECT:-Stocky - Stock Alert}
       ALERT_CHECK_INTERVAL_SECONDS: ${ALERT_CHECK_INTERVAL_SECONDS:-60}
     volumes:
       - .:/app
@@ -172,6 +181,7 @@ services:
       AIRFLOW__CORE__LOAD_EXAMPLES: "false"
       AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://${POSTGRES_USER:-stock_user}:${POSTGRES_PASSWORD:-stock_password}@postgres:5432/${POSTGRES_DB:-stock_lakehouse}
       AIRFLOW__WEBSERVER__SECRET_KEY: ${AIRFLOW_WEBSERVER_SECRET_KEY:-change_me_airflow}
+      AIRFLOW__API__AUTH_BACKENDS: airflow.api.auth.backend.basic_auth,airflow.api.auth.backend.session
     volumes:
       - ./dags:/opt/airflow/dags
       - .:/opt/airflow/project

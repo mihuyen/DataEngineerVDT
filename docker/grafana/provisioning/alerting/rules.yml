@@ -1,0 +1,95 @@
+apiVersion: 1
+
+groups:
+  - orgId: 1
+    name: pipeline-health
+    folder: Pipeline Alerts
+    interval: 5m
+    rules:
+      - uid: dag-failed-24h
+        title: "Airflow DAG stock_lakehouse_daily failed"
+        condition: C
+        data:
+          - refId: A
+            datasourceUid: airflow-postgres
+            relativeTimeRange:
+              from: 86400
+              to: 0
+            model:
+              format: table
+              rawSql: >-
+                SELECT count(*) AS value FROM dag_run
+                WHERE dag_id = 'stock_lakehouse_daily' AND state = 'failed'
+                  AND start_date >= now() - interval '1 day'
+              refId: A
+          - refId: C
+            datasourceUid: "__expr__"
+            model:
+              type: classic_conditions
+              refId: C
+              conditions:
+                - evaluator:
+                    type: gt
+                    params: [0]
+                  operator:
+                    type: and
+                  query:
+                    params: ["A"]
+                  reducer:
+                    type: last
+                    params: []
+                  type: query
+        noDataState: OK
+        execErrState: Alerting
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "stock_lakehouse_daily had at least one failed run in the last 24h"
+
+      - uid: vwap-stale-1h
+        title: "Realtime VWAP has not updated recently"
+        condition: C
+        data:
+          - refId: A
+            datasourceUid: clickhouse-gold
+            relativeTimeRange:
+              from: 600
+              to: 0
+            model:
+              format: table
+              queryType: sql
+              rawSql: >-
+                SELECT dateDiff('second', max(minute_ts), now()) AS value
+                FROM fact_realtime_vwap
+              refId: A
+          - refId: C
+            datasourceUid: "__expr__"
+            model:
+              type: classic_conditions
+              refId: C
+              conditions:
+                - evaluator:
+                    type: gt
+                    # 3600s: generous for demo/manual ticks, which are not
+                    # published continuously outside trading hours. Tighten
+                    # this once the realtime-vwap-consumer runs against real
+                    # DNSE ticks during market hours (see report limitations
+                    # on realtime VWAP coverage not yet being verified
+                    # end-to-end with live market data).
+                    params: [3600]
+                  operator:
+                    type: and
+                  query:
+                    params: ["A"]
+                  reducer:
+                    type: last
+                    params: []
+                  type: query
+        noDataState: Alerting
+        execErrState: Alerting
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "fact_realtime_vwap has had no new minute bucket for over an hour"
