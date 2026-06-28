@@ -1,6 +1,6 @@
 // Generated from ClickHouse by scripts/export_frontend_data.py.
 export const dataSnapshotMeta = {
-  "generatedAt": "2026-06-28T13:07:58",
+  "generatedAt": "2026-06-28T14:14:59",
   "latestPriceDate": "2026-06-26",
   "latestNewsDate": "2026-06-26"
 };
@@ -104570,7 +104570,7 @@ export const ingestHistory = [
 
 export const kafkaLag = [
   {
-    "time": "13:07",
+    "time": "14:15",
     "lag": 0
   }
 ];

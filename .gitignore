@@ -5,7 +5,12 @@ __pycache__/
 .ruff_cache/
 
 .env
+.env.save
+.env.*
+!.env.example
 configs/.env
+configs/.env.*
+!configs/.env.example
 
 data/
 quality_reports/

@@ -12,6 +12,12 @@ services:
       MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-minioadmin}
     volumes:
       - minio_data:/data
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
 
   clickhouse:
     image: clickhouse/clickhouse-server:latest
@@ -27,6 +33,12 @@ services:
     volumes:
       - clickhouse_data:/var/lib/clickhouse
       - ./sql/ddl:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:8123/ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
 
   nlp-service:
     build:
@@ -65,6 +77,12 @@ services:
       POSTGRES_DB: ${POSTGRES_DB:-stock_lakehouse}
     volumes:
       - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-stock_user} -d ${POSTGRES_DB:-stock_lakehouse}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
 
   alert-engine:
     build:
@@ -74,8 +92,10 @@ services:
     container_name: stock-alert-engine
     restart: unless-stopped
     depends_on:
-      - clickhouse
-      - postgres
+      clickhouse:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
     environment:
       PYTHONIOENCODING: utf-8
       CLICKHOUSE_HOST: clickhouse
@@ -114,13 +134,22 @@ services:
     environment:
       ZOOKEEPER_CLIENT_PORT: 2181
       ZOOKEEPER_TICK_TIME: 2000
+    healthcheck:
+      # "ruok" is blocked by ZK's 4-letter-word whitelist by default in this
+      # image, so this only checks the client port accepts a TCP connection.
+      test: ["CMD-SHELL", "nc -z localhost 2181"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
 
   kafka:
     image: confluentinc/cp-kafka:7.6.1
     container_name: stock-kafka
     restart: unless-stopped
     depends_on:
-      - zookeeper
+      zookeeper:
+        condition: service_healthy
     ports:
       - "9092:9092"
     environment:
@@ -134,17 +163,25 @@ services:
       KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
       KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
       KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
+    healthcheck:
+      test: ["CMD-SHELL", "kafka-broker-api-versions --bootstrap-server localhost:9092 >/dev/null 2>&1"]
+      interval: 10s
+      timeout: 10s
+      retries: 10
+      start_period: 30s
 
   realtime-vwap-consumer:
     build:
       context: .
-      dockerfile: docker/alert-engine.Dockerfile
-    image: stock-alert-engine:local
+      dockerfile: docker/vwap-consumer.Dockerfile
+    image: stock-vwap-consumer:local
     container_name: stock-realtime-vwap-consumer
     restart: unless-stopped
     depends_on:
-      - clickhouse
-      - kafka
+      clickhouse:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
     environment:
       PYTHONIOENCODING: utf-8
       CLICKHOUSE_HOST: clickhouse
@@ -169,8 +206,10 @@ services:
     # needing its own internal reconnect loop.
     restart: unless-stopped
     depends_on:
-      - clickhouse
-      - kafka
+      clickhouse:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
     environment:
       PYTHONIOENCODING: utf-8
       CLICKHOUSE_HOST: clickhouse
@@ -201,7 +240,8 @@ services:
     restart: unless-stopped
     user: "${AIRFLOW_UID:-1000}:0"
     depends_on:
-      - postgres
+      postgres:
+        condition: service_healthy
     ports:
       - "8080:8080"
     environment:
@@ -215,6 +255,12 @@ services:
       - .:/opt/airflow/project
       - ./src:/opt/airflow/src
       - ./configs:/opt/airflow/configs
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
     command: >
       bash -c "airflow db migrate &&
       airflow users create
@@ -235,8 +281,10 @@ services:
     restart: unless-stopped
     user: "${AIRFLOW_UID:-1000}:0"
     depends_on:
-      - postgres
-      - airflow-webserver
+      postgres:
+        condition: service_healthy
+      airflow-webserver:
+        condition: service_started
     environment:
       AIRFLOW__CORE__EXECUTOR: LocalExecutor
       AIRFLOW__CORE__LOAD_EXAMPLES: "false"
@@ -254,8 +302,10 @@ services:
     container_name: stock-superset
     restart: unless-stopped
     depends_on:
-      - postgres
-      - clickhouse
+      postgres:
+        condition: service_healthy
+      clickhouse:
+        condition: service_healthy
     ports:
       - "8088:8088"
     environment:
@@ -280,8 +330,10 @@ services:
     container_name: stock-grafana
     restart: unless-stopped
     depends_on:
-      - clickhouse
-      - postgres
+      clickhouse:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
     ports:
       - "3000:3000"
     environment:
