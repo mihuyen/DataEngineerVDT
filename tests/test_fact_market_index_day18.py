@@ -73,26 +73,27 @@ def test_day18_fact_market_index_ddl_matches_scheme() -> None:
 
 
 def test_day18_build_index_breadth_by_exchange_and_vn30_demo() -> None:
+    # HOSE-only scope: INDEX_EXCHANGE_MAP only maps HOSE -> VNINDEX, so HNX/UPCOM
+    # tickers from sample_company_profile() no longer produce breadth rows.
     breadth = build_index_breadth(sample_ohlcv(), sample_company_profile())
 
     vnindex = breadth.filter(
         (pl.col("index_id") == "VNINDEX") & (pl.col("trading_date") == date(2026, 6, 10))
     ).row(0, named=True)
-    hnx = breadth.filter(
-        (pl.col("index_id") == "HNXINDEX") & (pl.col("trading_date") == date(2026, 6, 10))
-    ).row(0, named=True)
 
     assert vnindex["advance_count"] == 1
     assert vnindex["decline_count"] == 1
-    assert hnx["unchanged_count"] == 1
-    assert "VN30" in breadth.get_column("index_id").unique().to_list()
+    assert set(breadth.get_column("index_id").unique().to_list()) == {"VNINDEX", "VN30"}
 
 
 def test_day18_fact_market_index_joins_breadth_to_index_rows() -> None:
     breadth = build_index_breadth(sample_ohlcv(), sample_company_profile())
     frame = build_fact_market_index_from_index(sample_market_index(), breadth=breadth)
 
-    assert frame.height == 4
+    # HOSE-only scope: build_fact_market_index_from_index keeps only VNINDEX/VN30
+    # rows, even though sample_market_index() supplies 4 raw Silver index rows.
+    assert frame.height == 2
+    assert set(frame.get_column("index_id").to_list()) == {"VNINDEX", "VN30"}
     row = frame.filter(pl.col("index_id") == "VNINDEX").row(0, named=True)
     assert row["advance_count"] == 1
     assert row["decline_count"] == 1

@@ -110,7 +110,8 @@ def test_run_listing_mode_saves_full_listing(
     uploaded: dict[str, str] = {}
 
     def fake_fetch_company_listing(exchanges: list[str], listing_source: str) -> pl.DataFrame:
-        assert exchanges == ["HOSE", "HNX", "UPCOM"]
+        # HOSE-only scope: DEFAULT_EXCHANGES narrowed to ("HOSE",).
+        assert exchanges == ["HOSE"]
         assert listing_source == "kbs"
         return pl.DataFrame(
             {

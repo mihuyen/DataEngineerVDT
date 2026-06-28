@@ -32,8 +32,6 @@ def test_load_config_reads_market_index_source() -> None:
     assert [item["index_code"] for item in config["index_codes"]] == [
         "VNINDEX",
         "VN30",
-        "HNXINDEX",
-        "UPCOMINDEX",
     ]
     assert config["provider_source"] == "vci"
     assert config["index_codes"][0]["provider_symbol"] == "VNINDEX"

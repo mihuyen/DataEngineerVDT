@@ -8,7 +8,6 @@ Luồng dữ liệu:
   Oracle VM (MinIO Bronze) → dataset_v1.zip → Google Drive → Colab training
 """
 
-import json
 import logging
 import os
 import sys

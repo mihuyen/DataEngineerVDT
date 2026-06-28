@@ -30,7 +30,6 @@ from torch.utils.data import DataLoader
 
 from nlp.sentiment_model.dataset import (
     ID2LABEL,
-    LABEL2ID,
     NUM_LABELS,
     FintaSentimentDataset,
 )

@@ -60,7 +60,8 @@ def test_day15_dim_stock_prefers_company_profile_data() -> None:
 def test_day15_dim_index_contains_vietnam_market_indexes() -> None:
     frame = build_dim_index()
 
-    assert set(frame["index_id"].to_list()) == {"VNINDEX", "VN30", "HNXINDEX", "UPCOMINDEX"}
+    # HOSE-only scope: HNXINDEX/UPCOMINDEX were dropped once ingestion narrowed to HOSE.
+    assert set(frame["index_id"].to_list()) == {"VNINDEX", "VN30"}
 
 
 def test_day15_load_silver_tickers_returns_empty_for_missing_dir(tmp_path: Path) -> None:

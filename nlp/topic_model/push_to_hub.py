@@ -6,7 +6,6 @@ Output: Model đã upload tại HF_TOPIC_MODEL_REPO.
 """
 
 import logging
-import os
 
 from nlp.topic_model.distill import push_to_hub
 

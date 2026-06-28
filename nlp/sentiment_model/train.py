@@ -246,7 +246,7 @@ def train(
     # Kiểm tra SLA
     acc = final_metrics.get("eval_accuracy", 0)
     macro_f1 = final_metrics.get("eval_macro_f1", 0)
-    print(f"\nSLA Check:")
+    print("\nSLA Check:")
     print(f"  Accuracy: {acc:.4f} {'✓ PASS' if acc >= SLA_ACCURACY else '✗ FAIL'} (target: {SLA_ACCURACY})")
     print(f"  Macro F1: {macro_f1:.4f} {'✓ PASS' if macro_f1 >= SLA_MACRO_F1 else '✗ FAIL'} (target: {SLA_MACRO_F1})")
 

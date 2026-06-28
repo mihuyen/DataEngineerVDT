@@ -18,10 +18,10 @@ from contextlib import asynccontextmanager
 from typing import List
 
 from dotenv import load_dotenv
-load_dotenv()
-
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
+
+load_dotenv()
 
 try:
     from nlp.serving.model_loader import ModelLoader

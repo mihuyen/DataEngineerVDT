@@ -9,7 +9,7 @@ Hỗ trợ:
 
 import logging
 import re
-from typing import Dict, List
+from typing import List
 
 import torch
 
