@@ -1,0 +1,204 @@
+\documentclass[conference,a4paper]{IEEEtran}
+
+\usepackage{iftex}
+\ifPDFTeX
+  \usepackage[T5]{fontenc}
+  \usepackage[utf8]{inputenc}
+  \usepackage[vietnamese]{babel}
+  \usepackage{lmodern}
+\else
+  \usepackage{fontspec}
+  \setmainfont{DejaVu Serif}
+  \setsansfont{DejaVu Sans}
+  \setmonofont{DejaVu Sans Mono}
+\fi
+\usepackage{booktabs}
+\usepackage{array}
+\usepackage{graphicx}
+\usepackage{url}
+\usepackage{microtype}
+\usepackage{xcolor}
+
+\newcommand{\studentname}{[HỌ VÀ TÊN SINH VIÊN]}
+\newcommand{\mentorname}{[HỌ VÀ TÊN MENTOR]}
+\newcommand{\mentorunit}{[ĐƠN VỊ MENTOR HƯỚNG DẪN]}
+\newcommand{\mentoremail}{[EMAIL MENTOR HƯỚNG DẪN]}
+
+\title{Xây dựng Data Lakehouse phục vụ phân tích\\
+thị trường chứng khoán HOSE}
+
+\author{
+\IEEEauthorblockN{\studentname, \mentorname}
+\IEEEauthorblockA{\mentorunit\\
+Email mentor: \mentoremail}
+}
+
+\begin{document}
+
+\maketitle
+
+\begin{abstract}
+Đề tài xây dựng một Data Lakehouse thu thập, chuẩn hóa, kiểm soát chất lượng và phục vụ phân tích dữ liệu chứng khoán niêm yết trên HOSE. Hệ thống kết hợp xử lý batch cho giá OHLCV, hồ sơ doanh nghiệp, chỉ số thị trường và tin tức với mô-đun thử nghiệm WebSocket cho giao dịch thời gian thực. Dữ liệu được tổ chức theo ba lớp Bronze--Silver--Gold dưới dạng Parquet trên MinIO; ClickHouse đảm nhiệm lớp truy vấn phục vụ, còn Airflow điều phối pipeline tự động. Tại thời điểm đánh giá ngày 28/06/2026, Gold lưu 403 mã HOSE, 12.963 bản ghi giá, 66 bản ghi chỉ số VNINDEX/VN30 và 640 bản ghi cảm xúc tin tức. Đóng góp chính của sinh viên là thiết kế và triển khai trọn luồng dữ liệu, lựa chọn chiến lược phân vùng theo đặc trưng truy vấn, xây dựng kiểm tra chất lượng, mô hình dữ liệu phân tích, API và dashboard. Kết quả cho thấy giải pháp có thể tái lập, truy vết và mở rộng tốt hơn cách xử lý thủ công bằng các tệp rời; đồng thời báo cáo chỉ rõ các giới hạn còn lại của luồng realtime và giao diện.
+\end{abstract}
+
+\begin{IEEEkeywords}
+Data Lakehouse, HOSE, Airflow, MinIO, ClickHouse, Parquet, dữ liệu chứng khoán, VWAP.
+\end{IEEEkeywords}
+
+\section{Giới thiệu chung}
+
+\subsection{Bối cảnh và nhu cầu}
+Dữ liệu chứng khoán đến từ nhiều nguồn và có đặc điểm không đồng nhất: giá giao dịch dạng chuỗi thời gian, hồ sơ doanh nghiệp thay đổi chậm, chỉ số thị trường tổng hợp, tin tức dạng văn bản và giao dịch realtime có tần suất cao. Nếu chỉ tải dữ liệu về các tệp cục bộ, người dùng khó xác định phiên bản mới nhất, khó phát hiện bản ghi lỗi và phải lặp lại nhiều thao tác trước mỗi lần phân tích. Bài toán thực tiễn đặt ra là xây dựng một luồng dữ liệu thống nhất, có khả năng tự động cập nhật, lưu được dữ liệu gốc để đối soát và cung cấp dữ liệu đã xử lý cho dashboard với độ trễ phù hợp.
+
+Phạm vi hiện tại được giới hạn ở cổ phiếu niêm yết trên HOSE. Việc giới hạn này giúp tập trung hoàn thiện chất lượng dữ liệu và tính nhất quán xuyên suốt pipeline trước khi mở rộng sang sàn khác. Hai chỉ số đại diện được theo dõi là VNINDEX và VN30.
+
+\subsection{Mục tiêu và đóng góp của sinh viên}
+Mục tiêu của đề tài là: (i) thu thập tự động dữ liệu đa nguồn; (ii) tổ chức dữ liệu theo kiến trúc Bronze--Silver--Gold; (iii) kiểm soát schema và chất lượng trước khi nạp Gold; (iv) tối ưu dữ liệu cho truy vấn phân tích; và (v) cung cấp API, dashboard theo dõi thị trường, cổ phiếu và VWAP.
+
+Sinh viên trực tiếp khảo sát nguồn, thiết kế kiến trúc, hiện thực các bộ thu thập và biến đổi bằng Python/Polars, xây dựng DDL ClickHouse và mô hình dbt, cấu hình Airflow, đóng gói hạ tầng bằng Docker Compose, phát triển FastAPI và giao diện React. Điểm cải tiến nổi bật là tách kho Parquet lâu dài khỏi lớp serving: cả ba lớp được lưu trên MinIO, trong khi ClickHouse chỉ đảm nhiệm truy vấn tốc độ cao. Chiến lược phân vùng cũng được lựa chọn theo grain và cách truy vấn của từng tập dữ liệu thay vì áp dụng một quy tắc chung.
+
+\section{Nội dung và phương pháp}
+
+\subsection{Nguồn và phạm vi dữ liệu}
+Hệ thống sử dụng thư viện vnstock để truy cập dữ liệu thị trường Việt Nam~\cite{vnstock}. Danh sách mã HOSE lấy qua Listing với nguồn KBS; lịch sử OHLCV từng mã lấy qua Quote với nguồn VCI. Hồ sơ doanh nghiệp được lấy qua Company/KBS. Dữ liệu VNINDEX và VN30 cũng lấy qua Quote/VCI. Mô-đun realtime xác thực DNSE WebSocket bằng API key/secret và HMAC-SHA256, sau đó chuẩn hóa trade tick để tính VWAP; cấu hình nguồn này hiện chưa được bật trong DAG batch chính.
+
+\begin{table}[t]
+\caption{Nguồn, nhịp cập nhật và đầu ra chính}
+\label{tab:sources}
+\centering
+\scriptsize
+\begin{tabular}{p{1.7cm}p{1.55cm}p{2.25cm}p{1.45cm}}
+\toprule
+\textbf{Dữ liệu} & \textbf{Nguồn} & \textbf{Nhịp xử lý} & \textbf{Gold} \\
+\midrule
+OHLCV HOSE & VCI & Sau phiên, thứ Hai--Sáu & \path{fact_daily_price} \\
+Doanh nghiệp & KBS & Ngày/tuần & \path{dim_stock} \\
+Chỉ số & VCI & Sau phiên & \path{fact_market_index} \\
+Tin tức & 3 báo điện tử & Cấu hình 30--60 phút; DAG ngày & \path{fact_news_sentiment_daily} \\
+Trade tick & DNSE & Trong giờ thị trường, thử nghiệm & \path{fact_realtime_vwap} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Xử lý chi tiết nguồn tin tức}
+Crawler được viết riêng cho cấu trúc HTML của từng báo thay vì dùng một selector chung. Mọi request sử dụng một \texttt{Session}, header mô phỏng trình duyệt tiếng Việt và timeout 25 giây. Một lỗi HTTP hoặc lỗi parse chỉ làm bỏ qua bài tương ứng, không dừng toàn bộ nguồn. Trong mỗi lần chạy, URL được khử trùng bằng \texttt{seen\_urls}; hệ thống chỉ nhận bài tối đa hai ngày tuổi và giới hạn 20 bài cho mỗi nguồn.
+
+\textit{VnExpress:} crawler duyệt bảy chuyên mục Kinh doanh gồm Vĩ mô, Doanh nghiệp, Ebank, Quốc tế, Hàng hóa, Kinh tế vùng và Chứng khoán. Từ trang chuyên mục, link được lấy tại thẻ \texttt{h2/h3.title-news}. Ở trang bài viết, tiêu đề lấy từ \texttt{h1.title-detail}, mô tả từ \texttt{p.description}, còn nội dung là các đoạn \texttt{p.Normal} trong \texttt{article.fck\_detail}. Khối tin liên quan được loại trước khi ghép nội dung. Tags ưu tiên vùng tags của trang, nếu không có thì đọc \texttt{meta keywords}; ngày đăng ưu tiên \texttt{meta pubdate}, sau đó mới dùng \texttt{span.date}.
+
+\textit{Vietstock:} thay vì quét trực tiếp trang danh mục, hệ thống gửi POST tới \texttt{StartPage/ChannelContentPage} theo chín mã kênh: Chứng khoán, Doanh nghiệp, Bất động sản, Phân tích, Tài chính cá nhân, Tài chính, Kinh tế, Đông Dương và Thế giới. Mỗi request lấy trang đầu với \texttt{pageSize=15}. Link chỉ được nhận nếu kết thúc bằng \texttt{.htm}, có ID số và không thuộc \texttt{fili.vn}. Do Vietstock có nhiều template, bộ trích xuất dùng chuỗi selector dự phòng cho title, sapo và content. Script loại \texttt{script}, \texttt{style}, box liên quan; sau đó ghép các thẻ \texttt{p}, đọc tags hoặc \texttt{meta keywords}, và lấy thời gian từ \texttt{article:published\_time}/vùng date.
+
+\textit{CafeF:} crawler duyệt năm chuyên mục Chứng khoán, Doanh nghiệp, Ngân hàng, Vĩ mô và Bất động sản. Link hợp lệ phải là bài \texttt{.chn} có ID số; video, tác giả, tag, emagazine, longform, mega-story, infographic và photo bị loại ngay ở bước discovery. Các template đặc biệt như video detail, sponsored detail và emagazine cũng bị bỏ qua để tránh tạo bản ghi thiếu nội dung. Với bài chuẩn, title lấy từ \texttt{h1.title}, sapo từ \texttt{h2.sapo}, content từ \texttt{cafef\_detail\_tag/detail-content}; script, style, media nhúng, tin liên quan và footer link được loại trước khi ghép paragraph. Tags được tìm qua nhiều wrapper dự phòng và làm sạch các nhãn ``Tags'', ``Từ khóa''.
+
+Ba nguồn sau đó được đưa về cùng schema gồm URL, tiêu đề, ngày đăng, mô tả, nội dung, tags, nguồn, chuyên mục và thời điểm crawl. Text được co khoảng trắng, ngày được chuẩn hóa về \texttt{YYYY-MM-DD}; bài thiếu title hoặc content bị loại. Trong Bronze, dữ liệu cùng ngày được append rồi deduplicate theo URL và ghi tại \path{news/source=multi/year/month/day/data.parquet}; giá trị cột \texttt{source} dùng để phân biệt từng báo.
+
+Sang Silver, pipeline đọc toàn bộ Bronze news, chuẩn hóa tên/kiểu cột, ép \texttt{published\_at} về Date, loại URL/title rỗng, nội dung ngắn hơn 50 ký tự và trùng URL; kết quả được sắp xếp theo nguồn, ngày, tiêu đề rồi ghi theo \texttt{news/year/month}. Quality gate tiếp tục kiểm tra URL duy nhất, title, content, source và ngày đăng không null.
+
+Để gắn tin với cổ phiếu HOSE, hệ thống tạo từ điển alias từ ticker, tên doanh nghiệp tiếng Việt/Anh và tên đã bỏ các tiền tố như ``CTCP'', ``Ngân hàng TMCP'', ``Tổng Công ty''. Alias quá chung bị loại; ticker ngắn được match bằng regex có biên ký tự để giảm nhầm lẫn. Match ticker có điểm 2, match tên doanh nghiệp có điểm 1; khóa \texttt{article\_id--ticker} được khử trùng. Cuối cùng, tiêu đề được chấm sentiment bằng từ điển tích cực/tiêu cực, rồi tổng hợp theo ticker--ngày thành số bài, số nguồn, số tin tích cực/tiêu cực/trung tính, điểm trung bình và headline đại diện trong \texttt{fact\_news\_sentiment\_daily}.
+
+\subsection{Kiến trúc và luồng xử lý}
+Kiến trúc triển khai được minh họa ở Hình~\ref{fig:architecture}. Docker Compose cung cấp MinIO, ClickHouse, PostgreSQL, Kafka/ZooKeeper, Airflow, Superset và Grafana. PostgreSQL lưu metadata của Airflow; Kafka được chuẩn bị cho streaming nhưng chưa nằm trên đường dữ liệu production hiện tại.
+
+\begin{figure*}[t]
+\centering
+\fbox{\parbox{0.96\textwidth}{
+\centering
+\textbf{Nguồn dữ liệu} (vnstock/KBS/VCI, VnExpress--Vietstock--CafeF, DNSE WebSocket)
+\\[2mm] $\Downarrow$ Thu thập và chuẩn hóa thông điệp $\Downarrow$ \\[2mm]
+\textbf{MinIO Bronze} (raw Parquet, truy vết theo nguồn/ngày ingest)
+$\longrightarrow$ \textbf{Polars + kiểm tra schema}
+$\longrightarrow$ \textbf{MinIO Silver} (cleaned/conformed Parquet)
+\\[2mm] $\Downarrow$ Great Expectations và quy tắc nghiệp vụ $\Downarrow$ \\[2mm]
+\textbf{ClickHouse Gold serving} $\longleftrightarrow$ \textbf{MinIO Gold Parquet}
+$\longrightarrow$ \textbf{dbt / FastAPI}
+$\longrightarrow$ \textbf{React Dashboard}
+\\[2mm]
+\textbf{Airflow}: điều phối DAG batch lúc 18:00, thứ Hai--Sáu; retry 1 lần, giới hạn một active run.
+}}
+\caption{Kiến trúc Data Lakehouse được triển khai trong đề tài.}
+\label{fig:architecture}
+\end{figure*}
+
+\textit{Bronze} lưu dữ liệu gần nguyên bản để tái xử lý và đối soát. OHLCV được phân vùng \texttt{ticker/year/month/day}; chỉ số theo \texttt{index\_code/year/month/day}; tin tức hiện gom ba báo theo \texttt{source=multi/year/month/day}. Cách chia này phù hợp với ingest theo mã hoặc theo ngày chạy crawler.
+
+\textit{Silver} chuẩn hóa tên cột, kiểu dữ liệu, mã chứng khoán, ngày giao dịch và loại bỏ trùng lặp. OHLCV được gom theo \texttt{ticker/year/month}, giúp đọc lịch sử một mã mà không mở toàn bộ thị trường. Profile, index và news được phân vùng theo tháng. Tập mã đầu vào của Silver được lấy từ listing đã lọc HOSE, tránh tiếp tục xử lý các thư mục cũ thuộc sàn ngoài phạm vi.
+
+\textit{Gold} sử dụng mô hình chiều gồm \texttt{dim\_date}, \texttt{dim\_stock}, \texttt{dim\_sector}, \texttt{dim\_index} và năm fact. Dimension xuất Parquet theo \texttt{snapshot\_date}; các fact ngày được chia \texttt{year/month}; VWAP chia theo \texttt{trading\_date}. ClickHouse dùng MergeTree và khóa sắp xếp theo mã/thời gian để phục vụ lọc, tổng hợp và vẽ chuỗi thời gian~\cite{clickhouse}. Sau khi nạp, Gold được xuất ngược về MinIO để bảo đảm lớp Gold không chỉ tồn tại trong cơ sở dữ liệu serving.
+
+\subsection{Điều phối, chất lượng và tính toán}
+DAG \texttt{stock\_lakehouse\_daily} chạy lúc 18:00 từ thứ Hai đến thứ Sáu theo múi giờ Asia/Ho\_Chi\_Minh. Bốn nhánh ingest và Silver chạy song song theo phụ thuộc; tất cả phải qua quality gate trước khi migrate schema, nạp ClickHouse, xuất Gold Parquet và sinh snapshot cho frontend. Airflow cung cấp retry và lịch sử task, giúp thay thế chuỗi lệnh chạy tay khó truy vết~\cite{airflow}.
+
+Quality gate kiểm tra cột bắt buộc, null, khóa trùng, giá dương, volume không âm và quan hệ \(high\geq open,close,low\), \(low\leq open,close\). Profile kiểm tra mã, tên, sàn, ngành và số cổ phiếu lưu hành; tin tức kiểm tra URL duy nhất, tiêu đề, nội dung, nguồn và thời gian xuất bản. Các kiểm tra được hiện thực bằng Polars và Great Expectations~\cite{gx}. dbt bổ sung staging, model chỉ báo và test khóa duy nhất~\cite{dbt}.
+
+Gold tính biến động giá, SMA20, EMA12/26, MACD, RSI14, Bollinger Bands, trung bình khối lượng 20 phiên và các cờ quá mua, quá bán, breakout/breakdown. Tin tức được liên kết với ticker theo thực thể và chấm điểm bằng từ điển tiếng Việt trong khoảng \([-1,1]\); đây là baseline giải thích được, chưa phải mô hình NLP học máy. Với trade tick, VWAP phiên tại thời điểm \(t\) được tính:
+\begin{equation}
+VWAP_t = \frac{\sum_{i=1}^{t} P_iV_i}{\sum_{i=1}^{t}V_i},
+\end{equation}
+trong đó \(P_i\) và \(V_i\) lần lượt là giá và khối lượng giao dịch.
+
+\subsection{Lớp phục vụ và dashboard}
+FastAPI cung cấp health check, danh sách mã HOSE, nến và chỉ báo theo mã, tổng quan thị trường, danh sách VWAP và chuỗi VWAP từng mã. API realtime ưu tiên ClickHouse, nhưng tự đọc Bronze DNSE mới hơn khi serving chưa được cập nhật. Đây là cải tiến giúp giảm khả năng dashboard hiển thị snapshot realtime cũ.
+
+Frontend gồm bảy màn hình: Tổng quan thị trường, Chi tiết cổ phiếu, Bộ lọc tín hiệu kỹ thuật, Realtime VWAP, Phân tích tin tức, Lịch sử cảnh báo và Theo dõi pipeline. Trong phiên bản hiện tại, Tổng quan, Chi tiết và Realtime VWAP đã gọi API; bốn màn hình còn lại chủ yếu đọc snapshot sinh trong \texttt{mockData.ts}. Việc nêu rõ ranh giới này giúp đánh giá đúng mức độ hoàn thiện của sản phẩm.
+
+\section{Kết quả thực hiện}
+
+\subsection{Kết quả dữ liệu và chức năng}
+Số liệu trong Bảng~\ref{tab:results} được truy vấn trực tiếp từ ClickHouse ngày 28/06/2026. Hệ thống đã tạo đủ bốn dimension và năm bảng fact theo DDL. MinIO có đủ các bucket Bronze, Silver và Gold; riêng Gold hiện có 25 đối tượng Parquet với layout phân vùng theo thời gian nghiệp vụ.
+
+\begin{table}[t]
+\caption{Kết quả kiểm chứng trên Gold}
+\label{tab:results}
+\centering
+\scriptsize
+\begin{tabular}{p{2.75cm}r p{2.65cm}}
+\toprule
+\textbf{Bảng/chỉ tiêu} & \textbf{Số lượng} & \textbf{Phạm vi} \\
+\midrule
+dim\_stock & 403 & 403 mã, chỉ HOSE \\
+dim\_sector & 30 & Nhóm ngành \\
+dim\_date & 4.018 & Chiều ngày \\
+fact\_daily\_price & 12.963 & 12/12/2024--26/06/2026 \\
+Mã có lịch sử giá & 403 & 368 dòng ở ngày mới nhất \\
+fact\_market\_index & 66 & VNINDEX, VN30 \\
+fact\_news\_sentiment & 640 & 158 mã, 12--26/06/2026 \\
+fact\_realtime\_vwap & 30 & 3 mã, dữ liệu thử nghiệm \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Dashboard Tổng quan cho phép xem VNINDEX/VN30, thanh khoản, độ rộng thị trường, top tăng/giảm, top thanh khoản và hiệu suất ngành. Màn hình Chi tiết cho phép tìm trong 403 mã HOSE, xem nến và bật/tắt SMA, EMA, Bollinger Bands, RSI, MACD. Màn hình VWAP hỗ trợ lọc, sắp xếp độ lệch giá--VWAP và xem chuỗi từng mã; tuy nhiên lượng dữ liệu realtime Gold hiện chỉ đủ minh họa luồng.
+
+\subsection{Kiểm thử và khả năng vận hành}
+Project định nghĩa 129 test tự động cho ingestion, transform, quality, DDL, loader, dbt, Airflow, API và DNSE. Lần chạy ngày 28/06/2026 đạt 123 test; sáu test thất bại gồm năm test cũ còn kỳ vọng HNX/UPCOM và một test credential MinIO chưa đồng bộ với default local mới. Kết quả này cho thấy logic chính có mức bao phủ tốt, đồng thời chỉ ra technical debt cụ thể cần xử lý.
+
+Airflow ghi nhận sáu scheduled run liên tiếp ở trạng thái \texttt{success} từ 15/06 đến 22/06. Run ngày 23/06 vẫn ở trạng thái \texttt{running} tại thời điểm kiểm tra. Như vậy pipeline đã chạy tự động thành công nhiều lần nhưng chưa thể coi là vận hành ổn định hoàn toàn; cần bổ sung timeout theo task, SLA và cơ chế cảnh báo run treo.
+
+Mã nguồn và cấu hình triển khai nằm trong repository của đề tài, gồm \texttt{src/}, \texttt{scripts/}, \texttt{dags/}, \texttt{sql/}, \texttt{dbt/}, \texttt{frontend/}, \texttt{tests/} và \texttt{docker-compose.yml}. Bộ cài được tái lập bằng Docker Compose và môi trường Python quản lý bởi uv.
+
+\section{Đánh giá hiệu quả}
+
+\subsection{Giá trị mang lại}
+So với cách tải tệp và xử lý thủ công, pipeline tạo một đường dữ liệu có lịch chạy, dependency, retry, quality gate và lịch sử thực thi. Bronze giữ dữ liệu gốc nên có thể điều tra sai lệch; Silver tạo schema thống nhất; Gold tách logic phân tích khỏi frontend. Parquet dạng cột giảm lượng dữ liệu đọc, còn partition pruning theo mã/tháng/ngày giới hạn số file cần quét~\cite{parquet}. ClickHouse phù hợp với truy vấn tổng hợp và chuỗi thời gian; API che giấu chi tiết kho dữ liệu khỏi giao diện.
+
+Thiết kế MinIO cho cả ba lớp tạo ra hai lợi ích: dữ liệu phân tích không bị khóa trong ClickHouse và có thể tái nạp serving khi cần; mặt khác, ClickHouse không phải gánh vai trò lưu trữ raw. Việc lọc HOSE ngay từ listing, transform và câu truy vấn API làm giảm nguy cơ trộn sàn. Các khóa \texttt{ticker--trading\_date} và \texttt{index--trading\_date} cùng quality gate giúp ngăn trùng lặp và dữ liệu giá phi logic.
+
+\subsection{Hạn chế và rủi ro}
+Hiệu quả hiện mới được chứng minh bằng tính đúng cấu trúc, số bản ghi, test và khả năng chạy end-to-end; project chưa có benchmark độ trễ, throughput hoặc chi phí. Lịch sử MinIO còn một số object từ giai đoạn thử nghiệm đa sàn, dù Gold serving đã chỉ còn HOSE. Loader Gold đang truncate rồi nạp lại, phù hợp quy mô hiện tại nhưng sẽ tốn thời gian khi dữ liệu tăng; nên chuyển sang incremental/upsert theo partition.
+
+DNSE chưa được tích hợp thành một streaming job luôn chạy và Gold mới có ba mã mẫu. Sentiment dựa trên từ điển nên chưa xử lý tốt phủ định, ngữ cảnh hoặc mỉa mai. Bốn màn hình frontend còn dùng snapshot tĩnh. Sáu test cần cập nhật theo phạm vi HOSE; run Airflow treo cũng cho thấy cần tăng khả năng quan sát. Các bí mật API hiện được đọc từ biến môi trường, nhưng khi triển khai thật nên chuyển sang secret manager, xoay khóa và tách quyền truy cập.
+
+\section{Kết luận}
+Đề tài đã triển khai được nền tảng Data Lakehouse cho dữ liệu chứng khoán HOSE từ nguồn đến dashboard: thu thập đa nguồn, lưu Parquet ba lớp trên MinIO, kiểm soát chất lượng, mô hình Gold trên ClickHouse, điều phối Airflow, mô hình dbt, FastAPI và React. Đóng góp có tính mới trong phạm vi đồ án là kết hợp batch và mô-đun realtime trên cùng kiến trúc, áp dụng partition theo hành vi truy vấn từng dataset và tách storage layer khỏi serving layer. Số liệu thực tế 403 mã HOSE và 12.963 dòng giá cho thấy hệ thống đã vượt mức mô phỏng cấu trúc đơn thuần.
+
+Hướng phát triển gần nhất là sửa sáu test lệch cấu hình, xử lý run Airflow treo, chuyển Gold sang incremental load và nối Technical Scanner, News, Alert, Pipeline Monitor với API thật. Sau đó có thể đưa DNSE qua Kafka, bổ sung checkpoint/exactly-once ở mức ứng dụng, đo freshness/latency và thay sentiment từ điển bằng mô hình tiếng Việt. Khi pipeline HOSE ổn định, kiến trúc hiện tại cho phép mở rộng sàn hoặc nguồn mới bằng cấu hình và partition riêng mà không thay đổi lớp dashboard cốt lõi.
+
+\begin{thebibliography}{00}
+\bibitem{vnstock} Thịnh Vượng Tài Chính, ``Vnstock Documentation,'' [Online]. Available: \url{https://vnstocks.com/docs/}. Accessed: Jun. 28, 2026.
+\bibitem{airflow} Apache Software Foundation, ``Apache Airflow Documentation,'' [Online]. Available: \url{https://airflow.apache.org/docs/}. Accessed: Jun. 28, 2026.
+\bibitem{clickhouse} ClickHouse, Inc., ``ClickHouse Documentation,'' [Online]. Available: \url{https://clickhouse.com/docs}. Accessed: Jun. 28, 2026.
+\bibitem{parquet} Apache Software Foundation, ``Apache Parquet Documentation,'' [Online]. Available: \url{https://parquet.apache.org/docs/}. Accessed: Jun. 28, 2026.
+\bibitem{gx} Great Expectations, ``GX Core Documentation,'' [Online]. Available: \url{https://docs.greatexpectations.io/}. Accessed: Jun. 28, 2026.
+\bibitem{dbt} dbt Labs, ``dbt Developer Hub,'' [Online]. Available: \url{https://docs.getdbt.com/}. Accessed: Jun. 28, 2026.
+\end{thebibliography}
+
+\end{document}

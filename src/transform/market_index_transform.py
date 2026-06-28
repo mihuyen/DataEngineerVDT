@@ -5,16 +5,31 @@ from pathlib import Path
 from typing import Any
 
 import polars as pl
+import yaml
 
 from src.common.minio_client import create_bucket_if_missing, create_client, upload_file
 
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
+DEFAULT_CONFIG_PATH = PROJECT_ROOT / "configs" / "sources.yaml"
 DEFAULT_LOCAL_BRONZE_DIR = PROJECT_ROOT / "data" / "bronze_local"
 DEFAULT_LOCAL_SILVER_DIR = PROJECT_ROOT / "data" / "silver_local"
 BRONZE_PREFIX = "market_index"
 SILVER_PREFIX = "market_index"
 SILVER_BUCKET = "silver"
+
+
+def load_allowed_index_codes(config_path: Path = DEFAULT_CONFIG_PATH) -> set[str]:
+    with config_path.open("r", encoding="utf-8") as file:
+        config = yaml.safe_load(file) or {}
+    for source in config.get("sources", []):
+        if source.get("name") == "market_index" or source.get("source_name") == "market_index":
+            return {
+                str(item["index_code"]).upper()
+                for item in source.get("index_codes", [])
+                if item.get("index_code")
+            }
+    raise ValueError("market_index source config is missing")
 
 
 def discover_bronze_files(local_bronze_dir: Path = DEFAULT_LOCAL_BRONZE_DIR) -> list[Path]:
@@ -31,8 +46,12 @@ def load_bronze_data(local_bronze_dir: Path = DEFAULT_LOCAL_BRONZE_DIR) -> pl.Da
     return pl.concat([pl.read_parquet(file) for file in files], how="diagonal_relaxed")
 
 
-def transform_market_index(frame: pl.DataFrame) -> pl.DataFrame:
+def transform_market_index(
+    frame: pl.DataFrame,
+    allowed_index_codes: set[str] | None = None,
+) -> pl.DataFrame:
     now = datetime.now(timezone.utc)
+    allowed = allowed_index_codes or load_allowed_index_codes()
     rename_map = {
         column: column.strip().lower().replace(" ", "_")
         for column in frame.columns
@@ -55,6 +74,7 @@ def transform_market_index(frame: pl.DataFrame) -> pl.DataFrame:
         )
         .filter(
             pl.col("index_code").is_not_null()
+            & pl.col("index_code").is_in(sorted(allowed))
             & pl.col("date").is_not_null()
             & (pl.col("high") >= pl.col("low"))
             & (pl.col("volume") >= 0)
@@ -100,9 +120,13 @@ def run(
     local_bronze_dir: Path = DEFAULT_LOCAL_BRONZE_DIR,
     local_silver_dir: Path = DEFAULT_LOCAL_SILVER_DIR,
     upload_to_minio: bool = True,
+    config_path: Path = DEFAULT_CONFIG_PATH,
 ) -> dict[str, Any]:
     bronze = load_bronze_data(local_bronze_dir)
-    silver = transform_market_index(bronze)
+    silver = transform_market_index(
+        bronze,
+        allowed_index_codes=load_allowed_index_codes(config_path),
+    )
     object_name = build_silver_object_name()
     local_path = save_to_silver(silver, output_dir=local_silver_dir)
     if upload_to_minio:

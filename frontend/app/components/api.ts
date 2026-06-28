@@ -109,3 +109,107 @@ export async function fetchRealtimeVwapSeries(ticker: string): Promise<VwapPoint
 export async function fetchMarketOverview(): Promise<MarketOverviewPayload> {
   return getJson<MarketOverviewPayload>("/api/market/overview");
 }
+
+export type TechnicalSignal = {
+  ticker: string;
+  name: string;
+  signal: string;
+  rsi: number;
+  macd: number;
+  macdSignal: number;
+  close: number;
+  bbUpper: number;
+  bbLower: number;
+  volume: number;
+  volSma20: number;
+  pct: number;
+};
+
+export type TechnicalSignalsPayload = {
+  trackedTickerCount: number;
+  count: number;
+  data: TechnicalSignal[];
+};
+
+export async function fetchTechnicalSignals(): Promise<TechnicalSignalsPayload> {
+  return getJson<TechnicalSignalsPayload>("/api/technical/signals");
+}
+
+export type NewsSentimentRow = {
+  ticker: string;
+  name: string;
+  newsCount: number;
+  sources: number;
+  positive: number;
+  negative: number;
+  neutral: number;
+  avgScore: number;
+  headline: string;
+  url?: string | null;
+  source?: string | null;
+};
+
+export type SentimentByDate = { date: string; positive: number; negative: number; neutral: number };
+
+export type NewsSentimentPayload = {
+  count: number;
+  data: NewsSentimentRow[];
+  byDate: SentimentByDate[];
+};
+
+export async function fetchNewsSentiment(): Promise<NewsSentimentPayload> {
+  return getJson<NewsSentimentPayload>("/api/news/sentiment");
+}
+
+export type AlertEvent = {
+  id: string;
+  triggeredAt: string;
+  user: string;
+  ticker: string;
+  condition: string;
+  threshold: number;
+  actual: number;
+  channel: string;
+  status: string;
+  sentAt: string | null;
+  cooldown: number;
+};
+
+export type AlertByDay = { date: string; total: number };
+export type AlertByCondition = { type: string; count: number; fill: string };
+
+export type AlertsPayload = {
+  count: number;
+  data: AlertEvent[];
+  byDay: AlertByDay[];
+  byCondition: AlertByCondition[];
+};
+
+export async function fetchAlerts(): Promise<AlertsPayload> {
+  return getJson<AlertsPayload>("/api/alerts");
+}
+
+export type DagStatusRow = {
+  dag: string;
+  status: string;
+  lastRun: string;
+  duration: string;
+  records: number;
+  tasks: number;
+  failed: number;
+};
+
+export type DataQualityError = { type: string; table: string; count: number; date: string };
+export type IngestHistoryPoint = { date: string; records: number };
+export type KafkaLagPoint = { time: string; lag: number };
+
+export type PipelineStatusPayload = {
+  dagStatus: DagStatusRow[];
+  dataQualityErrors: DataQualityError[];
+  ingestHistory: IngestHistoryPoint[];
+  kafkaLag: KafkaLagPoint[];
+};
+
+export async function fetchPipelineStatus(): Promise<PipelineStatusPayload> {
+  return getJson<PipelineStatusPayload>("/api/pipeline/status");
+}

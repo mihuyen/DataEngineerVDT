@@ -20,6 +20,11 @@ COMMON_ENV = (
     "export CLICKHOUSE_PORT=${CLICKHOUSE_PORT:-8123} && "
     "export CLICKHOUSE_USER=${CLICKHOUSE_USER:-default} && "
     "export CLICKHOUSE_PASSWORD=${CLICKHOUSE_PASSWORD:-clickhouse} && "
+    "export POSTGRES_HOST=${POSTGRES_HOST:-postgres} && "
+    "export POSTGRES_PORT=${POSTGRES_PORT:-5432} && "
+    "export POSTGRES_USER=${POSTGRES_USER:-stock_user} && "
+    "export POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-stock_password} && "
+    "export POSTGRES_DB=${POSTGRES_DB:-stock_lakehouse} && "
     "cd " + PROJECT_DIR
 )
 
@@ -63,7 +68,7 @@ with DAG(
             f"{COMMON_ENV} && "
             "uv run python scripts/run_company_profile_ingest.py "
             "--mode listing "
-            "--exchanges HOSE HNX UPCOM"
+            "--exchanges HOSE"
         ),
     )
 
@@ -72,7 +77,7 @@ with DAG(
         bash_command=(
             f"{COMMON_ENV} && "
             "uv run python scripts/run_ohlcv_ingest.py "
-            "--exchanges HOSE HNX UPCOM "
+            "--exchanges HOSE "
             "--request-delay-seconds 5 "
             "--skip-existing"
         ),
@@ -114,9 +119,24 @@ with DAG(
         bash_command=f"{COMMON_ENV} && uv run python scripts/load_gold.py",
     )
 
+    export_gold_to_minio = BashOperator(
+        task_id="export_gold_to_minio",
+        bash_command=f"{COMMON_ENV} && uv run python scripts/export_gold_to_minio.py",
+    )
+
     export_frontend_data = BashOperator(
         task_id="export_frontend_data",
         bash_command=f"{COMMON_ENV} && uv run python scripts/export_frontend_data.py",
+    )
+
+    init_user_alerts = BashOperator(
+        task_id="init_user_alerts",
+        bash_command=f"{COMMON_ENV} && uv run python scripts/init_user_alerts.py",
+    )
+
+    check_alerts = BashOperator(
+        task_id="check_alerts",
+        bash_command=f"{COMMON_ENV} && uv run python scripts/run_alert_engine.py --run-once",
     )
 
     init_minio >> [ingest_market_index, ingest_news, ingest_ohlcv, ingest_company_profile]
@@ -125,4 +145,7 @@ with DAG(
     ingest_news >> silver_news
     ingest_company_profile >> silver_company_profile
     [silver_ohlcv, silver_company_profile, silver_market_index, silver_news] >> quality_all
-    quality_all >> migrate_gold >> load_gold >> export_frontend_data
+    quality_all >> migrate_gold >> load_gold
+    load_gold >> export_gold_to_minio
+    load_gold >> init_user_alerts >> check_alerts
+    [export_gold_to_minio, check_alerts] >> export_frontend_data

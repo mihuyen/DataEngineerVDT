@@ -1,7 +1,8 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from "recharts";
-import { alertHistory, alertsByDay, alertsByCondition } from "./mockData";
+import { alertHistory as mockAlertHistory, alertsByDay as mockAlertsByDay, alertsByCondition as mockAlertsByCondition } from "./mockData";
 import { Bell, CheckCircle, XCircle, Clock } from "lucide-react";
+import { fetchAlerts, AlertEvent, AlertByDay, AlertByCondition } from "./api";
 
 const CARD: React.CSSProperties = { background: "#111827", border: "1px solid rgba(255,255,255,0.07)", borderRadius: 8, padding: 16 };
 const MONO: React.CSSProperties = { fontFamily: "JetBrains Mono, monospace" };
@@ -30,6 +31,28 @@ export function AlertHistory({ onNavigate }: AlertHistoryProps) {
   const [filterCondition, setFilterCondition] = useState("all");
   const [filterStatus, setFilterStatus] = useState("all");
   const [filterChannel, setFilterChannel] = useState("all");
+  const [alertHistory, setAlertHistory] = useState<AlertEvent[]>(mockAlertHistory);
+  const [alertsByDay, setAlertsByDay] = useState<AlertByDay[]>(mockAlertsByDay);
+  const [alertsByCondition, setAlertsByCondition] = useState<AlertByCondition[]>(mockAlertsByCondition);
+  const [apiStatus, setApiStatus] = useState("Snapshot local");
+
+  useEffect(() => {
+    let cancelled = false;
+    fetchAlerts()
+      .then((payload) => {
+        if (cancelled) return;
+        setAlertHistory(payload.data);
+        setAlertsByDay(payload.byDay);
+        setAlertsByCondition(payload.byCondition);
+        setApiStatus("ClickHouse live query");
+      })
+      .catch(() => {
+        if (!cancelled) setApiStatus("Snapshot local");
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const filtered = alertHistory.filter((a) => {
     if (filterCondition !== "all" && a.condition !== filterCondition) return false;
@@ -50,8 +73,16 @@ export function AlertHistory({ onNavigate }: AlertHistoryProps) {
           <h1 style={{ color: "#e2e8f0", margin: 0, fontSize: 18, fontWeight: 700, ...INTER }}>Alert History</h1>
           <Bell size={16} color="#8b5cf6" />
         </div>
-        <p style={{ color: "#6b7fa3", margin: 0, fontSize: 12, ...INTER }}>Lịch sử cảnh báo người dùng · 30 ngày gần nhất</p>
+        <p style={{ color: "#6b7fa3", margin: 0, fontSize: 12, ...INTER }}>Lịch sử cảnh báo người dùng · {apiStatus}</p>
       </div>
+
+      {alertHistory.length === 0 && apiStatus === "ClickHouse live query" && (
+        <div style={{ ...CARD, borderColor: "rgba(245,158,11,0.2)", background: "rgba(245,158,11,0.04)" }}>
+          <div style={{ ...INTER, color: "#6b7fa3", fontSize: 12, lineHeight: 1.6 }}>
+            Bảng <span style={{ color: "#e2e8f0", ...MONO }}>fact_alert_event</span> hiện chưa có dữ liệu — Alert Engine chưa được vận hành (chỉ mới có schema).
+          </div>
+        </div>
+      )}
 
       {/* KPI */}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(5, 1fr)", gap: 12 }}>

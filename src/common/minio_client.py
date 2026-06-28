@@ -4,9 +4,12 @@ import os
 from collections.abc import Iterable
 from pathlib import Path
 
+from dotenv import load_dotenv
 from minio import Minio
 from minio.datatypes import Object
 from minio.error import S3Error
+
+load_dotenv()
 
 
 def _env_first(*names: str) -> str | None:
@@ -19,15 +22,9 @@ def _env_first(*names: str) -> str | None:
 
 def create_client() -> Minio:
     endpoint = _env_first("MINIO_ENDPOINT") or "localhost:9000"
-    access_key = _env_first("MINIO_ACCESS_KEY", "MINIO_ROOT_USER")
-    secret_key = _env_first("MINIO_SECRET_KEY", "MINIO_ROOT_PASSWORD")
+    access_key = _env_first("MINIO_ACCESS_KEY", "MINIO_ROOT_USER") or "minioadmin"
+    secret_key = _env_first("MINIO_SECRET_KEY", "MINIO_ROOT_PASSWORD") or "minioadmin"
     secure = os.getenv("MINIO_SECURE", "false").lower() == "true"
-
-    if not access_key or not secret_key:
-        raise ValueError(
-            "Missing MinIO credentials. Set MINIO_ACCESS_KEY/MINIO_SECRET_KEY "
-            "or MINIO_ROOT_USER/MINIO_ROOT_PASSWORD."
-        )
 
     return Minio(endpoint, access_key=access_key, secret_key=secret_key, secure=secure)
 

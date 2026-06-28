@@ -407,3 +407,38 @@ uv run python scripts/run_dnse_realtime_ingest.py --symbols ALL --max-messages 1
 ```
 
 Chi tiết xem thêm tại `docs/realtime_vwap_day21.md`.
+
+## Alert Engine
+
+Alert Engine tách cấu hình và lịch sử cảnh báo theo đúng kiến trúc trong `docs/architecture.md`:
+
+- `user_alerts` (PostgreSQL): cấu hình cảnh báo của người dùng — `ticker`, `condition_type`, `threshold_value`, `channel`, `cooldown_minutes`, `is_active`.
+- `fact_alert_event` (ClickHouse): lịch sử mọi lần điều kiện được kích hoạt, bao gồm cả lần bị bỏ qua do cooldown (`is_sent = 0`) để giữ đầy đủ audit trail.
+
+Loại điều kiện hỗ trợ: `PRICE_ABOVE`, `PRICE_BELOW`, `RSI_ABOVE`, `RSI_BELOW`, `BB_BREAK`, `VWAP_DEVIATION`.
+
+Module chính:
+
+- `src/alert_engine/rules.py` — logic đánh giá điều kiện (pure function, không phụ thuộc DB).
+- `src/alert_engine/engine.py` — đọc rule đang active, lấy dữ liệu mới nhất từ `fact_daily_price`/`fact_realtime_vwap`, kiểm tra cooldown qua `fact_alert_event`, ghi log.
+- `src/alert_engine/notifier.py` — gửi Telegram (`TELEGRAM_BOT_TOKEN`, `TELEGRAM_CHAT_ID`); nếu chưa cấu hình, cảnh báo vẫn được ghi log với `is_sent = 0`.
+
+Khởi tạo bảng `user_alerts` và seed vài rule demo:
+
+```bash
+uv run python scripts/init_user_alerts.py
+```
+
+Chạy kiểm tra một lần:
+
+```bash
+uv run python scripts/run_alert_engine.py --run-once
+```
+
+Chạy liên tục mỗi 60 giây (đúng thiết kế Alert Checker):
+
+```bash
+uv run python scripts/run_alert_engine.py --interval-seconds 60
+```
+
+DAG `stock_lakehouse_daily` đã có task `init_user_alerts >> check_alerts` chạy sau `load_gold` mỗi lần pipeline daily chạy; muốn cảnh báo theo thời gian thực cần chạy `run_alert_engine.py` như một service riêng (không phụ thuộc lịch Airflow).

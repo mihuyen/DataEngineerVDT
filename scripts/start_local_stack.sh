@@ -16,7 +16,7 @@ if [[ -d "$NODE_BIN" ]]; then
 fi
 
 echo "Starting Docker services..."
-docker compose up -d clickhouse minio postgres zookeeper kafka airflow-webserver airflow-scheduler
+docker compose up -d clickhouse minio postgres zookeeper kafka nlp-service airflow-webserver airflow-scheduler
 
 echo "Waiting for Airflow webserver..."
 for _ in $(seq 1 60); do
@@ -62,6 +62,7 @@ echo
 echo "Local stack is ready:"
 echo "- Frontend: http://localhost:5173"
 echo "- API:      http://localhost:8000/api/health"
+echo "- NLP API:  http://localhost:8002/health"
 echo "- Airflow:  http://localhost:8080  admin/admin"
 echo "- MinIO:    http://localhost:9001  minioadmin/minioadmin"
 echo

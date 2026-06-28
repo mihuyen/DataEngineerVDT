@@ -4,8 +4,11 @@ import os
 from typing import Any
 
 import polars as pl
-from clickhouse_connect.driver.client import Client
 from clickhouse_connect import get_client
+from clickhouse_connect.driver.client import Client
+from dotenv import load_dotenv
+
+load_dotenv()
 
 
 def create_client(database: str | None = None) -> Client:

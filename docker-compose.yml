@@ -28,6 +28,31 @@ services:
       - clickhouse_data:/var/lib/clickhouse
       - ./sql/ddl:/docker-entrypoint-initdb.d:ro
 
+  nlp-service:
+    build:
+      context: .
+      dockerfile: nlp/serving/Dockerfile
+    image: stock-nlp:local
+    container_name: stock-nlp
+    restart: unless-stopped
+    ports:
+      - "8002:8000"
+    environment:
+      HF_MODEL_REPO: ${HF_MODEL_REPO:-wonrax/phobert-base-vietnamese-sentiment}
+      HF_TOKEN: ${HF_TOKEN:-}
+      MODEL_VERSION: ${MODEL_VERSION:-wonrax-phobert-general-baseline}
+      LOAD_SOCIAL_MODEL: ${LOAD_SOCIAL_MODEL:-false}
+      LOAD_TOPIC_MODEL: ${LOAD_TOPIC_MODEL:-false}
+      HF_HOME: /models/huggingface
+    volumes:
+      - huggingface_cache:/models/huggingface
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health', timeout=5)"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 120s
+
   postgres:
     image: postgres:16
     container_name: stock-postgres
@@ -171,3 +196,4 @@ volumes:
   postgres_data:
   superset_data:
   grafana_data:
+  huggingface_cache:

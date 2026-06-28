@@ -65,6 +65,8 @@ sources:
     enabled: true
     max_age_days: 2
     max_articles_per_source: 20
+    registry_max_attempts: 3
+    registry_retry_minutes: 30
     sources:
       - source: VnExpress
         categories:

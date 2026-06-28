@@ -1,16 +1,17 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell,
   LineChart, Line,
 } from "recharts";
-import { newsSentiment, sentimentByDate } from "./mockData";
+import { newsSentiment as mockNewsSentiment, sentimentByDate as mockSentimentByDate } from "./mockData";
+import { fetchNewsSentiment, NewsSentimentRow, SentimentByDate } from "./api";
 
 const CARD: React.CSSProperties = { background: "#111827", border: "1px solid rgba(255,255,255,0.07)", borderRadius: 8, padding: 16 };
 const MONO: React.CSSProperties = { fontFamily: "JetBrains Mono, monospace" };
 const INTER: React.CSSProperties = { fontFamily: "Inter, sans-serif" };
 
 function SentimentBar({ positive, negative, neutral }: { positive: number; negative: number; neutral: number }) {
-  const total = positive + negative + neutral;
+  const total = positive + negative + neutral || 1;
   return (
     <div style={{ display: "flex", height: 6, borderRadius: 3, overflow: "hidden", gap: 1 }}>
       <div style={{ width: `${(positive / total) * 100}%`, background: "#00d97e" }} />
@@ -25,6 +26,26 @@ interface NewsSentimentProps { onNavigate: (page: string, ticker?: string) => vo
 export function NewsSentiment({ onNavigate }: NewsSentimentProps) {
   const [filterSentiment, setFilterSentiment] = useState<"all" | "positive" | "negative" | "neutral">("all");
   const [search, setSearch] = useState("");
+  const [newsSentiment, setNewsSentiment] = useState<NewsSentimentRow[]>(mockNewsSentiment);
+  const [sentimentByDate, setSentimentByDate] = useState<SentimentByDate[]>(mockSentimentByDate);
+  const [apiStatus, setApiStatus] = useState("Snapshot local");
+
+  useEffect(() => {
+    let cancelled = false;
+    fetchNewsSentiment()
+      .then((payload) => {
+        if (cancelled) return;
+        setNewsSentiment(payload.data);
+        setSentimentByDate(payload.byDate);
+        setApiStatus("ClickHouse live query");
+      })
+      .catch(() => {
+        if (!cancelled) setApiStatus("Snapshot local");
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const filtered = newsSentiment.filter((n) => {
     if (search && !n.ticker.toLowerCase().includes(search.toLowerCase()) && !n.name.toLowerCase().includes(search.toLowerCase())) return false;
@@ -41,7 +62,7 @@ export function NewsSentiment({ onNavigate }: NewsSentimentProps) {
 
   const sentimentScoreData = sentimentByDate.map((d) => ({
     ...d,
-    score: +((d.positive - d.negative) / (d.positive + d.negative + d.neutral) * 100).toFixed(1),
+    score: +((d.positive - d.negative) / (d.positive + d.negative + d.neutral || 1) * 100).toFixed(1),
   }));
 
   return (
@@ -50,7 +71,7 @@ export function NewsSentiment({ onNavigate }: NewsSentimentProps) {
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
         <div>
           <h1 style={{ color: "#e2e8f0", margin: 0, fontSize: 18, fontWeight: 700, ...INTER }}>News & Sentiment</h1>
-          <p style={{ color: "#6b7fa3", margin: 0, fontSize: 12, ...INTER }}>Tin tức & cảm xúc thị trường · Tuần 09–14/06/2026</p>
+          <p style={{ color: "#6b7fa3", margin: 0, fontSize: 12, ...INTER }}>Tin tức & cảm xúc thị trường · {apiStatus}</p>
         </div>
         <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
           <input
@@ -85,7 +106,7 @@ export function NewsSentiment({ onNavigate }: NewsSentimentProps) {
           { label: "Tin tích cực", value: totalPositive + "", color: "#00d97e" },
           { label: "Tin tiêu cực", value: totalNegative + "", color: "#ff4d6d" },
           { label: "Mã được nhắc đến", value: newsSentiment.length + "", color: "#3b82f6" },
-          { label: "Avg Sentiment Score", value: (newsSentiment.reduce((a, n) => a + n.avgScore, 0) / newsSentiment.length).toFixed(2), color: "#8b5cf6" },
+          { label: "Avg Sentiment Score", value: (newsSentiment.reduce((a, n) => a + n.avgScore, 0) / (newsSentiment.length || 1)).toFixed(2), color: "#8b5cf6" },
         ].map((kpi) => (
           <div key={kpi.label} style={CARD}>
             <div style={{ ...INTER, color: "#6b7fa3", fontSize: 10, textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 4 }}>{kpi.label}</div>

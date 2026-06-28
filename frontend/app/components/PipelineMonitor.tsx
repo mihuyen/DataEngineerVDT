@@ -1,9 +1,14 @@
+import { useEffect, useState } from "react";
 import {
   LineChart, Line, BarChart, Bar, XAxis, YAxis, Tooltip,
   ResponsiveContainer, Cell,
 } from "recharts";
-import { dagStatus, dataQualityErrors, ingestHistory, kafkaLag } from "./mockData";
+import {
+  dagStatus as mockDagStatus, dataQualityErrors as mockDataQualityErrors,
+  ingestHistory as mockIngestHistory, kafkaLag as mockKafkaLag,
+} from "./mockData";
 import { CheckCircle, XCircle, Loader, AlertTriangle, Database, Server, Activity, HardDrive } from "lucide-react";
+import { fetchPipelineStatus, DagStatusRow, DataQualityError, IngestHistoryPoint, KafkaLagPoint } from "./api";
 
 const CARD: React.CSSProperties = { background: "#111827", border: "1px solid rgba(255,255,255,0.07)", borderRadius: 8, padding: 16 };
 const MONO: React.CSSProperties = { fontFamily: "JetBrains Mono, monospace" };
@@ -38,6 +43,36 @@ const ServiceCard = ({ name, status, metric, unit, icon }: { name: string; statu
 };
 
 export function PipelineMonitor() {
+  const [dagStatus, setDagStatus] = useState<DagStatusRow[]>(mockDagStatus);
+  const [dataQualityErrors, setDataQualityErrors] = useState<DataQualityError[]>(mockDataQualityErrors);
+  const [ingestHistory, setIngestHistory] = useState<IngestHistoryPoint[]>(mockIngestHistory);
+  const [kafkaLag, setKafkaLag] = useState<KafkaLagPoint[]>(mockKafkaLag);
+  const [apiStatus, setApiStatus] = useState("Snapshot local");
+
+  useEffect(() => {
+    let cancelled = false;
+    const load = () => {
+      fetchPipelineStatus()
+        .then((payload) => {
+          if (cancelled) return;
+          setDagStatus(payload.dagStatus);
+          setDataQualityErrors(payload.dataQualityErrors);
+          setIngestHistory(payload.ingestHistory);
+          setKafkaLag(payload.kafkaLag);
+          setApiStatus("ClickHouse live query");
+        })
+        .catch(() => {
+          if (!cancelled) setApiStatus("Snapshot local");
+        });
+    };
+    load();
+    const timer = window.setInterval(load, 60000);
+    return () => {
+      cancelled = true;
+      window.clearInterval(timer);
+    };
+  }, []);
+
   const successCount = dagStatus.filter((d) => d.status === "success").length;
   const failedCount = dagStatus.filter((d) => d.status === "failed").length;
   const runningCount = dagStatus.filter((d) => d.status === "running").length;
@@ -51,7 +86,7 @@ export function PipelineMonitor() {
       {/* Header */}
       <div>
         <h1 style={{ color: "#e2e8f0", margin: 0, fontSize: 18, fontWeight: 700, ...INTER }}>Data Pipeline Monitor</h1>
-        <p style={{ color: "#6b7fa3", margin: 0, fontSize: 12, ...INTER }}>Giám sát pipeline & chất lượng dữ liệu từ ClickHouse snapshot</p>
+        <p style={{ color: "#6b7fa3", margin: 0, fontSize: 12, ...INTER }}>Giám sát pipeline & chất lượng dữ liệu · {apiStatus}</p>
       </div>
 
       {/* KPIs */}

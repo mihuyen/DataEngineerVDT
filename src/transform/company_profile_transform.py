@@ -5,11 +5,13 @@ from pathlib import Path
 from typing import Any
 
 import polars as pl
+import yaml
 
 from src.common.minio_client import create_bucket_if_missing, create_client, upload_file
 
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
+DEFAULT_CONFIG_PATH = PROJECT_ROOT / "configs" / "sources.yaml"
 DEFAULT_LOCAL_BRONZE_DIR = PROJECT_ROOT / "data" / "bronze_local"
 DEFAULT_LOCAL_SILVER_DIR = PROJECT_ROOT / "data" / "silver_local"
 SILVER_BUCKET = "silver"
@@ -33,6 +35,19 @@ NUMERIC_COLUMNS = [
     "free_float",
     "free_float_percentage",
 ]
+
+
+def load_allowed_exchanges(config_path: Path = DEFAULT_CONFIG_PATH) -> set[str]:
+    if not config_path.exists():
+        return {"HOSE"}
+    with config_path.open("r", encoding="utf-8") as file:
+        config = yaml.safe_load(file) or {}
+
+    for source in config.get("sources", []):
+        if source.get("name") == "company_profile" or source.get("source_name") == "company_profile":
+            exchanges = source.get("default_exchanges") or ["HOSE"]
+            return {str(exchange).upper() for exchange in exchanges}
+    return {"HOSE"}
 
 
 def discover_bronze_files(local_bronze_dir: Path = DEFAULT_LOCAL_BRONZE_DIR) -> list[Path]:
@@ -105,9 +120,10 @@ def _sector_id_expr() -> pl.Expr:
     )
 
 
-def transform_company_profile(frame: pl.DataFrame) -> pl.DataFrame:
+def transform_company_profile(frame: pl.DataFrame, allowed_exchanges: set[str] | None = None) -> pl.DataFrame:
     now = datetime.now(timezone.utc)
     frame = normalize_columns(frame)
+    exchanges = allowed_exchanges or load_allowed_exchanges()
 
     if "symbol" not in frame.columns:
         raise ValueError("Company profile Silver data requires symbol column")
@@ -126,7 +142,11 @@ def transform_company_profile(frame: pl.DataFrame) -> pl.DataFrame:
         _clean_text("website").alias("website"),
         _clean_text("source").alias("source"),
         *[_clean_numeric(column).alias(column) for column in NUMERIC_COLUMNS],
-    ).filter(pl.col("symbol").is_not_null() & (pl.col("symbol").str.len_chars() > 0))
+    ).filter(
+        pl.col("symbol").is_not_null()
+        & (pl.col("symbol").str.len_chars() > 0)
+        & pl.col("exchange").is_in(sorted(exchanges))
+    )
 
     aggregated = cleaned.group_by("symbol").agg(
         [

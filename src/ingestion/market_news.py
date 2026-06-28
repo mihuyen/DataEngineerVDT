@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import re
 from dataclasses import asdict, dataclass
-from datetime import date, datetime
+from datetime import date, datetime, timedelta
 from pathlib import Path
 from typing import Any
 from urllib.parse import urljoin
@@ -14,6 +14,7 @@ import yaml
 from bs4 import BeautifulSoup
 
 from src.common.minio_client import create_client, upload_file
+from src.ingestion.news_url_registry import DEFAULT_REGISTRY_PATH, NewsURLRegistry
 
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
@@ -267,26 +268,65 @@ def discover_rss_links(feed_url: str) -> list[str]:
     return [str(entry.link) for entry in feed.entries if getattr(entry, "link", None)]
 
 
-def crawl_articles(config: dict[str, Any] | None = None) -> list[NewsArticle]:
+def crawl_articles(
+    config: dict[str, Any] | None = None,
+    registry: NewsURLRegistry | None = None,
+) -> list[NewsArticle]:
     """Crawl all configured market news sources."""
     source_config = config or load_config()
     max_age_days = int(source_config.get("max_age_days", 2))
     max_articles_per_source = int(source_config.get("max_articles_per_source", 20))
+    registry_max_attempts = int(source_config.get("registry_max_attempts", 3))
+    registry_retry_minutes = int(source_config.get("registry_retry_minutes", 30))
     seen_urls: set[str] = set()
     articles: list[NewsArticle] = []
 
     def source_count(source_name: str) -> int:
         return len([item for item in articles if item.source == source_name])
 
-    def safe_extract(extractor, link: str, category: str) -> NewsArticle | None:
+    def safe_extract(
+        extractor,
+        link: str,
+        source_name: str,
+        category: str,
+    ) -> NewsArticle | None:
         try:
-            return extractor(link, category)
+            article = extractor(link, category)
         except requests.RequestException as exc:
             print(f"Skip article due to request error: {link} ({exc})")
+            if registry:
+                registry.mark_failure(link, source_name, category, str(exc))
             return None
         except Exception as exc:
             print(f"Skip article due to parse error: {link} ({exc})")
+            if registry:
+                registry.mark_failure(link, source_name, category, str(exc))
             return None
+
+        if article is None:
+            if registry:
+                registry.mark_failure(link, source_name, category, "extractor returned no article")
+            return None
+        if not is_recent_article(article.published_at, max_age_days):
+            if registry:
+                registry.mark_skipped(link, source_name, category, "article is older than max_age_days")
+            return None
+        if registry:
+            registry.mark_success(link, source_name, category)
+        return article
+
+    def should_process(link: str, source_name: str, category: str) -> bool:
+        if link in seen_urls:
+            return False
+        seen_urls.add(link)
+        if registry is None:
+            return True
+        registry.register_discovered(link, source_name, category)
+        return registry.should_crawl(
+            link,
+            max_attempts=registry_max_attempts,
+            retry_after=timedelta(minutes=registry_retry_minutes),
+        )
 
     for source in source_config.get("sources", []):
         source_name = source.get("source")
@@ -303,11 +343,10 @@ def crawl_articles(config: dict[str, Any] | None = None) -> list[NewsArticle]:
                 for link in links:
                     if source_count(source_name) >= max_articles_per_source:
                         break
-                    if link in seen_urls:
+                    if not should_process(link, source_name, category):
                         continue
-                    seen_urls.add(link)
-                    article = safe_extract(extract_vnexpress_article, link, category)
-                    if article and is_recent_article(article.published_at, max_age_days):
+                    article = safe_extract(extract_vnexpress_article, link, source_name, category)
+                    if article:
                         articles.append(article)
         elif source_name == "Vietstock":
             for channel_id, category in source.get("channels", {}).items():
@@ -321,11 +360,10 @@ def crawl_articles(config: dict[str, Any] | None = None) -> list[NewsArticle]:
                 for link in links:
                     if source_count(source_name) >= max_articles_per_source:
                         break
-                    if link in seen_urls:
+                    if not should_process(link, source_name, category):
                         continue
-                    seen_urls.add(link)
-                    article = safe_extract(extract_vietstock_article, link, category)
-                    if article and is_recent_article(article.published_at, max_age_days):
+                    article = safe_extract(extract_vietstock_article, link, source_name, category)
+                    if article:
                         articles.append(article)
         elif source_name == "CafeF":
             for category, category_url in source.get("categories", {}).items():
@@ -339,11 +377,10 @@ def crawl_articles(config: dict[str, Any] | None = None) -> list[NewsArticle]:
                 for link in links:
                     if source_count(source_name) >= max_articles_per_source:
                         break
-                    if link in seen_urls:
+                    if not should_process(link, source_name, category):
                         continue
-                    seen_urls.add(link)
-                    article = safe_extract(extract_cafef_article, link, category)
-                    if article and is_recent_article(article.published_at, max_age_days):
+                    article = safe_extract(extract_cafef_article, link, source_name, category)
+                    if article:
                         articles.append(article)
 
     return articles
@@ -412,25 +449,52 @@ def upload_to_minio(local_path: Path, object_name: str, bucket_name: str = "bron
     )
 
 
+def seed_registry_from_bronze(
+    registry: NewsURLRegistry,
+    local_output_dir: Path = DEFAULT_LOCAL_BRONZE_DIR,
+) -> int:
+    if registry.count() > 0:
+        return 0
+    rows: list[dict[str, str]] = []
+    for path in sorted((local_output_dir / "news").glob("**/data.parquet")):
+        frame = pl.read_parquet(path)
+        if "url" not in frame.columns:
+            continue
+        selected = [column for column in ["url", "source", "category"] if column in frame.columns]
+        for row in frame.select(selected).to_dicts():
+            rows.append({key: str(value or "") for key, value in row.items()})
+    return registry.seed_success(rows)
+
+
 def run(
     config_path: Path = DEFAULT_CONFIG_PATH,
     local_output_dir: Path = DEFAULT_LOCAL_BRONZE_DIR,
     upload: bool = True,
+    registry_path: Path = DEFAULT_REGISTRY_PATH,
+    seed_existing_bronze: bool = True,
 ) -> dict[str, str]:
     """Run market news Bronze ingest."""
     source_config = load_config(config_path)
-    articles = crawl_articles(source_config)
+    registry = NewsURLRegistry(registry_path)
+    seeded_count = (
+        seed_registry_from_bronze(registry, local_output_dir) if seed_existing_bronze else 0
+    )
+    articles = crawl_articles(source_config, registry=registry)
     frame = articles_to_frame(articles)
     bronze_path = str(source_config.get("bronze_path", "news/"))
     bucket_name = str(source_config.get("bronze_bucket", "bronze"))
     object_name = build_bronze_object_name(bronze_path=bronze_path)
     local_path = local_output_dir / object_name
-    save_parquet(frame, local_path)
-    if upload:
+    if frame.height > 0:
+        save_parquet(frame, local_path)
+    if upload and frame.height > 0:
         upload_to_minio(local_path=local_path, object_name=object_name, bucket_name=bucket_name)
     return {
         "article_count": str(frame.height),
         "local_path": str(local_path),
         "bucket": bucket_name,
         "object_name": object_name,
+        "registry_path": str(registry_path),
+        "registry_seeded_count": str(seeded_count),
+        "registry_status": str(registry.status_counts()),
     }

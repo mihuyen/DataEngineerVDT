@@ -125,7 +125,7 @@ def test_run_uses_mocked_crawl_and_upload(tmp_path: Path, monkeypatch) -> None:
     )
     uploaded: dict[str, str] = {}
 
-    def fake_crawl_articles(config):
+    def fake_crawl_articles(config, registry=None):
         return [article] if article else []
 
     def fake_upload_to_minio(local_path: Path, object_name: str, bucket_name: str) -> None:
@@ -136,7 +136,10 @@ def test_run_uses_mocked_crawl_and_upload(tmp_path: Path, monkeypatch) -> None:
     monkeypatch.setattr(market_news, "crawl_articles", fake_crawl_articles)
     monkeypatch.setattr(market_news, "upload_to_minio", fake_upload_to_minio)
 
-    result = market_news.run(local_output_dir=tmp_path)
+    result = market_news.run(
+        local_output_dir=tmp_path,
+        registry_path=tmp_path / "registry.sqlite3",
+    )
 
     assert result["article_count"] == "1"
     assert Path(result["local_path"]).is_file()

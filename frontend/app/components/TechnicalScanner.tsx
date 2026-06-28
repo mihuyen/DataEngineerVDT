@@ -1,11 +1,11 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from "recharts";
-import { technicalSignals } from "./mockData";
+import { technicalSignals as mockTechnicalSignals } from "./mockData";
+import { fetchTechnicalSignals, TechnicalSignal } from "./api";
 
 const CARD: React.CSSProperties = { background: "#111827", border: "1px solid rgba(255,255,255,0.07)", borderRadius: 8, padding: 16 };
 const MONO: React.CSSProperties = { fontFamily: "JetBrains Mono, monospace" };
 const INTER: React.CSSProperties = { fontFamily: "Inter, sans-serif" };
-const TRACKED_TICKER_COUNT = 930;
 
 const formatNumber = (value: number, digits = 2) =>
   Number.isFinite(value) ? value.toFixed(digits) : "-";
@@ -30,6 +30,26 @@ interface TechnicalScannerProps { onNavigate: (page: string, ticker?: string) =>
 export function TechnicalScanner({ onNavigate }: TechnicalScannerProps) {
   const [filterSignal, setFilterSignal] = useState<string>("all");
   const [filterExchange, setFilterExchange] = useState("ALL");
+  const [technicalSignals, setTechnicalSignals] = useState<TechnicalSignal[]>(mockTechnicalSignals);
+  const [trackedTickerCount, setTrackedTickerCount] = useState(930);
+  const [apiStatus, setApiStatus] = useState("Snapshot local");
+
+  useEffect(() => {
+    let cancelled = false;
+    fetchTechnicalSignals()
+      .then((payload) => {
+        if (cancelled) return;
+        setTechnicalSignals(payload.data);
+        setTrackedTickerCount(payload.trackedTickerCount);
+        setApiStatus("ClickHouse live query");
+      })
+      .catch(() => {
+        if (!cancelled) setApiStatus("Snapshot local");
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const filtered = technicalSignals.filter((s) =>
     filterSignal === "all" || s.signal === filterSignal
@@ -55,7 +75,7 @@ export function TechnicalScanner({ onNavigate }: TechnicalScannerProps) {
         <div>
           <h1 style={{ color: "#e2e8f0", margin: 0, fontSize: 18, fontWeight: 700, ...INTER }}>Technical Signal Scanner</h1>
           <p style={{ color: "#6b7fa3", margin: 0, fontSize: 12, ...INTER }}>
-            Quét {TRACKED_TICKER_COUNT} mã có dữ liệu phiên mới nhất · Hiển thị {technicalSignals.length} tín hiệu nổi bật
+            Quét {trackedTickerCount} mã có dữ liệu phiên mới nhất · Hiển thị {technicalSignals.length} tín hiệu nổi bật · {apiStatus}
           </p>
         </div>
         <div style={{ display: "flex", gap: 8 }}>
@@ -145,7 +165,7 @@ export function TechnicalScanner({ onNavigate }: TechnicalScannerProps) {
               </span>
             )}
           </span>
-          <span style={{ ...INTER, color: "#6b7fa3", fontSize: 12 }}>{filtered.length} tín hiệu / {TRACKED_TICKER_COUNT} mã quét</span>
+          <span style={{ ...INTER, color: "#6b7fa3", fontSize: 12 }}>{filtered.length} tín hiệu / {trackedTickerCount} mã quét</span>
         </div>
         <div style={{ overflowX: "auto" }}>
           <table style={{ width: "100%", borderCollapse: "collapse" }}>

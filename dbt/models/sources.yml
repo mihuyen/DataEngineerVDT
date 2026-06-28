@@ -3,9 +3,138 @@ version: 2
 sources:
   - name: gold
     schema: "{{ env_var('CLICKHOUSE_DATABASE', 'stock_lakehouse') }}"
-    description: "Gold tables loaded by Python loaders before dbt models run."
+    description: "ClickHouse Gold tables loaded by Python loaders and exported to MinIO parquet for lakehouse storage."
     tables:
-      - name: fact_daily_price
-        description: "Daily OHLCV fact table used as the Day 17 dbt input."
+      - name: dim_date
+        description: "Calendar dimension used to join daily facts by date_id."
+        columns:
+          - name: date_id
+            description: "Date key in YYYYMMDD format."
+            tests:
+              - not_null
+              - unique
+          - name: date
+            description: "Calendar date."
+            tests:
+              - not_null
+          - name: is_trading_day
+            description: "Weekend-based trading day flag."
+
+      - name: dim_sector
+        description: "Sector dimension for grouping HOSE stocks."
+        columns:
+          - name: sector_id
+            description: "Stable sector identifier."
+            tests:
+              - not_null
+              - unique
+          - name: sector_name
+            description: "Vietnamese sector display name."
+
       - name: dim_stock
-        description: "Stock dimension with shares outstanding and company metadata."
+        description: "Stock dimension with HOSE company metadata and shares outstanding."
+        columns:
+          - name: ticker
+            description: "Stock ticker."
+            tests:
+              - not_null
+              - unique
+          - name: company_name
+            description: "Vietnamese company name."
+          - name: exchange
+            description: "Stock exchange, currently HOSE for the serving scope."
+          - name: sector_id
+            description: "Sector key used to join dim_sector."
+          - name: shares_outstanding
+            description: "Number of outstanding shares used for market cap."
+
+      - name: dim_index
+        description: "Market index dimension for VNINDEX and VN30."
+        columns:
+          - name: index_id
+            description: "Market index identifier."
+            tests:
+              - not_null
+              - unique
+          - name: index_name
+            description: "Display name of the index."
+
+      - name: fact_daily_price
+        description: "Daily HOSE stock OHLCV, market cap and technical indicator fact table."
+        columns:
+          - name: ticker
+            description: "Stock ticker."
+            tests:
+              - not_null
+          - name: trading_date
+            description: "Trading date."
+            tests:
+              - not_null
+          - name: close
+            description: "Closing price."
+            tests:
+              - not_null
+          - name: volume
+            description: "Daily matched volume."
+          - name: market_cap
+            description: "Market capitalization calculated from close and shares_outstanding."
+          - name: rsi_14
+            description: "14-day relative strength index."
+          - name: macd
+            description: "MACD technical indicator."
+
+      - name: fact_market_index
+        description: "Daily VNINDEX/VN30 market index fact table."
+        columns:
+          - name: index_id
+            description: "Index identifier."
+            tests:
+              - not_null
+          - name: trading_date
+            description: "Trading date."
+            tests:
+              - not_null
+          - name: close_point
+            description: "Index closing point."
+
+      - name: fact_news_sentiment_daily
+        description: "Daily ticker-level news sentiment aggregate."
+        columns:
+          - name: ticker
+            description: "Linked stock ticker."
+            tests:
+              - not_null
+          - name: news_date
+            description: "News publication date."
+            tests:
+              - not_null
+          - name: news_count
+            description: "Number of linked articles."
+          - name: avg_sentiment_score
+            description: "Average sentiment score for the ticker-date."
+
+      - name: fact_realtime_vwap
+        description: "Minute-level VWAP fact built from DNSE realtime/demo trades."
+        columns:
+          - name: ticker
+            description: "Stock ticker."
+            tests:
+              - not_null
+          - name: minute_ts
+            description: "Minute timestamp."
+            tests:
+              - not_null
+          - name: session_vwap
+            description: "Session VWAP up to the minute."
+
+      - name: fact_alert_event
+        description: "Alert event fact table for triggered trading/technical conditions."
+        columns:
+          - name: alert_id
+            description: "Alert event UUID."
+            tests:
+              - unique
+          - name: ticker
+            description: "Stock ticker related to the alert."
+          - name: triggered_at
+            description: "Alert trigger timestamp."

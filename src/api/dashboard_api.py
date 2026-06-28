@@ -17,6 +17,24 @@ from src.loaders.load_fact_realtime_vwap import build_fact_realtime_vwap
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 DEFAULT_DNSE_BRONZE_DIR = PROJECT_ROOT / "data" / "bronze_local" / "dnse" / "trades"
+QUALITY_REPORTS_DIR = PROJECT_ROOT / "quality_reports"
+
+ALERT_CONDITION_COLORS = {
+    "RSI_ABOVE": "#ff4d6d",
+    "RSI_BELOW": "#00d97e",
+    "BB_BREAK": "#8b5cf6",
+    "VWAP_DEVIATION": "#a855f7",
+    "PRICE_ABOVE": "#3b82f6",
+    "PRICE_BELOW": "#06b6d4",
+}
+
+PIPELINE_TABLES = [
+    ("fact_daily_price", "trading_date"),
+    ("fact_market_index", "trading_date"),
+    ("fact_news_sentiment_daily", "news_date"),
+    ("fact_realtime_vwap", "minute_ts"),
+    ("fact_alert_event", "triggered_at"),
+]
 
 
 app = FastAPI(title="VNStock Dashboard API")
@@ -623,7 +641,7 @@ def get_realtime_vwap_series(ticker: str) -> dict[str, Any]:
             data = rows(
                 f"""
                 SELECT
-                  formatDateTime(minute_ts, '%H:%M') AS time,
+                  formatDateTime(minute_ts, '%H:%i') AS time,
                   close_price AS price,
                   vwap_1m AS vwap,
                   session_vwap AS sessionVwap,
@@ -645,3 +663,249 @@ def get_realtime_vwap_series(ticker: str) -> dict[str, Any]:
     if not data:
         raise HTTPException(status_code=404, detail=f"No realtime VWAP data for ticker {symbol}")
     return {"ticker": symbol, "count": len(data), "source": source, "data": data}
+
+
+@app.get("/api/technical/signals")
+def get_technical_signals(limit: int = Query(150, ge=10, le=2000)) -> dict[str, Any]:
+    tracked_ticker_count = scalar(
+        """
+        SELECT countDistinct(f.ticker)
+        FROM fact_daily_price f
+        LEFT JOIN dim_stock s ON f.ticker = s.ticker
+        WHERE f.trading_date = (SELECT max(trading_date) FROM fact_daily_price)
+          AND s.exchange = 'HOSE'
+        """,
+        default=0,
+    )
+    raw = rows(
+        f"""
+        SELECT
+          f.ticker AS ticker,
+          ifNull(nullIf(s.company_name, ''), f.ticker) AS name,
+          ifNull(f.rsi_14, 50) AS rsi,
+          ifNull(f.macd, 0) AS macd,
+          ifNull(f.macd_signal, 0) AS macdSignal,
+          f.close AS close,
+          ifNull(f.bb_upper, f.high) AS bbUpper,
+          ifNull(f.bb_lower, f.low) AS bbLower,
+          f.volume AS volume,
+          ifNull(f.volume_sma_20, f.volume) AS volSma20,
+          f.pct_change AS pct,
+          f.overbought_flag AS overboughtFlag,
+          f.oversold_flag AS oversoldFlag,
+          f.breakout_flag AS breakoutFlag,
+          f.breakdown_flag AS breakdownFlag
+        FROM fact_daily_price f
+        LEFT JOIN dim_stock s ON f.ticker = s.ticker
+        WHERE f.trading_date = (SELECT max(trading_date) FROM fact_daily_price)
+          AND s.exchange = 'HOSE'
+          AND (
+            f.overbought_flag = 1 OR f.oversold_flag = 1 OR f.breakout_flag = 1 OR f.breakdown_flag = 1
+            OR (f.macd > 0 AND f.macd > f.macd_signal)
+            OR f.volume > 1.5 * ifNull(f.volume_sma_20, f.volume)
+          )
+        ORDER BY abs(f.pct_change) DESC
+        LIMIT {limit}
+        """
+    )
+    signals = []
+    for row in raw:
+        if row["breakoutFlag"]:
+            signal = "breakout"
+        elif row["breakdownFlag"]:
+            signal = "breakdown"
+        elif row["overboughtFlag"]:
+            signal = "overbought"
+        elif row["oversoldFlag"]:
+            signal = "oversold"
+        elif row["volume"] > 1.5 * (row["volSma20"] or row["volume"]):
+            signal = "volume_spike"
+        else:
+            signal = "macd_positive"
+        signals.append(
+            {
+                **{key: value for key, value in row.items() if not key.endswith("Flag")},
+                "signal": signal,
+            }
+        )
+    return {"trackedTickerCount": tracked_ticker_count, "count": len(signals), "data": signals}
+
+
+@app.get("/api/news/sentiment")
+def get_news_sentiment(days: int = Query(7, ge=1, le=60)) -> dict[str, Any]:
+    by_ticker = rows(
+        f"""
+        SELECT
+          n.ticker AS ticker,
+          ifNull(nullIf(s.company_name, ''), n.ticker) AS name,
+          sum(n.news_count) AS newsCount,
+          max(n.source_count) AS sources,
+          sum(n.positive_count) AS positive,
+          sum(n.negative_count) AS negative,
+          sum(n.neutral_count) AS neutral,
+          avg(n.avg_sentiment_score) AS avgScore,
+          argMax(n.top_headline, n.news_date) AS headline
+        FROM fact_news_sentiment_daily n
+        LEFT JOIN dim_stock s ON n.ticker = s.ticker
+        WHERE n.news_date >= (SELECT max(news_date) FROM fact_news_sentiment_daily) - {days}
+        GROUP BY ticker, name
+        ORDER BY newsCount DESC
+        """
+    )
+    by_date = rows(
+        f"""
+        SELECT
+          formatDateTime(toDateTime(news_date), '%m-%d') AS date,
+          sum(positive_count) AS positive,
+          sum(negative_count) AS negative,
+          sum(neutral_count) AS neutral
+        FROM fact_news_sentiment_daily
+        WHERE news_date >= (SELECT max(news_date) FROM fact_news_sentiment_daily) - {days}
+        GROUP BY news_date
+        ORDER BY news_date
+        """
+    )
+    return {"count": len(by_ticker), "data": by_ticker, "byDate": by_date}
+
+
+@app.get("/api/alerts")
+def get_alerts(limit: int = Query(200, ge=1, le=2000)) -> dict[str, Any]:
+    raw = rows(
+        f"""
+        SELECT
+          alert_id AS id,
+          formatDateTime(triggered_at, '%Y-%m-%d %H:%i') AS triggeredAt,
+          user_id AS user,
+          ticker AS ticker,
+          condition_type AS condition,
+          threshold_value AS threshold,
+          actual_value AS actual,
+          channel AS channel,
+          is_sent AS isSent,
+          sent_at AS sentAt,
+          formatDateTime(ifNull(sent_at, triggered_at), '%Y-%m-%d %H:%i') AS sentAtFormatted
+        FROM fact_alert_event
+        ORDER BY triggered_at DESC
+        LIMIT {limit}
+        """
+    )
+    alerts = [
+        {
+            "id": row["id"],
+            "triggeredAt": row["triggeredAt"],
+            "user": row["user"],
+            "ticker": row["ticker"],
+            "condition": row["condition"],
+            "threshold": row["threshold"],
+            "actual": row["actual"],
+            "channel": row["channel"],
+            "status": "sent" if row["isSent"] else "skipped",
+            "sentAt": row["sentAtFormatted"] if row["sentAt"] else None,
+            "cooldown": 0,
+        }
+        for row in raw
+    ]
+    by_day = rows(
+        """
+        SELECT formatDateTime(triggered_at, '%m-%d') AS date, count(*) AS total
+        FROM fact_alert_event
+        GROUP BY date
+        ORDER BY date
+        """
+    )
+    by_condition = [
+        {**row, "fill": ALERT_CONDITION_COLORS.get(row["type"], "#6b7fa3")}
+        for row in rows(
+            """
+            SELECT condition_type AS type, count(*) AS count
+            FROM fact_alert_event
+            GROUP BY type
+            ORDER BY count DESC
+            """
+        )
+    ]
+    return {"count": len(alerts), "data": alerts, "byDay": by_day, "byCondition": by_condition}
+
+
+def load_quality_reports() -> list[dict[str, Any]]:
+    if not QUALITY_REPORTS_DIR.exists():
+        return []
+    reports = []
+    for path in sorted(QUALITY_REPORTS_DIR.glob("*_validation.json")):
+        try:
+            reports.append(json.loads(path.read_text(encoding="utf-8")))
+        except (OSError, json.JSONDecodeError):
+            continue
+    return reports
+
+
+@app.get("/api/pipeline/status")
+def get_pipeline_status() -> dict[str, Any]:
+    dag_status = []
+    for table, date_col in PIPELINE_TABLES:
+        try:
+            last_run = scalar(f"SELECT max({date_col}) FROM {table}")
+            records = scalar(f"SELECT count(*) FROM {table}", default=0)
+        except Exception:
+            last_run, records = None, 0
+        dag_status.append(
+            {
+                "dag": table,
+                "status": "success" if records else "failed",
+                "lastRun": last_run or "—",
+                "duration": "—",
+                "records": records or 0,
+                "tasks": 1,
+                "failed": 0 if records else 1,
+            }
+        )
+
+    data_quality_errors = [
+        {
+            "type": report.get("source_name", "unknown"),
+            "table": report.get("source_name", "unknown"),
+            "count": report.get("error_count", 0),
+            "date": (report.get("generated_at") or "")[:10],
+        }
+        for report in load_quality_reports()
+        if report.get("error_count", 0) > 0
+    ]
+
+    try:
+        ingest_history = rows(
+            """
+            SELECT formatDateTime(toDateTime(trading_date), '%m-%d') AS date, count(*) AS records
+            FROM fact_daily_price
+            WHERE trading_date >= (SELECT max(trading_date) FROM fact_daily_price) - 14
+            GROUP BY trading_date
+            ORDER BY trading_date
+            """
+        )
+    except Exception:
+        ingest_history = []
+
+    try:
+        kafka_lag = [
+            row
+            for row in rows(
+                """
+                SELECT
+                  formatDateTime(minute_ts, '%H:%i') AS time,
+                  dateDiff('second', lagInFrame(minute_ts) OVER (ORDER BY minute_ts), minute_ts) * 1000 AS lag
+                FROM (
+                  SELECT DISTINCT minute_ts FROM fact_realtime_vwap ORDER BY minute_ts DESC LIMIT 30
+                ) AS t
+                ORDER BY minute_ts
+                """
+            )
+            if row["lag"] is not None
+        ]
+    except Exception:
+        kafka_lag = []
+
+    return {
+        "dagStatus": dag_status,
+        "dataQualityErrors": data_quality_errors,
+        "ingestHistory": ingest_history,
+        "kafkaLag": kafka_lag,
+    }
