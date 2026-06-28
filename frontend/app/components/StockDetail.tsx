@@ -3,8 +3,8 @@ import {
   ComposedChart, Line, Bar, XAxis, YAxis, Tooltip,
   ResponsiveContainer, ReferenceLine, Legend,
 } from "recharts";
-import { dataSnapshotMeta, generateCandlestickData, newsSentiment, stockList } from "./mockData";
-import { Candle, StockOption, fetchCandles, fetchStocks } from "./api";
+import { dataSnapshotMeta, generateCandlestickData, newsSentiment as mockNewsSentiment, stockList } from "./mockData";
+import { Candle, NewsSentimentRow, StockOption, fetchCandles, fetchNewsSentiment, fetchStocks } from "./api";
 
 const CARD: React.CSSProperties = {
   background: "#111827", border: "1px solid rgba(255,255,255,0.07)", borderRadius: 8, padding: 16,
@@ -49,6 +49,21 @@ export function StockDetail({ initialTicker = "VCB" }: StockDetailProps) {
   const [apiStatus, setApiStatus] = useState("Đang đọc API...");
   const [searchText, setSearchText] = useState("");
   const [searchOpen, setSearchOpen] = useState(false);
+  const [newsSentiment, setNewsSentiment] = useState<NewsSentimentRow[]>(mockNewsSentiment);
+
+  useEffect(() => {
+    let cancelled = false;
+    fetchNewsSentiment()
+      .then((payload) => {
+        if (!cancelled) setNewsSentiment(payload.data);
+      })
+      .catch(() => {
+        if (!cancelled) setNewsSentiment(mockNewsSentiment);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   useEffect(() => {
     let cancelled = false;

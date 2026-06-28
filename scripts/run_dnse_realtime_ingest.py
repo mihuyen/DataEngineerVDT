@@ -15,7 +15,8 @@ sys.path.append(str(Path(__file__).resolve().parents[1]))
 
 from src.common.clickhouse_client import create_client, execute, query_dataframe
 from src.loaders.load_fact_realtime_vwap import build_fact_realtime_vwap
-from src.streaming.dnse_websocket import DNSEWebSocketConfig, collect_trade_ticks
+from src.streaming.dnse_websocket import DNSEWebSocketConfig, collect_trade_ticks, stream_trade_ticks
+from src.streaming.kafka_producer import create_producer, publish_trade_tick
 
 
 DEFAULT_OUTPUT_DIR = Path("data/bronze_local/dnse/trades")
@@ -93,6 +94,12 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--output-dir", type=Path, default=DEFAULT_OUTPUT_DIR)
     parser.add_argument("--load-vwap", action="store_true", help="Aggregate ticks and load fact_realtime_vwap.")
     parser.add_argument("--append", action="store_true", help="Append instead of truncating fact_realtime_vwap.")
+    parser.add_argument(
+        "--produce-to-kafka",
+        action="store_true",
+        help="Publish each tick to the dnse-trades-raw Kafka topic as it arrives.",
+    )
+    parser.add_argument("--kafka-topic", default="dnse-trades-raw")
     return parser.parse_args()
 
 
@@ -231,11 +238,45 @@ async def main_async() -> None:
     args = parse_args()
     load_dotenv()
     config = DNSEWebSocketConfig.from_env(symbols=resolve_symbols(args.symbols, args.ticker_file))
-    ticks = await collect_trade_ticks(
-        config,
-        max_messages=args.max_messages,
-        timeout_seconds=args.timeout_seconds,
-    )
+
+    if args.produce_to_kafka:
+        producer = create_producer()
+        rows = []
+        async for tick in stream_trade_ticks(
+            config,
+            max_messages=args.max_messages,
+            timeout_seconds=args.timeout_seconds,
+        ):
+            publish_trade_tick(
+                producer,
+                ticker=tick.ticker,
+                trade_ts=tick.trade_ts,
+                price=tick.price,
+                volume=tick.volume,
+                topic=args.kafka_topic,
+            )
+            rows.append(tick.to_dict())
+        producer.flush()
+        ticks = (
+            pl.DataFrame(rows)
+            if rows
+            else pl.DataFrame(
+                schema={
+                    "ticker": pl.String,
+                    "trade_ts": pl.Datetime,
+                    "price": pl.Float64,
+                    "volume": pl.Int64,
+                    "raw_json": pl.String,
+                }
+            )
+        )
+        print(f"- published_to_kafka: {len(rows)} ticks -> topic '{args.kafka_topic}'")
+    else:
+        ticks = await collect_trade_ticks(
+            config,
+            max_messages=args.max_messages,
+            timeout_seconds=args.timeout_seconds,
+        )
 
     output_path = bronze_output_path(args.output_dir)
     save_ticks_to_bronze(ticks, output_path)

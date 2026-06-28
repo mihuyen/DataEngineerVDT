@@ -98,3 +98,14 @@ def test_day18_fact_market_index_joins_breadth_to_index_rows() -> None:
     assert row["advance_count"] == 1
     assert row["decline_count"] == 1
     assert row["advance_decline_ratio"] == 1.0
+
+
+def test_day18_build_index_breadth_uses_official_vn30_list_when_provided() -> None:
+    # Only AAA and ACB are "official" VN30 members here; AAM/A32 must be excluded
+    # even though the demo top-30-by-market-cap rule would have included them.
+    breadth = build_index_breadth(sample_ohlcv(), sample_company_profile(), vn30_tickers=["AAA", "ACB"])
+
+    vn30 = breadth.filter(pl.col("index_id") == "VN30")
+    assert vn30.height == 2  # one row per trading_date
+    total_members = vn30["advance_count"] + vn30["decline_count"] + vn30["unchanged_count"]
+    assert total_members.to_list() == [2, 2]

@@ -1,0 +1,30 @@
+apiVersion: 1
+
+datasources:
+  - name: ClickHouse Gold
+    uid: clickhouse-gold
+    type: grafana-clickhouse-datasource
+    access: proxy
+    isDefault: true
+    jsonData:
+      host: clickhouse
+      port: 8123
+      protocol: http
+      defaultDatabase: stock_lakehouse
+      username: default
+    secureJsonData:
+      password: clickhouse
+    editable: true
+
+  - name: Airflow Metadata (Postgres)
+    uid: airflow-postgres
+    type: postgres
+    access: proxy
+    url: postgres:5432
+    user: stock_user
+    jsonData:
+      database: stock_lakehouse
+      sslmode: disable
+    secureJsonData:
+      password: stock_password
+    editable: true

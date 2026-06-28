@@ -77,6 +77,7 @@ def _with_index_rsi(frame: pl.DataFrame) -> pl.DataFrame:
 def build_index_breadth(
     silver_ohlcv: pl.DataFrame,
     company_profile: pl.DataFrame | None = None,
+    vn30_tickers: list[str] | None = None,
 ) -> pl.DataFrame:
     """Build advance/decline breadth by market index from stock-level OHLCV."""
     if company_profile is None or company_profile.is_empty():
@@ -104,15 +105,20 @@ def build_index_breadth(
         .filter(pl.col("index_id").is_not_null())
     )
 
-    vn30_tickers = (
-        company.filter(pl.col("exchange") == "HOSE")
-        .sort("shares_outstanding", descending=True)
-        .head(30)
-        .select("ticker")
-    )
+    if vn30_tickers:
+        vn30_membership = pl.DataFrame({"ticker": [ticker.upper() for ticker in vn30_tickers]})
+    else:
+        # Demo fallback when the official VN30 constituent list is unavailable:
+        # top 30 HOSE tickers by shares_outstanding.
+        vn30_membership = (
+            company.filter(pl.col("exchange") == "HOSE")
+            .sort("shares_outstanding", descending=True)
+            .head(30)
+            .select("ticker")
+        )
     vn30_members = (
         silver_ohlcv.with_columns(pl.col("ticker").str.to_uppercase())
-        .join(vn30_tickers, on="ticker", how="inner")
+        .join(vn30_membership, on="ticker", how="inner")
         .with_columns(pl.lit("VN30").alias("index_id"))
     )
 
@@ -271,16 +277,24 @@ def load_fact_market_index(
     silver_ohlcv: pl.DataFrame | None = None,
     silver_market_index: pl.DataFrame | None = None,
     company_profile: pl.DataFrame | None = None,
+    vn30_tickers: list[str] | None = None,
 ) -> pl.DataFrame:
     """Load fact_market_index into ClickHouse."""
+    if vn30_tickers is None:
+        from src.ingestion.vn30_constituents import fetch_vn30_constituents
+
+        vn30_tickers = fetch_vn30_constituents()
+
     if silver_market_index is not None:
-        breadth = build_index_breadth(silver_ohlcv, company_profile) if silver_ohlcv is not None else None
+        breadth = (
+            build_index_breadth(silver_ohlcv, company_profile, vn30_tickers) if silver_ohlcv is not None else None
+        )
         frame = build_fact_market_index_from_index(silver_market_index, breadth=breadth)
     else:
         try:
             market_index = load_silver_market_index()
             profile = company_profile if company_profile is not None else load_silver_company_profile()
-            breadth = build_index_breadth(silver_ohlcv, profile) if silver_ohlcv is not None else None
+            breadth = build_index_breadth(silver_ohlcv, profile, vn30_tickers) if silver_ohlcv is not None else None
             frame = build_fact_market_index_from_index(market_index, breadth=breadth)
         except FileNotFoundError:
             if silver_ohlcv is None:

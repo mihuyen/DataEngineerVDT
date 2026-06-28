@@ -1,0 +1,121 @@
+{
+  "title": "Stock Lakehouse Ops Monitor",
+  "uid": "stock-lakehouse-ops",
+  "schemaVersion": 39,
+  "timezone": "browser",
+  "time": { "from": "now-24h", "to": "now" },
+  "refresh": "30s",
+  "panels": [
+    {
+      "id": 1,
+      "title": "Canh bao 24h gan nhat",
+      "type": "stat",
+      "gridPos": { "h": 6, "w": 6, "x": 0, "y": 0 },
+      "datasource": { "type": "grafana-clickhouse-datasource", "uid": "clickhouse-gold" },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": { "type": "grafana-clickhouse-datasource", "uid": "clickhouse-gold" },
+          "rawSql": "SELECT count() AS events_24h FROM fact_alert_event WHERE triggered_at >= now() - INTERVAL 24 HOUR",
+          "format": "table",
+          "queryType": "sql"
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "title": "Do tre Kafka trung binh (giay, 60 tick gan nhat)",
+      "type": "stat",
+      "gridPos": { "h": 6, "w": 6, "x": 6, "y": 0 },
+      "datasource": { "type": "grafana-clickhouse-datasource", "uid": "clickhouse-gold" },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": { "type": "grafana-clickhouse-datasource", "uid": "clickhouse-gold" },
+          "rawSql": "SELECT avg(dateDiff('second', trade_ts, ingested_at)) AS avg_lag_seconds FROM (SELECT trade_ts, ingested_at FROM realtime_trade_ticks_raw ORDER BY ingested_at DESC LIMIT 60)",
+          "format": "table",
+          "queryType": "sql"
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "title": "Do tuoi du lieu gia moi nhat (ngay)",
+      "type": "stat",
+      "gridPos": { "h": 6, "w": 6, "x": 12, "y": 0 },
+      "datasource": { "type": "grafana-clickhouse-datasource", "uid": "clickhouse-gold" },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": { "type": "grafana-clickhouse-datasource", "uid": "clickhouse-gold" },
+          "rawSql": "SELECT dateDiff('day', max(trading_date), today()) AS days_stale FROM fact_daily_price",
+          "format": "table",
+          "queryType": "sql"
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "title": "Tong dong fact_alert_event",
+      "type": "stat",
+      "gridPos": { "h": 6, "w": 6, "x": 18, "y": 0 },
+      "datasource": { "type": "grafana-clickhouse-datasource", "uid": "clickhouse-gold" },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": { "type": "grafana-clickhouse-datasource", "uid": "clickhouse-gold" },
+          "rawSql": "SELECT count() AS total_events FROM fact_alert_event",
+          "format": "table",
+          "queryType": "sql"
+        }
+      ]
+    },
+    {
+      "id": 5,
+      "title": "Do tuoi va so dong cac bang Gold",
+      "type": "table",
+      "gridPos": { "h": 9, "w": 12, "x": 0, "y": 6 },
+      "datasource": { "type": "grafana-clickhouse-datasource", "uid": "clickhouse-gold" },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": { "type": "grafana-clickhouse-datasource", "uid": "clickhouse-gold" },
+          "rawSql": "SELECT 'fact_daily_price' AS gold_table, toString(max(trading_date)) AS latest, count() AS row_count FROM fact_daily_price UNION ALL SELECT 'fact_market_index', toString(max(trading_date)), count() FROM fact_market_index UNION ALL SELECT 'fact_news_sentiment_daily', toString(max(news_date)), count() FROM fact_news_sentiment_daily UNION ALL SELECT 'fact_realtime_vwap', toString(max(minute_ts)), count() FROM fact_realtime_vwap UNION ALL SELECT 'fact_alert_event', toString(max(triggered_at)), count() FROM fact_alert_event",
+          "format": "table",
+          "queryType": "sql"
+        }
+      ]
+    },
+    {
+      "id": 6,
+      "title": "Canh bao theo loai dieu kien",
+      "type": "table",
+      "gridPos": { "h": 9, "w": 12, "x": 12, "y": 6 },
+      "datasource": { "type": "grafana-clickhouse-datasource", "uid": "clickhouse-gold" },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": { "type": "grafana-clickhouse-datasource", "uid": "clickhouse-gold" },
+          "rawSql": "SELECT condition_type, count() AS events FROM fact_alert_event GROUP BY condition_type ORDER BY events DESC",
+          "format": "table",
+          "queryType": "sql"
+        }
+      ]
+    },
+    {
+      "id": 7,
+      "title": "Lich su Airflow DAG run (stock_lakehouse_daily)",
+      "type": "table",
+      "gridPos": { "h": 9, "w": 24, "x": 0, "y": 15 },
+      "datasource": { "type": "postgres", "uid": "airflow-postgres" },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": { "type": "postgres", "uid": "airflow-postgres" },
+          "rawSql": "SELECT run_id, state, start_date, end_date FROM dag_run WHERE dag_id = 'stock_lakehouse_daily' ORDER BY start_date DESC LIMIT 10",
+          "format": "table"
+        }
+      ]
+    }
+  ]
+}

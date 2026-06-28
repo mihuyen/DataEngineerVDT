@@ -65,4 +65,7 @@ def test_day21_streaming_sql_contains_kafka_engine_and_materialized_view() -> No
     assert "ENGINE = Kafka" in sql
     assert "dnse-trades-raw" in sql
     assert "CREATE MATERIALIZED VIEW" in sql
-    assert "TO fact_realtime_vwap" in sql
+    # The MV lands raw ticks into a staging table; a Python consumer
+    # (scripts/run_realtime_vwap_kafka_consumer.py) computes the correct
+    # cumulative session VWAP and loads fact_realtime_vwap from there.
+    assert "TO realtime_trade_ticks_raw" in sql

@@ -744,7 +744,8 @@ def get_news_sentiment(days: int = Query(7, ge=1, le=60)) -> dict[str, Any]:
           sum(n.negative_count) AS negative,
           sum(n.neutral_count) AS neutral,
           avg(n.avg_sentiment_score) AS avgScore,
-          argMax(n.top_headline, n.news_date) AS headline
+          argMax(n.top_headline, n.news_date) AS headline,
+          formatDateTime(toDateTime(max(n.news_date)), '%Y-%m-%d') AS newsDate
         FROM fact_news_sentiment_daily n
         LEFT JOIN dim_stock s ON n.ticker = s.ticker
         WHERE n.news_date >= (SELECT max(news_date) FROM fact_news_sentiment_daily) - {days}

@@ -441,4 +441,62 @@ Chạy liên tục mỗi 60 giây (đúng thiết kế Alert Checker):
 uv run python scripts/run_alert_engine.py --interval-seconds 60
 ```
 
-DAG `stock_lakehouse_daily` đã có task `init_user_alerts >> check_alerts` chạy sau `load_gold` mỗi lần pipeline daily chạy; muốn cảnh báo theo thời gian thực cần chạy `run_alert_engine.py` như một service riêng (không phụ thuộc lịch Airflow).
+Service `alert-engine` trong `docker-compose.yml` đã đóng gói sẵn vòng lặp này (tự `init_user_alerts.py` rồi `run_alert_engine.py --interval-seconds ${ALERT_CHECK_INTERVAL_SECONDS:-60}`), chạy độc lập với lịch Airflow:
+
+```bash
+docker compose up -d alert-engine
+docker logs -f stock-alert-engine
+```
+
+DAG `stock_lakehouse_daily` vẫn có task `init_user_alerts >> check_alerts` chạy sau `load_gold` mỗi lần pipeline daily chạy — đó là lớp batch dự phòng; `alert-engine` service mới là nơi cảnh báo chạy gần thời gian thực.
+
+## Realtime VWAP qua Kafka Engine (streaming thật)
+
+Ngoài luồng demo/DNSE-bronze trực tiếp, project có pipeline streaming thật: `Kafka topic -> ClickHouse Kafka Engine -> Materialized View -> bảng raw -> Python consumer tính VWAP đúng (cumulative session VWAP) -> fact_realtime_vwap`.
+
+Khởi tạo các object ClickHouse (Kafka Engine table, bảng raw, Materialized View):
+
+```bash
+uv run python scripts/init_realtime_streaming.py
+uv run python scripts/create_realtime_kafka_topic.py
+```
+
+Bơm tick demo vào Kafka thật (khi ngoài giờ giao dịch hoặc chưa có `DNSE_API_KEY`):
+
+```bash
+uv run python scripts/produce_demo_ticks_to_kafka.py --tickers VCB,FPT,HPG --minutes 10
+```
+
+Hoặc publish tick DNSE thật lên Kafka khi đang trong phiên:
+
+```bash
+uv run python scripts/run_dnse_realtime_ingest.py --symbols ALL --produce-to-kafka --timeout-seconds 300
+```
+
+Chạy consumer để tổng hợp tick thành VWAP (đã đóng gói sẵn trong service `realtime-vwap-consumer` của docker-compose, chạy liên tục mỗi 15s):
+
+```bash
+docker compose up -d realtime-vwap-consumer
+# hoặc chạy tay:
+uv run python scripts/run_realtime_vwap_kafka_consumer.py --interval-seconds 15
+```
+
+## Superset dashboard thật
+
+```bash
+docker compose up -d superset
+uv run python scripts/setup_superset_day22.py
+uv run python scripts/setup_superset_dashboard.py
+```
+
+Tạo dashboard "Stock Lakehouse Gold Overview" với 3 chart thật query trực tiếp ClickHouse Gold: VN-Index theo ngày, Top 10 mã theo thanh khoản, News sentiment trung bình theo ngày. Truy cập `http://localhost:8088` (admin/admin).
+
+## Grafana monitoring thật
+
+Khác với Superset (phân tích nghiệp vụ trên Gold), Grafana phục vụ đúng vai trò ban đầu trong `docs/architecture.md`: giám sát vận hành — pipeline, service health, Kafka lag và trạng thái alert.
+
+```bash
+docker compose up -d grafana
+```
+
+Service tự cài plugin `grafana-clickhouse-datasource` qua `GF_INSTALL_PLUGINS`, tự provision 2 datasource (ClickHouse Gold + Airflow Metadata trên Postgres) và 1 dashboard "Stock Lakehouse Ops Monitor" từ `docker/grafana/provisioning/` và `docker/grafana/dashboards/` — không cần bấm tay. Dashboard gồm 7 panel: số cảnh báo 24h, độ trễ Kafka trung bình (60 tick gần nhất), độ tuổi dữ liệu giá, tổng số sự kiện cảnh báo, độ tươi/số dòng từng bảng Gold, cảnh báo theo loại điều kiện, và lịch sử DAG run của Airflow (đọc trực tiếp từ Postgres metadata, không qua API). Truy cập `http://localhost:3000` (admin/admin).

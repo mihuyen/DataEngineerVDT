@@ -22,3 +22,6 @@ frontend/.vite/
 .node/
 
 .DS_Store
+
+.pids/
+logs/

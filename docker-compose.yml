@@ -66,6 +66,39 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql/data
 
+  alert-engine:
+    build:
+      context: .
+      dockerfile: docker/alert-engine.Dockerfile
+    image: stock-alert-engine-uv:local
+    container_name: stock-alert-engine
+    restart: unless-stopped
+    depends_on:
+      - clickhouse
+      - postgres
+    environment:
+      UV_PROJECT_ENVIRONMENT: /opt/venv-alert-engine
+      PYTHONIOENCODING: utf-8
+      CLICKHOUSE_HOST: clickhouse
+      CLICKHOUSE_PORT: 8123
+      CLICKHOUSE_USER: default
+      CLICKHOUSE_PASSWORD: clickhouse
+      CLICKHOUSE_DATABASE: stock_lakehouse
+      POSTGRES_HOST: postgres
+      POSTGRES_PORT: 5432
+      POSTGRES_USER: ${POSTGRES_USER:-stock_user}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-stock_password}
+      POSTGRES_DB: ${POSTGRES_DB:-stock_lakehouse}
+      TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN:-}
+      TELEGRAM_CHAT_ID: ${TELEGRAM_CHAT_ID:-}
+      ALERT_CHECK_INTERVAL_SECONDS: ${ALERT_CHECK_INTERVAL_SECONDS:-60}
+    volumes:
+      - .:/app
+    working_dir: /app
+    command: >
+      bash -c "uv run python scripts/init_user_alerts.py &&
+      uv run python scripts/run_alert_engine.py --interval-seconds ${ALERT_CHECK_INTERVAL_SECONDS:-60}"
+
   zookeeper:
     image: confluentinc/cp-zookeeper:7.6.1
     container_name: stock-zookeeper
@@ -95,6 +128,32 @@ services:
       KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
       KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
       KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
+
+  realtime-vwap-consumer:
+    build:
+      context: .
+      dockerfile: docker/alert-engine.Dockerfile
+    image: stock-alert-engine-uv:local
+    container_name: stock-realtime-vwap-consumer
+    restart: unless-stopped
+    depends_on:
+      - clickhouse
+      - kafka
+    environment:
+      UV_PROJECT_ENVIRONMENT: /opt/venv-realtime-consumer
+      PYTHONIOENCODING: utf-8
+      CLICKHOUSE_HOST: clickhouse
+      CLICKHOUSE_PORT: 8123
+      CLICKHOUSE_USER: default
+      CLICKHOUSE_PASSWORD: clickhouse
+      CLICKHOUSE_DATABASE: stock_lakehouse
+      KAFKA_BOOTSTRAP_SERVERS: kafka:29092
+    volumes:
+      - .:/app
+    working_dir: /app
+    command: >
+      bash -c "uv run python scripts/init_realtime_streaming.py &&
+      uv run python scripts/run_realtime_vwap_kafka_consumer.py --interval-seconds 15"
 
   airflow-webserver:
     build:
@@ -182,13 +241,19 @@ services:
     image: grafana/grafana:latest
     container_name: stock-grafana
     restart: unless-stopped
+    depends_on:
+      - clickhouse
+      - postgres
     ports:
       - "3000:3000"
     environment:
       GF_SECURITY_ADMIN_USER: ${GF_SECURITY_ADMIN_USER:-admin}
       GF_SECURITY_ADMIN_PASSWORD: ${GF_SECURITY_ADMIN_PASSWORD:-admin}
+      GF_INSTALL_PLUGINS: grafana-clickhouse-datasource
     volumes:
       - grafana_data:/var/lib/grafana
+      - ./docker/grafana/provisioning:/etc/grafana/provisioning
+      - ./docker/grafana/dashboards:/etc/grafana/dashboards
 
 volumes:
   minio_data:

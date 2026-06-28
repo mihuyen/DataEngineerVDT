@@ -1,6 +1,6 @@
 // Generated from ClickHouse by scripts/export_frontend_data.py.
 export const dataSnapshotMeta = {
-  "generatedAt": "2026-06-26T09:11:09",
+  "generatedAt": "2026-06-28T06:13:41",
   "latestPriceDate": "2026-06-26",
   "latestNewsDate": "2026-06-26"
 };
@@ -8,60 +8,60 @@ export const dataSnapshotMeta = {
 export const marketIndices = [
   {
     "label": "VN-Index",
-    "value": "1.864,62",
-    "chg": "+1,55",
-    "pct": "+0,08%",
+    "value": "1.871,91",
+    "chg": "+8,84",
+    "pct": "+0,47%",
     "up": true,
-    "rawPct": 0.08319601517924471
+    "rawPct": 0.4744856607642303
   },
   {
     "label": "VN30",
-    "value": "2.002,56",
-    "chg": "-2,06",
-    "pct": "-0,10%",
-    "up": false,
-    "rawPct": -0.10276261835160506
+    "value": "2.008,57",
+    "chg": "+3,95",
+    "pct": "+0,20%",
+    "up": true,
+    "rawPct": 0.1970448264509007
   }
 ];
 
 export const marketIndicesAll = [
   {
     "label": "VN-Index",
-    "value": "1.864,62",
-    "chg": "+1,55",
-    "pct": "+0,08%",
+    "value": "1.871,91",
+    "chg": "+8,84",
+    "pct": "+0,47%",
     "up": true,
-    "rawPct": 0.08319601517924471
+    "rawPct": 0.4744856607642303
   },
   {
     "label": "VN30",
-    "value": "2.002,56",
-    "chg": "-2,06",
-    "pct": "-0,10%",
-    "up": false,
-    "rawPct": -0.10276261835160506
+    "value": "2.008,57",
+    "chg": "+3,95",
+    "pct": "+0,20%",
+    "up": true,
+    "rawPct": 0.1970448264509007
   }
 ];
 
 export const marketOverviewStats = {
-  "totalValue": "1.217,1 tỷ",
-  "totalVolume": "638,9 M",
-  "breadth": "150 / 161",
-  "breadthSub": "Tăng / Giảm / Đứng: 57"
+  "totalValue": "1.444,7 tỷ",
+  "totalVolume": "758,3 M",
+  "breadth": "151 / 162",
+  "breadthSub": "Tăng / Giảm / Đứng: 55"
 };
 
 export const marketStatsByExchange = {
   "ALL": {
-    "totalValue": "1.217,1 tỷ",
-    "totalVolume": "638,9 M",
-    "breadth": "150 / 161",
-    "breadthSub": "Tăng / Giảm / Đứng: 57"
+    "totalValue": "1.444,7 tỷ",
+    "totalVolume": "758,3 M",
+    "breadth": "151 / 162",
+    "breadthSub": "Tăng / Giảm / Đứng: 55"
   },
   "HOSE": {
-    "totalValue": "824,1 tỷ",
-    "totalVolume": "442,4 M",
-    "breadth": "150 / 161",
-    "breadthSub": "Tăng / Giảm / Đứng: 57"
+    "totalValue": "994,9 tỷ",
+    "totalVolume": "533,6 M",
+    "breadth": "151 / 162",
+    "breadthSub": "Tăng / Giảm / Đứng: 55"
   }
 };
 
@@ -73,17 +73,17 @@ export const stockCountsByExchange = {
 export const breadthData = [
   {
     "name": "Tăng",
-    "value": 150,
+    "value": 151,
     "fill": "#00d97e"
   },
   {
     "name": "Giảm",
-    "value": 161,
+    "value": 162,
     "fill": "#ff4d6d"
   },
   {
     "name": "Đứng",
-    "value": 57,
+    "value": 55,
     "fill": "#6b7fa3"
   }
 ];
@@ -92,34 +92,34 @@ export const breadthDataByExchange = {
   "HOSE": [
     {
       "name": "Tăng",
-      "value": 150,
+      "value": 151,
       "fill": "#00d97e"
     },
     {
       "name": "Giảm",
-      "value": 161,
+      "value": 162,
       "fill": "#ff4d6d"
     },
     {
       "name": "Đứng",
-      "value": 57,
+      "value": 55,
       "fill": "#6b7fa3"
     }
   ],
   "ALL": [
     {
       "name": "Tăng",
-      "value": 150,
+      "value": 151,
       "fill": "#00d97e"
     },
     {
       "name": "Giảm",
-      "value": 161,
+      "value": 162,
       "fill": "#ff4d6d"
     },
     {
       "name": "Đứng",
-      "value": 57,
+      "value": 55,
       "fill": "#6b7fa3"
     }
   ]
@@ -128,11 +128,11 @@ export const breadthDataByExchange = {
 export const indexChangeBars = [
   {
     "label": "VN30",
-    "pct": -0.10276261835160506
+    "pct": 0.1970448264509007
   },
   {
     "label": "VN-Index",
-    "pct": 0.08319601517924471
+    "pct": 0.4744856607642303
   }
 ];
 
@@ -255,7 +255,7 @@ export const vnIndexHistory = [
   },
   {
     "time": "06-26",
-    "value": 1864.62
+    "value": 1871.91
   }
 ];
 
@@ -379,7 +379,7 @@ export const indexHistoryByExchange = {
     },
     {
       "time": "06-26",
-      "value": 1864.62
+      "value": 1871.91
     }
   ],
   "HOSE": [
@@ -501,7 +501,7 @@ export const indexHistoryByExchange = {
     },
     {
       "time": "06-26",
-      "value": 1864.62
+      "value": 1871.91
     }
   ]
 };
@@ -534,7 +534,7 @@ export const topGainers = [
     "price": 8.33,
     "change": 0.5300000000000002,
     "pct": 6.794871794871798,
-    "volume": 513100,
+    "volume": 566500,
     "sector": "Khác"
   },
   {
@@ -648,16 +648,6 @@ export const topGainers = [
     "sector": "Khác"
   },
   {
-    "ticker": "PET",
-    "name": "Tổng Công ty cổ phần Dịch vụ Tổng hợp Dầu khí",
-    "exchange": "HOSE",
-    "price": 52.9,
-    "change": 2.0,
-    "pct": 3.9292730844793713,
-    "volume": 673600,
-    "sector": "Dầu khí"
-  },
-  {
     "ticker": "NLG",
     "name": "CTCP Đầu tư Nam Long",
     "exchange": "HOSE",
@@ -666,6 +656,16 @@ export const topGainers = [
     "pct": 3.9292730844793713,
     "volume": 4580200,
     "sector": "Bất động sản"
+  },
+  {
+    "ticker": "PET",
+    "name": "Tổng Công ty cổ phần Dịch vụ Tổng hợp Dầu khí",
+    "exchange": "HOSE",
+    "price": 52.9,
+    "change": 2.0,
+    "pct": 3.9292730844793713,
+    "volume": 673600,
+    "sector": "Dầu khí"
   },
   {
     "ticker": "ADG",
@@ -725,6 +725,16 @@ export const topGainers = [
     "change": 0.25,
     "pct": 3.125,
     "volume": 100,
+    "sector": "Khác"
+  },
+  {
+    "ticker": "ABT",
+    "name": "CTCP Xuất nhập khẩu Thủy sản Bến Tre",
+    "exchange": "HOSE",
+    "price": 55.6,
+    "change": 1.6000000000000014,
+    "pct": 2.9629629629629655,
+    "volume": 13700,
     "sector": "Khác"
   },
   {
@@ -816,26 +826,6 @@ export const topGainers = [
     "pct": 1.9108280254777117,
     "volume": 74300,
     "sector": "Khác"
-  },
-  {
-    "ticker": "ABT",
-    "name": "CTCP Xuất nhập khẩu Thủy sản Bến Tre",
-    "exchange": "HOSE",
-    "price": 55.0,
-    "change": 1.0,
-    "pct": 1.8518518518518516,
-    "volume": 12400,
-    "sector": "Khác"
-  },
-  {
-    "ticker": "BMP",
-    "name": "CTCP Nhựa Bình Minh",
-    "exchange": "HOSE",
-    "price": 153.7,
-    "change": 2.6999999999999886,
-    "pct": 1.788079470198668,
-    "volume": 333200,
-    "sector": "Nhựa & bao bì"
   },
   {
     "ticker": "TDM",
@@ -998,6 +988,16 @@ export const topGainers = [
     "sector": "Khác"
   },
   {
+    "ticker": "BMP",
+    "name": "CTCP Nhựa Bình Minh",
+    "exchange": "HOSE",
+    "price": 153.0,
+    "change": 2.0,
+    "pct": 1.3245033112582782,
+    "volume": 362000,
+    "sector": "Nhựa & bao bì"
+  },
+  {
     "ticker": "TMS",
     "name": "CTCP Transimex",
     "exchange": "HOSE",
@@ -1034,7 +1034,7 @@ export const topGainers = [
     "price": 22.25,
     "change": 0.25,
     "pct": 1.1363636363636365,
-    "volume": 526400,
+    "volume": 537500,
     "sector": "Nông nghiệp & thực phẩm"
   },
   {
@@ -1048,16 +1048,6 @@ export const topGainers = [
     "sector": "Khác"
   },
   {
-    "ticker": "TNI",
-    "name": "CTCP Tập đoàn Thành Nam",
-    "exchange": "HOSE",
-    "price": 4.8,
-    "change": 0.04999999999999982,
-    "pct": 1.0526315789473648,
-    "volume": 900,
-    "sector": "Khác"
-  },
-  {
     "ticker": "DQC",
     "name": "CTCP Tập đoàn Điện Quang",
     "exchange": "HOSE",
@@ -1065,6 +1055,16 @@ export const topGainers = [
     "change": 0.09999999999999964,
     "pct": 1.0526315789473648,
     "volume": 10100,
+    "sector": "Khác"
+  },
+  {
+    "ticker": "TNI",
+    "name": "CTCP Tập đoàn Thành Nam",
+    "exchange": "HOSE",
+    "price": 4.8,
+    "change": 0.04999999999999982,
+    "pct": 1.0526315789473648,
+    "volume": 900,
     "sector": "Khác"
   },
   {
@@ -1076,6 +1076,16 @@ export const topGainers = [
     "pct": 1.0238907849829255,
     "volume": 686000,
     "sector": "Hàng không & du lịch"
+  },
+  {
+    "ticker": "BHN",
+    "name": "Tổng Công ty cổ phần Bia - Rượu - Nước giải khát Hà Nội",
+    "exchange": "HOSE",
+    "price": 29.9,
+    "change": 0.29999999999999716,
+    "pct": 1.0135135135135038,
+    "volume": 200,
+    "sector": "Khác"
   },
   {
     "ticker": "VCB",
@@ -1158,6 +1168,16 @@ export const topGainers = [
     "sector": "Chứng khoán"
   },
   {
+    "ticker": "ACB",
+    "name": "Ngân hàng TMCP Á Châu",
+    "exchange": "HOSE",
+    "price": 22.6,
+    "change": 0.20000000000000284,
+    "pct": 0.8928571428571557,
+    "volume": 10774200,
+    "sector": "Ngân hàng"
+  },
+  {
     "ticker": "FCM",
     "name": "CTCP Bê tông Phan Vũ Hà Nam",
     "exchange": "HOSE",
@@ -1175,16 +1195,6 @@ export const topGainers = [
     "change": 0.1999999999999993,
     "pct": 0.8810572687224639,
     "volume": 900,
-    "sector": "Khác"
-  },
-  {
-    "ticker": "ADS",
-    "name": "CTCP Damsan",
-    "exchange": "HOSE",
-    "price": 9.23,
-    "change": 0.08000000000000007,
-    "pct": 0.8743169398907111,
-    "volume": 80500,
     "sector": "Khác"
   },
   {
@@ -1228,6 +1238,16 @@ export const topGainers = [
     "sector": "Khác"
   },
   {
+    "ticker": "ADS",
+    "name": "CTCP Damsan",
+    "exchange": "HOSE",
+    "price": 9.22,
+    "change": 0.07000000000000028,
+    "pct": 0.7650273224043747,
+    "volume": 90400,
+    "sector": "Khác"
+  },
+  {
     "ticker": "VTB",
     "name": "CTCP Viettronics Tân Bình",
     "exchange": "HOSE",
@@ -1266,16 +1286,6 @@ export const topGainers = [
     "pct": 0.6818181818181672,
     "volume": 123400,
     "sector": "Khác"
-  },
-  {
-    "ticker": "ACB",
-    "name": "Ngân hàng TMCP Á Châu",
-    "exchange": "HOSE",
-    "price": 22.55,
-    "change": 0.15000000000000213,
-    "pct": 0.6696428571428668,
-    "volume": 9630100,
-    "sector": "Ngân hàng"
   },
   {
     "ticker": "GEX",
@@ -1356,6 +1366,16 @@ export const topGainers = [
     "pct": 0.5263157894736916,
     "volume": 522100,
     "sector": "Xây dựng & hạ tầng"
+  },
+  {
+    "ticker": "AFX",
+    "name": "CTCP Xuất nhập khẩu Nông sản Thực phẩm An Giang",
+    "exchange": "HOSE",
+    "price": 10.15,
+    "change": 0.05000000000000071,
+    "pct": 0.4950495049505021,
+    "volume": 87600,
+    "sector": "Khác"
   },
   {
     "ticker": "HVH",
@@ -1448,6 +1468,16 @@ export const topGainers = [
     "sector": "Thép"
   },
   {
+    "ticker": "AGG",
+    "name": "CTCP Đầu tư và Phát triển Bất động sản An Gia",
+    "exchange": "HOSE",
+    "price": 11.75,
+    "change": 0.05000000000000071,
+    "pct": 0.4273504273504335,
+    "volume": 185300,
+    "sector": "Bất động sản"
+  },
+  {
     "ticker": "FMC",
     "name": "CTCP Thực phẩm Sao Ta",
     "exchange": "HOSE",
@@ -1476,36 +1506,6 @@ export const topGainers = [
     "pct": 0.40322580645160433,
     "volume": 2985300,
     "sector": "Bất động sản"
-  },
-  {
-    "ticker": "KDC",
-    "name": "CTCP Tập đoàn KIDO",
-    "exchange": "HOSE",
-    "price": 50.1,
-    "change": 0.20000000000000284,
-    "pct": 0.4008016032064185,
-    "volume": 617600,
-    "sector": "Tiêu dùng"
-  },
-  {
-    "ticker": "BMC",
-    "name": "CTCP Khoáng sản Bình Định",
-    "exchange": "HOSE",
-    "price": 12.55,
-    "change": 0.05000000000000071,
-    "pct": 0.40000000000000563,
-    "volume": 5000,
-    "sector": "Khác"
-  },
-  {
-    "ticker": "ANT",
-    "name": "CTCP Rau quả Thực phẩm An Giang",
-    "exchange": "HOSE",
-    "price": 25.7,
-    "change": 0.09999999999999787,
-    "pct": 0.3906249999999917,
-    "volume": 8200,
-    "sector": "Khác"
   }
 ];
 
@@ -1527,7 +1527,7 @@ export const topLosers = [
     "price": 2.42,
     "change": -0.18000000000000016,
     "pct": -6.923076923076929,
-    "volume": 744100,
+    "volume": 757400,
     "sector": "Khác"
   },
   {
@@ -1667,7 +1667,7 @@ export const topLosers = [
     "price": 8.51,
     "change": -0.33000000000000007,
     "pct": -3.7330316742081453,
-    "volume": 2500,
+    "volume": 2600,
     "sector": "Khác"
   },
   {
@@ -1737,7 +1737,7 @@ export const topLosers = [
     "price": 23.2,
     "change": -0.6999999999999993,
     "pct": -2.9288702928870265,
-    "volume": 50400,
+    "volume": 50700,
     "sector": "Bảo hiểm"
   },
   {
@@ -1801,6 +1801,16 @@ export const topLosers = [
     "sector": "Vận tải & logistics"
   },
   {
+    "ticker": "ABS",
+    "name": "CTCP Dịch vụ Nông nghiệp Bình Thuận",
+    "exchange": "HOSE",
+    "price": 2.96,
+    "change": -0.06999999999999984,
+    "pct": -2.3102310231023053,
+    "volume": 89100,
+    "sector": "Khác"
+  },
+  {
     "ticker": "PDN",
     "name": "CTCP Cảng Đồng Nai",
     "exchange": "HOSE",
@@ -1829,6 +1839,16 @@ export const topLosers = [
     "pct": -2.2388059701492535,
     "volume": 288900,
     "sector": "Nhựa & bao bì"
+  },
+  {
+    "ticker": "ANV",
+    "name": "CTCP Nam Việt",
+    "exchange": "HOSE",
+    "price": 21.95,
+    "change": -0.5,
+    "pct": -2.2271714922048997,
+    "volume": 353800,
+    "sector": "Nông nghiệp & thực phẩm"
   },
   {
     "ticker": "TTA",
@@ -1951,16 +1971,6 @@ export const topLosers = [
     "sector": "Khác"
   },
   {
-    "ticker": "ANV",
-    "name": "CTCP Nam Việt",
-    "exchange": "HOSE",
-    "price": 22.05,
-    "change": -0.3999999999999986,
-    "pct": -1.7817371937639135,
-    "volume": 309500,
-    "sector": "Nông nghiệp & thực phẩm"
-  },
-  {
     "ticker": "VDS",
     "name": "CTCP Chứng khoán Rồng Việt",
     "exchange": "HOSE",
@@ -2009,16 +2019,6 @@ export const topLosers = [
     "pct": -1.680672268907572,
     "volume": 298900,
     "sector": "Xây dựng & hạ tầng"
-  },
-  {
-    "ticker": "ABS",
-    "name": "CTCP Dịch vụ Nông nghiệp Bình Thuận",
-    "exchange": "HOSE",
-    "price": 2.98,
-    "change": -0.04999999999999982,
-    "pct": -1.6501650165016444,
-    "volume": 77800,
-    "sector": "Khác"
   },
   {
     "ticker": "VHC",
@@ -2071,16 +2071,6 @@ export const topLosers = [
     "sector": "Khác"
   },
   {
-    "ticker": "APG",
-    "name": "CTCP Chứng khoán APG",
-    "exchange": "HOSE",
-    "price": 5.02,
-    "change": -0.08000000000000007,
-    "pct": -1.5686274509803935,
-    "volume": 435600,
-    "sector": "Chứng khoán"
-  },
-  {
     "ticker": "SGR",
     "name": "CTCP Tổng CTCP Địa ốc Sài Gòn",
     "exchange": "HOSE",
@@ -2089,16 +2079,6 @@ export const topLosers = [
     "pct": -1.5564202334630295,
     "volume": 118300,
     "sector": "Bất động sản"
-  },
-  {
-    "ticker": "BHN",
-    "name": "Tổng Công ty cổ phần Bia - Rượu - Nước giải khát Hà Nội",
-    "exchange": "HOSE",
-    "price": 29.15,
-    "change": -0.45000000000000284,
-    "pct": -1.5202702702702797,
-    "volume": 100,
-    "sector": "Khác"
   },
   {
     "ticker": "VNG",
@@ -2118,6 +2098,16 @@ export const topLosers = [
     "change": -0.10000000000000053,
     "pct": -1.4306151645207517,
     "volume": 51400,
+    "sector": "Khác"
+  },
+  {
+    "ticker": "AAT",
+    "name": "CTCP Tập Đoàn Tiên Sơn Thanh Hóa",
+    "exchange": "HOSE",
+    "price": 2.76,
+    "change": -0.040000000000000036,
+    "pct": -1.42857142857143,
+    "volume": 6100,
     "sector": "Khác"
   },
   {
@@ -2141,16 +2131,6 @@ export const topLosers = [
     "sector": "Khác"
   },
   {
-    "ticker": "BMI",
-    "name": "Tổng Công ty cổ phần Bảo Minh",
-    "exchange": "HOSE",
-    "price": 14.2,
-    "change": -0.20000000000000107,
-    "pct": -1.3888888888888962,
-    "volume": 210500,
-    "sector": "Bảo hiểm"
-  },
-  {
     "ticker": "SFI",
     "name": "CTCP Đại lý Vận tải SAFI",
     "exchange": "HOSE",
@@ -2159,6 +2139,16 @@ export const topLosers = [
     "pct": -1.3793103448275814,
     "volume": 900,
     "sector": "Khác"
+  },
+  {
+    "ticker": "APG",
+    "name": "CTCP Chứng khoán APG",
+    "exchange": "HOSE",
+    "price": 5.03,
+    "change": -0.0699999999999994,
+    "pct": -1.3725490196078314,
+    "volume": 461000,
+    "sector": "Chứng khoán"
   },
   {
     "ticker": "KSB",
@@ -2401,6 +2391,16 @@ export const topLosers = [
     "sector": "Khác"
   },
   {
+    "ticker": "BAF",
+    "name": "CTCP Nông nghiệp BAF Việt Nam",
+    "exchange": "HOSE",
+    "price": 29.55,
+    "change": -0.3000000000000007,
+    "pct": -1.005025125628143,
+    "volume": 1410600,
+    "sector": "Nông nghiệp & thực phẩm"
+  },
+  {
     "ticker": "CTI",
     "name": "CTCP Đầu tư Phát triển Cường Thuận IDICO",
     "exchange": "HOSE",
@@ -2610,6 +2610,14 @@ export const topLiquidity = [
     "price": 26.4
   },
   {
+    "ticker": "ACB",
+    "name": "Ngân hàng TMCP Á Châu",
+    "exchange": "HOSE",
+    "volume": 10774200,
+    "value": 242284822.49999997,
+    "price": 22.6
+  },
+  {
     "ticker": "GEX",
     "name": "CTCP Tập đoàn GELEX",
     "exchange": "HOSE",
@@ -2624,14 +2632,6 @@ export const topLiquidity = [
     "volume": 12825100,
     "value": 223156740.00000003,
     "price": 17.6
-  },
-  {
-    "ticker": "ACB",
-    "name": "Ngân hàng TMCP Á Châu",
-    "exchange": "HOSE",
-    "volume": 9630100,
-    "value": 216436497.49999997,
-    "price": 22.55
   },
   {
     "ticker": "VPB",
@@ -2698,6 +2698,14 @@ export const topLiquidity = [
     "price": 71.4
   },
   {
+    "ticker": "BID",
+    "name": "Ngân hàng TMCP Đầu tư và Phát triển Việt Nam",
+    "exchange": "HOSE",
+    "volume": 3299800,
+    "value": 138137877.5,
+    "price": 41.7
+  },
+  {
     "ticker": "VJC",
     "name": "CTCP Hàng không Vietjet",
     "exchange": "HOSE",
@@ -2720,14 +2728,6 @@ export const topLiquidity = [
     "volume": 4580200,
     "value": 119142452.5,
     "price": 26.45
-  },
-  {
-    "ticker": "BID",
-    "name": "Ngân hàng TMCP Đầu tư và Phát triển Việt Nam",
-    "exchange": "HOSE",
-    "volume": 2822700,
-    "value": 118235846.25000001,
-    "price": 41.8
   },
   {
     "ticker": "MSB",
@@ -2898,6 +2898,14 @@ export const topLiquidity = [
     "price": 24.9
   },
   {
+    "ticker": "BMP",
+    "name": "CTCP Nhựa Bình Minh",
+    "exchange": "HOSE",
+    "volume": 362000,
+    "value": 54888250.0,
+    "price": 153.0
+  },
+  {
     "ticker": "ORS",
     "name": "CTCP Chứng khoán Tiên Phong",
     "exchange": "HOSE",
@@ -2920,14 +2928,6 @@ export const topLiquidity = [
     "volume": 2394400,
     "value": 51988410.0,
     "price": 21.6
-  },
-  {
-    "ticker": "BMP",
-    "name": "CTCP Nhựa Bình Minh",
-    "exchange": "HOSE",
-    "volume": 333200,
-    "value": 50579760.00000001,
-    "price": 153.7
   },
   {
     "ticker": "HCM",
@@ -2992,6 +2992,14 @@ export const topLiquidity = [
     "volume": 931500,
     "value": 44758575.0,
     "price": 47.75
+  },
+  {
+    "ticker": "BAF",
+    "name": "CTCP Nông nghiệp BAF Việt Nam",
+    "exchange": "HOSE",
+    "volume": 1410600,
+    "value": 41771392.5,
+    "price": 29.55
   },
   {
     "ticker": "PVT",
@@ -3096,14 +3104,6 @@ export const topLiquidity = [
     "volume": 1934900,
     "value": 28902568.75,
     "price": 15.0
-  },
-  {
-    "ticker": "BAF",
-    "name": "CTCP Nông nghiệp BAF Việt Nam",
-    "exchange": "HOSE",
-    "volume": 925900,
-    "value": 27452935.000000004,
-    "price": 29.7
   },
   {
     "ticker": "NAB",
@@ -3342,14 +3342,14 @@ export const sectorPerformance = [
     "value": 16332817.5
   },
   {
-    "sector": "Bảo hiểm",
-    "pct": -0.9820004736717483,
-    "value": 26835412.5
+    "sector": "Nông nghiệp & thực phẩm",
+    "pct": -1.0391762185797504,
+    "value": 154644117.0
   },
   {
-    "sector": "Nông nghiệp & thực phẩm",
-    "pct": -0.9443815324542453,
-    "value": 139108494.5
+    "sector": "Bảo hiểm",
+    "pct": -0.8431115847828572,
+    "value": 26850500.0
   },
   {
     "sector": "Tài chính khác",
@@ -3411,15 +3411,15 @@ export const sectorPerformanceByExchange = [
   },
   {
     "exchange": "HOSE",
-    "sector": "Bảo hiểm",
-    "pct": -0.9820004736717483,
-    "value": 26835412.5
+    "sector": "Nông nghiệp & thực phẩm",
+    "pct": -1.0391762185797504,
+    "value": 154644117.0
   },
   {
     "exchange": "HOSE",
-    "sector": "Nông nghiệp & thực phẩm",
-    "pct": -0.9443815324542453,
-    "value": 139108494.5
+    "sector": "Bảo hiểm",
+    "pct": -0.8431115847828572,
+    "value": 26850500.0
   },
   {
     "exchange": "HOSE",
@@ -3478,14 +3478,14 @@ export const sectorPerformanceByExchange = [
   {
     "exchange": "HOSE",
     "sector": "Ngân hàng",
-    "pct": 0.3520267407142713,
-    "value": 3446488590.0
+    "pct": 0.35125428077564275,
+    "value": 3492238946.25
   },
   {
     "exchange": "HOSE",
     "sector": "Chứng khoán",
-    "pct": -0.28277885922624124,
-    "value": 1402349538.0
+    "pct": -0.2729749376576132,
+    "value": 1402709878.0
   },
   {
     "exchange": "HOSE",
@@ -3496,14 +3496,14 @@ export const sectorPerformanceByExchange = [
   {
     "exchange": "HOSE",
     "sector": "Bất động sản",
-    "pct": -0.2662583433971427,
-    "value": 2974193221.5
+    "pct": -0.2149762921150914,
+    "value": 2974448936.5
   },
   {
     "exchange": "HOSE",
     "sector": "Khác",
-    "pct": -0.17552625162986454,
-    "value": 243125961.25
+    "pct": -0.17068924635493932,
+    "value": 244384878.25
   },
   {
     "exchange": "HOSE",
@@ -3513,15 +3513,15 @@ export const sectorPerformanceByExchange = [
   },
   {
     "exchange": "HOSE",
-    "sector": "Tiêu dùng",
-    "pct": -0.11808560303082845,
-    "value": 420509482.5
+    "sector": "Bất động sản khu công nghiệp",
+    "pct": -0.1629905276947512,
+    "value": 49039096.25
   },
   {
     "exchange": "HOSE",
-    "sector": "Bất động sản khu công nghiệp",
-    "pct": -0.11546201058448434,
-    "value": 46882761.25
+    "sector": "Tiêu dùng",
+    "pct": -0.11808560303082845,
+    "value": 420509482.5
   },
   {
     "exchange": "HOSE",
@@ -3532,8 +3532,8 @@ export const sectorPerformanceByExchange = [
   {
     "exchange": "HOSE",
     "sector": "Nhựa & bao bì",
-    "pct": 0.05083584120290454,
-    "value": 89276355.0
+    "pct": -0.07129001929344035,
+    "value": 93818585.5
   }
 ];
 
@@ -4022,17 +4022,17 @@ export const candlestickByTicker = {
     {
       "date": "06-26",
       "open": 7.43,
-      "close": 7.39,
+      "close": 7.37,
       "high": 7.45,
       "low": 7.34,
-      "volume": 595900,
-      "sma20": 7.196000000000001,
-      "ema12": 7.330597966430594,
-      "rsi": 87.83783783783785,
-      "macd": 0.09476059858290853,
-      "macdSignal": 0.0696345836785747,
-      "bbUpper": 7.621967629113568,
-      "bbLower": 6.770032370886433
+      "volume": 627900,
+      "sma20": 7.195,
+      "ema12": 7.327521043353672,
+      "rsi": 85.52631578947374,
+      "macd": 0.09316515698746741,
+      "macdSignal": 0.06931549535948647,
+      "bbUpper": 7.619139996748842,
+      "bbLower": 6.770860003251158
     }
   ],
   "AAN": [
@@ -4417,7 +4417,7 @@ export const candlestickByTicker = {
       "close": 22.25,
       "high": 22.25,
       "low": 22.0,
-      "volume": 526400,
+      "volume": 537500,
       "sma20": 22.207500000000003,
       "ema12": 22.06780492791387,
       "rsi": 51.428571428571445,
@@ -4911,17 +4911,514 @@ export const candlestickByTicker = {
     {
       "date": "06-26",
       "open": 22.35,
-      "close": 22.55,
+      "close": 22.6,
       "high": 22.65,
       "low": 22.35,
-      "volume": 9630100,
-      "sma20": 22.358,
-      "ema12": 22.344635356846567,
-      "rsi": 61.44927536231884,
-      "macd": 0.19089883980543831,
-      "macdSignal": 0.19700028686517354,
-      "bbUpper": 23.179054520915503,
-      "bbLower": 21.536945479084498
+      "volume": 10774200,
+      "sma20": 22.360500000000002,
+      "ema12": 22.352327664538873,
+      "rsi": 62.00000000000001,
+      "macd": 0.1948874437940411,
+      "macdSignal": 0.1977980076628941,
+      "bbUpper": 23.184315896653462,
+      "bbLower": 21.53668410334654
+    }
+  ],
+  "ADS": [
+    {
+      "date": "05-13",
+      "open": 8.93,
+      "close": 9.17,
+      "high": 9.2,
+      "low": 8.93,
+      "volume": 279000,
+      "sma20": 9.17,
+      "ema12": 9.17,
+      "rsi": 50.0,
+      "macd": 0.0,
+      "macdSignal": 0.0,
+      "bbUpper": 9.2,
+      "bbLower": 8.93
+    },
+    {
+      "date": "05-14",
+      "open": 9.33,
+      "close": 9.14,
+      "high": 9.35,
+      "low": 9.14,
+      "volume": 104900,
+      "sma20": 9.14,
+      "ema12": 9.165384615384616,
+      "rsi": 50.0,
+      "macd": -0.002393162393161674,
+      "macdSignal": -0.0004786324786323348,
+      "bbUpper": 9.35,
+      "bbLower": 9.14
+    },
+    {
+      "date": "05-15",
+      "open": 9.14,
+      "close": 9.11,
+      "high": 9.2,
+      "low": 9.11,
+      "volume": 151000,
+      "sma20": 9.11,
+      "ema12": 9.156863905325444,
+      "rsi": 50.0,
+      "macd": -0.006634037061386877,
+      "macdSignal": -0.0017097133951832434,
+      "bbUpper": 9.2,
+      "bbLower": 9.11
+    },
+    {
+      "date": "05-18",
+      "open": 9.1,
+      "close": 9.11,
+      "high": 9.18,
+      "low": 8.96,
+      "volume": 26200,
+      "sma20": 9.11,
+      "ema12": 9.149654073736915,
+      "rsi": 50.0,
+      "macd": -0.009881058102743978,
+      "macdSignal": -0.0033439823366953904,
+      "bbUpper": 9.18,
+      "bbLower": 8.96
+    },
+    {
+      "date": "05-19",
+      "open": 9.01,
+      "close": 9.08,
+      "high": 9.08,
+      "low": 8.97,
+      "volume": 119600,
+      "sma20": 9.08,
+      "ema12": 9.138938062392775,
+      "rsi": 50.0,
+      "macd": -0.014705578199501801,
+      "macdSignal": -0.005616301509256672,
+      "bbUpper": 9.08,
+      "bbLower": 8.97
+    },
+    {
+      "date": "05-20",
+      "open": 8.9,
+      "close": 8.9,
+      "high": 9.09,
+      "low": 8.9,
+      "volume": 151400,
+      "sma20": 8.9,
+      "ema12": 9.102178360486194,
+      "rsi": 50.0,
+      "macd": -0.03267686228443267,
+      "macdSignal": -0.011028413664291872,
+      "bbUpper": 9.09,
+      "bbLower": 8.9
+    },
+    {
+      "date": "05-21",
+      "open": 9.0,
+      "close": 8.91,
+      "high": 9.0,
+      "low": 8.9,
+      "volume": 24100,
+      "sma20": 8.91,
+      "ema12": 9.072612458872934,
+      "rsi": 50.0,
+      "macd": -0.045586821470239514,
+      "macdSignal": -0.0179400952254814,
+      "bbUpper": 9.0,
+      "bbLower": 8.9
+    },
+    {
+      "date": "05-22",
+      "open": 8.91,
+      "close": 8.94,
+      "high": 8.96,
+      "low": 8.86,
+      "volume": 48200,
+      "sma20": 8.94,
+      "ema12": 9.052210542123252,
+      "rsi": 50.0,
+      "macd": -0.05278879152783489,
+      "macdSignal": -0.024909834485952097,
+      "bbUpper": 8.96,
+      "bbLower": 8.86
+    },
+    {
+      "date": "05-25",
+      "open": 8.99,
+      "close": 8.92,
+      "high": 8.99,
+      "low": 8.86,
+      "volume": 66500,
+      "sma20": 8.92,
+      "ema12": 9.031870458719675,
+      "rsi": 50.0,
+      "macd": -0.059425220586886596,
+      "macdSignal": -0.031812911706138994,
+      "bbUpper": 8.99,
+      "bbLower": 8.86
+    },
+    {
+      "date": "05-26",
+      "open": 8.93,
+      "close": 8.97,
+      "high": 9.02,
+      "low": 8.88,
+      "volume": 33900,
+      "sma20": 8.97,
+      "ema12": 9.022351926608955,
+      "rsi": 50.0,
+      "macd": -0.059958887563787755,
+      "macdSignal": -0.037442106877668746,
+      "bbUpper": 9.02,
+      "bbLower": 8.88
+    },
+    {
+      "date": "05-27",
+      "open": 8.88,
+      "close": 8.98,
+      "high": 9.35,
+      "low": 8.88,
+      "volume": 163600,
+      "sma20": 8.98,
+      "ema12": 9.015836245592194,
+      "rsi": 50.0,
+      "macd": -0.05889598975293886,
+      "macdSignal": -0.04173288345272277,
+      "bbUpper": 9.35,
+      "bbLower": 8.88
+    },
+    {
+      "date": "05-28",
+      "open": 9.0,
+      "close": 9.06,
+      "high": 9.1,
+      "low": 9.0,
+      "volume": 81200,
+      "sma20": 9.06,
+      "ema12": 9.02263066934724,
+      "rsi": 50.0,
+      "macd": -0.051010289305660095,
+      "macdSignal": -0.043588364623310234,
+      "bbUpper": 9.1,
+      "bbLower": 9.0
+    },
+    {
+      "date": "05-29",
+      "open": 9.09,
+      "close": 9.02,
+      "high": 9.1,
+      "low": 8.96,
+      "volume": 45300,
+      "sma20": 9.02,
+      "ema12": 9.022225950986126,
+      "rsi": 50.0,
+      "macd": -0.047441603322115,
+      "macdSignal": -0.04435901236307119,
+      "bbUpper": 9.1,
+      "bbLower": 8.96
+    },
+    {
+      "date": "06-01",
+      "open": 8.92,
+      "close": 9.06,
+      "high": 9.12,
+      "low": 8.92,
+      "volume": 15800,
+      "sma20": 9.06,
+      "ema12": 9.028037343142106,
+      "rsi": 40.000000000000064,
+      "macd": -0.04091409603219098,
+      "macdSignal": -0.043670029096895144,
+      "bbUpper": 9.12,
+      "bbLower": 8.92
+    },
+    {
+      "date": "06-02",
+      "open": 9.0,
+      "close": 9.06,
+      "high": 9.11,
+      "low": 8.95,
+      "volume": 60900,
+      "sma20": 9.06,
+      "ema12": 9.032954674966398,
+      "rsi": 40.000000000000064,
+      "macd": -0.03533369463943359,
+      "macdSignal": -0.04200276220540283,
+      "bbUpper": 9.11,
+      "bbLower": 8.95
+    },
+    {
+      "date": "06-03",
+      "open": 9.1,
+      "close": 9.05,
+      "high": 9.1,
+      "low": 8.94,
+      "volume": 39700,
+      "sma20": 9.05,
+      "ema12": 9.035577032663875,
+      "rsi": 41.50943396226418,
+      "macd": -0.03135664289708018,
+      "macdSignal": -0.0398735383437383,
+      "bbUpper": 9.1,
+      "bbLower": 8.94
+    },
+    {
+      "date": "06-04",
+      "open": 9.05,
+      "close": 8.98,
+      "high": 9.05,
+      "low": 8.97,
+      "volume": 22200,
+      "sma20": 8.98,
+      "ema12": 9.027026719946356,
+      "rsi": 38.59649122807028,
+      "macd": -0.033467424091565334,
+      "macdSignal": -0.038592315493303705,
+      "bbUpper": 9.05,
+      "bbLower": 8.97
+    },
+    {
+      "date": "06-05",
+      "open": 8.96,
+      "close": 8.93,
+      "high": 9.09,
+      "low": 8.91,
+      "volume": 44900,
+      "sma20": 8.93,
+      "ema12": 9.012099532262301,
+      "rsi": 35.48387096774198,
+      "macd": -0.03872837888392233,
+      "macdSignal": -0.03861952817142743,
+      "bbUpper": 9.09,
+      "bbLower": 8.91
+    },
+    {
+      "date": "06-08",
+      "open": 8.92,
+      "close": 8.96,
+      "high": 9.02,
+      "low": 8.91,
+      "volume": 69300,
+      "sma20": 8.96,
+      "ema12": 9.004084219606563,
+      "rsi": 40.322580645161395,
+      "macd": -0.04001569812142236,
+      "macdSignal": -0.03889876216142642,
+      "bbUpper": 9.02,
+      "bbLower": 8.91
+    },
+    {
+      "date": "06-09",
+      "open": 8.97,
+      "close": 9.01,
+      "high": 9.08,
+      "low": 8.95,
+      "volume": 184600,
+      "sma20": 9.018,
+      "ema12": 9.00499433966709,
+      "rsi": 61.22448979591827,
+      "macd": -0.036579658229191736,
+      "macdSignal": -0.03843494137497948,
+      "bbUpper": 9.17873515319831,
+      "bbLower": 8.85726484680169
+    },
+    {
+      "date": "06-10",
+      "open": 9.02,
+      "close": 9.1,
+      "high": 9.17,
+      "low": 9.01,
+      "volume": 109800,
+      "sma20": 9.014500000000002,
+      "ema12": 9.019610595102924,
+      "rsi": 66.66666666666656,
+      "macd": -0.02629125480104122,
+      "macdSignal": -0.036006204060191824,
+      "bbUpper": 9.16395162921054,
+      "bbLower": 8.865048370789463
+    },
+    {
+      "date": "06-11",
+      "open": 9.1,
+      "close": 9.12,
+      "high": 9.27,
+      "low": 9.1,
+      "volume": 69700,
+      "sma20": 9.0135,
+      "ema12": 9.035055118933244,
+      "rsi": 66.07142857142848,
+      "macd": -0.01633548282968711,
+      "macdSignal": -0.03207205981409088,
+      "bbUpper": 9.159647006019355,
+      "bbLower": 8.867352993980646
+    },
+    {
+      "date": "06-12",
+      "open": 9.24,
+      "close": 9.16,
+      "high": 9.24,
+      "low": 9.12,
+      "volume": 57600,
+      "sma20": 9.016000000000002,
+      "ema12": 9.05427740832813,
+      "rsi": 70.68965517241368,
+      "macd": -0.005158334044955026,
+      "macdSignal": -0.026689314660263707,
+      "bbUpper": 9.170565605216005,
+      "bbLower": 8.861434394783998
+    },
+    {
+      "date": "06-15",
+      "open": 9.16,
+      "close": 9.22,
+      "high": 9.27,
+      "low": 9.1,
+      "volume": 161200,
+      "sma20": 9.0215,
+      "ema12": 9.079773191662264,
+      "rsi": 71.18644067796598,
+      "macd": 0.008443800576074523,
+      "macdSignal": -0.01966269161299606,
+      "bbUpper": 9.196611994238875,
+      "bbLower": 8.846388005761124
+    },
+    {
+      "date": "06-16",
+      "open": 9.29,
+      "close": 9.51,
+      "high": 9.59,
+      "low": 9.25,
+      "volume": 475600,
+      "sma20": 9.043000000000001,
+      "ema12": 9.14596193140653,
+      "rsi": 80.45977011494239,
+      "macd": 0.04213842114154076,
+      "macdSignal": -0.007302469062088694,
+      "bbUpper": 9.322706613210494,
+      "bbLower": 8.763293386789508
+    },
+    {
+      "date": "06-17",
+      "open": 9.51,
+      "close": 9.48,
+      "high": 9.63,
+      "low": 9.48,
+      "volume": 91200,
+      "sma20": 9.072,
+      "ema12": 9.197352403497833,
+      "rsi": 75.6097560975609,
+      "macd": 0.06566396806728747,
+      "macdSignal": 0.00729081836378654,
+      "bbUpper": 9.404556287281604,
+      "bbLower": 8.739443712718394
+    },
+    {
+      "date": "06-18",
+      "open": 9.5,
+      "close": 9.43,
+      "high": 9.6,
+      "low": 9.35,
+      "volume": 158200,
+      "sma20": 9.098,
+      "ema12": 9.233144341421243,
+      "rsi": 74.69879518072284,
+      "macd": 0.07935875305962625,
+      "macdSignal": 0.021704405302954484,
+      "bbUpper": 9.45744987206329,
+      "bbLower": 8.738550127936712
+    },
+    {
+      "date": "06-19",
+      "open": 9.45,
+      "close": 9.38,
+      "high": 9.5,
+      "low": 9.36,
+      "volume": 104400,
+      "sma20": 9.12,
+      "ema12": 9.255737519664128,
+      "rsi": 69.04761904761907,
+      "macd": 0.08519530821818755,
+      "macdSignal": 0.0344025858860011,
+      "bbUpper": 9.492360888895364,
+      "bbLower": 8.747639111104634
+    },
+    {
+      "date": "06-22",
+      "open": 9.42,
+      "close": 9.25,
+      "high": 9.42,
+      "low": 9.11,
+      "volume": 53100,
+      "sma20": 9.1365,
+      "ema12": 9.254854824331186,
+      "rsi": 59.79381443298966,
+      "macd": 0.07842685077013023,
+      "macdSignal": 0.04320743886282692,
+      "bbUpper": 9.500702083869294,
+      "bbLower": 8.772297916130706
+    },
+    {
+      "date": "06-23",
+      "open": 9.5,
+      "close": 9.06,
+      "high": 9.5,
+      "low": 9.06,
+      "volume": 200300,
+      "sma20": 9.141,
+      "ema12": 9.224877159049466,
+      "rsi": 50.43478260869564,
+      "macd": 0.05707347982626665,
+      "macdSignal": 0.04598064705551487,
+      "bbUpper": 9.498706142259993,
+      "bbLower": 8.783293857740007
+    },
+    {
+      "date": "06-24",
+      "open": 9.04,
+      "close": 9.1,
+      "high": 9.15,
+      "low": 9.04,
+      "volume": 145500,
+      "sma20": 9.147000000000002,
+      "ema12": 9.205665288426472,
+      "rsi": 55.357142857142826,
+      "macd": 0.04288410396054587,
+      "macdSignal": 0.04536133843652107,
+      "bbUpper": 9.497284095226178,
+      "bbLower": 8.796715904773826
+    },
+    {
+      "date": "06-25",
+      "open": 9.08,
+      "close": 9.15,
+      "high": 9.15,
+      "low": 9.08,
+      "volume": 60700,
+      "sma20": 9.1515,
+      "ema12": 9.197101397899322,
+      "rsi": 59.821428571428605,
+      "macd": 0.03526696783828065,
+      "macdSignal": 0.04334246431687298,
+      "bbUpper": 9.49938231524922,
+      "bbLower": 8.803617684750781
+    },
+    {
+      "date": "06-26",
+      "open": 9.18,
+      "close": 9.22,
+      "high": 9.23,
+      "low": 9.14,
+      "volume": 90400,
+      "sma20": 9.1615,
+      "ema12": 9.200624259760966,
+      "rsi": 61.20689655172415,
+      "macd": 0.03448126896370596,
+      "macdSignal": 0.04157022524623958,
+      "bbUpper": 9.504936196479974,
+      "bbLower": 8.818063803520026
     }
   ],
   "AFX": [
@@ -5408,17 +5905,17 @@ export const candlestickByTicker = {
     {
       "date": "06-26",
       "open": 10.1,
-      "close": 10.1,
+      "close": 10.15,
       "high": 10.15,
       "low": 9.95,
-      "volume": 79700,
-      "sma20": 10.2825,
-      "ema12": 10.210564048231777,
-      "rsi": 33.33333333333323,
-      "macd": -0.047275055791489606,
-      "macdSignal": -0.018907107658701416,
-      "bbUpper": 10.495930624744785,
-      "bbLower": 10.069069375255216
+      "volume": 87600,
+      "sma20": 10.285,
+      "ema12": 10.218256355924087,
+      "rsi": 38.46153846153844,
+      "macd": -0.04328645180288504,
+      "macdSignal": -0.0181093868609805,
+      "bbUpper": 10.490452004896014,
+      "bbLower": 10.079547995103987
     }
   ],
   "AGG": [
@@ -5905,17 +6402,17 @@ export const candlestickByTicker = {
     {
       "date": "06-26",
       "open": 11.65,
-      "close": 11.6,
-      "high": 11.7,
+      "close": 11.75,
+      "high": 11.75,
       "low": 11.55,
-      "volume": 164100,
-      "sma20": 11.919999999999998,
-      "ema12": 11.835008215318162,
-      "rsi": 44.444444444444414,
-      "macd": -0.07619128301245581,
-      "macdSignal": -0.03067110918561332,
-      "bbUpper": 12.417784565534337,
-      "bbLower": 11.42221543446566
+      "volume": 185300,
+      "sma20": 11.927499999999998,
+      "ema12": 11.858085138395085,
+      "rsi": 48.571428571428555,
+      "macd": -0.06422547104664389,
+      "macdSignal": -0.02827794679245093,
+      "bbUpper": 12.409245728957112,
+      "bbLower": 11.445754271042885
     }
   ],
   "AGR": [
@@ -6405,7 +6902,7 @@ export const candlestickByTicker = {
       "close": 14.35,
       "high": 14.6,
       "low": 14.3,
-      "volume": 255700,
+      "volume": 271700,
       "sma20": 14.4225,
       "ema12": 14.541540540930587,
       "rsi": 58.49056603773583,
@@ -6899,17 +7396,17 @@ export const candlestickByTicker = {
     {
       "date": "06-26",
       "open": 22.4,
-      "close": 22.05,
+      "close": 21.95,
       "high": 22.45,
-      "low": 22.0,
-      "volume": 309500,
-      "sma20": 21.195,
-      "ema12": 21.56634660795303,
-      "rsi": 67.6767676767677,
-      "macd": -0.025372771698705776,
-      "macdSignal": -0.21789445625221554,
-      "bbUpper": 22.408476953134873,
-      "bbLower": 19.981523046865128
+      "low": 21.95,
+      "volume": 353800,
+      "sma20": 21.19,
+      "ema12": 21.550961992568414,
+      "rsi": 66.33663366336634,
+      "macd": -0.033349979675911356,
+      "macdSignal": -0.21948989784765666,
+      "bbUpper": 22.389385807732232,
+      "bbLower": 19.99061419226777
     }
   ],
   "APG": [
@@ -7396,17 +7893,17 @@ export const candlestickByTicker = {
     {
       "date": "06-26",
       "open": 5.1,
-      "close": 5.02,
+      "close": 5.03,
       "high": 5.15,
       "low": 4.98,
-      "volume": 435600,
-      "sma20": 4.904999999999999,
-      "ema12": 5.077955513384568,
-      "rsi": 65.21739130434783,
-      "macd": 0.1171990828286038,
-      "macdSignal": 0.11809594640503455,
-      "bbUpper": 5.807639404600112,
-      "bbLower": 4.002360595399887
+      "volume": 461000,
+      "sma20": 4.9055,
+      "ema12": 5.07949397492303,
+      "rsi": 65.47619047619051,
+      "macd": 0.11799680362632436,
+      "macdSignal": 0.11825549056457867,
+      "bbUpper": 5.808418659272894,
+      "bbLower": 4.002581340727106
     }
   ],
   "ASM": [
@@ -7893,17 +8390,17 @@ export const candlestickByTicker = {
     {
       "date": "06-26",
       "open": 5.88,
-      "close": 5.89,
+      "close": 5.88,
       "high": 5.91,
       "low": 5.87,
-      "volume": 349800,
-      "sma20": 5.8595,
-      "ema12": 5.8632906610948465,
-      "rsi": 67.49999999999999,
-      "macd": -0.01772110034686314,
-      "macdSignal": -0.027109463585239656,
-      "bbUpper": 5.977103258100231,
-      "bbLower": 5.741896741899769
+      "volume": 409400,
+      "sma20": 5.859,
+      "ema12": 5.861752199556385,
+      "rsi": 65.85365853658539,
+      "macd": -0.018518821144583697,
+      "macdSignal": -0.027269007744783767,
+      "bbUpper": 5.976141390051331,
+      "bbLower": 5.741858609948669
     }
   ],
   "ASP": [
@@ -8393,7 +8890,7 @@ export const candlestickByTicker = {
       "close": 8.33,
       "high": 8.34,
       "low": 7.55,
-      "volume": 513100,
+      "volume": 566500,
       "sma20": 7.5025,
       "ema12": 7.662887535186013,
       "rsi": 82.82208588957054,
@@ -8887,17 +9384,17 @@ export const candlestickByTicker = {
     {
       "date": "06-26",
       "open": 29.7,
-      "close": 29.7,
+      "close": 29.55,
       "high": 29.75,
       "low": 29.45,
-      "volume": 925900,
-      "sma20": 29.2555,
-      "ema12": 29.636518867391956,
-      "rsi": 76.60818713450286,
-      "macd": -0.38570884037104847,
-      "macdSignal": -0.6748549440838554,
-      "bbUpper": 30.18911718741226,
-      "bbLower": 28.32188281258774
+      "volume": 1410600,
+      "sma20": 29.247999999999998,
+      "ema12": 29.61344194431503,
+      "rsi": 70.43010752688173,
+      "macd": -0.39767465233686394,
+      "macdSignal": -0.6772481064770185,
+      "bbUpper": 30.168905732646426,
+      "bbLower": 28.32709426735357
     }
   ],
   "BCM": [
@@ -9384,17 +9881,17 @@ export const candlestickByTicker = {
     {
       "date": "06-26",
       "open": 52.6,
-      "close": 52.4,
+      "close": 52.3,
       "high": 53.0,
       "low": 52.3,
-      "volume": 138800,
-      "sma20": 53.39,
-      "ema12": 53.123834050760266,
-      "rsi": 45.16129032258064,
-      "macd": -0.2701594114911998,
-      "macdSignal": -0.143932084516939,
-      "bbUpper": 54.834991349455066,
-      "bbLower": 51.945008650544935
+      "volume": 179900,
+      "sma20": 53.385000000000005,
+      "ema12": 53.10844943537565,
+      "rsi": 44.444444444444436,
+      "macd": -0.2781366194684125,
+      "macdSignal": -0.14552752611238154,
+      "bbUpper": 54.845028838936514,
+      "bbLower": 51.924971161063496
     }
   ],
   "BFC": [
@@ -9884,7 +10381,7 @@ export const candlestickByTicker = {
       "close": 56.4,
       "high": 56.5,
       "low": 55.4,
-      "volume": 28500,
+      "volume": 30900,
       "sma20": 56.94,
       "ema12": 56.682797592039584,
       "rsi": 46.66666666666668,
@@ -10381,7 +10878,7 @@ export const candlestickByTicker = {
       "close": 23.2,
       "high": 23.4,
       "low": 23.05,
-      "volume": 50400,
+      "volume": 50700,
       "sma20": 24.327499999999997,
       "ema12": 23.89848475948398,
       "rsi": 31.944444444444386,
@@ -10875,17 +11372,17 @@ export const candlestickByTicker = {
     {
       "date": "06-26",
       "open": 41.95,
-      "close": 41.8,
+      "close": 41.7,
       "high": 42.1,
       "low": 41.7,
-      "volume": 2822700,
-      "sma20": 41.915000000000006,
-      "ema12": 42.08182148185833,
-      "rsi": 56.66666666666663,
-      "macd": -0.1418648073783828,
-      "macdSignal": -0.18677972699668666,
-      "bbUpper": 43.02528682875429,
-      "bbLower": 40.80471317124572
+      "volume": 3299800,
+      "sma20": 41.910000000000004,
+      "ema12": 42.066436866473715,
+      "rsi": 55.73770491803281,
+      "macd": -0.1498420153555884,
+      "macdSignal": -0.18837516859212777,
+      "bbUpper": 43.02336379830153,
+      "bbLower": 40.796636201698476
     }
   ],
   "BKG": [
@@ -11375,7 +11872,7 @@ export const candlestickByTicker = {
       "close": 2.42,
       "high": 2.6,
       "low": 2.42,
-      "volume": 744100,
+      "volume": 757400,
       "sma20": 2.5469999999999997,
       "ema12": 2.540685211547152,
       "rsi": 53.06122448979591,
@@ -11869,17 +12366,17 @@ export const candlestickByTicker = {
     {
       "date": "06-26",
       "open": 14.4,
-      "close": 14.2,
+      "close": 14.3,
       "high": 14.45,
       "low": 14.15,
-      "volume": 210500,
-      "sma20": 14.457500000000001,
-      "ema12": 14.420360977665668,
-      "rsi": 39.130434782608646,
-      "macd": -0.0496754251121434,
-      "macdSignal": -0.02887145004893768,
-      "bbUpper": 14.670930624744777,
-      "bbLower": 14.244069375255226
+      "volume": 210700,
+      "sma20": 14.4625,
+      "ema12": 14.435745593050283,
+      "rsi": 42.85714285714289,
+      "macd": -0.041698217134936044,
+      "macdSignal": -0.02727600845349621,
+      "bbUpper": 14.654099912097546,
+      "bbLower": 14.270900087902454
     }
   ],
   "BMP": [
@@ -12366,17 +12863,17 @@ export const candlestickByTicker = {
     {
       "date": "06-26",
       "open": 150.0,
-      "close": 153.7,
+      "close": 153.0,
       "high": 154.0,
       "low": 149.5,
-      "volume": 333200,
-      "sma20": 140.82999999999998,
-      "ema12": 146.24207826139184,
-      "rsi": 79.6195652173913,
-      "macd": 2.330148446469252,
-      "macdSignal": 0.3659909632124735,
-      "bbUpper": 155.20543225894718,
-      "bbLower": 126.4545677410528
+      "volume": 362000,
+      "sma20": 140.79500000000002,
+      "ema12": 146.13438595369954,
+      "rsi": 79.22437673130193,
+      "macd": 2.2743079906287846,
+      "macdSignal": 0.35482287204438,
+      "bbUpper": 155.0413254726854,
+      "bbLower": 126.54867452731462
     }
   ],
   "BSI": [
@@ -71660,273 +72157,273 @@ export const candlestickByTicker = {
     },
     {
       "date": "05-27",
-      "open": 12.35,
-      "close": 12.3,
-      "high": 12.4,
-      "low": 12.2,
-      "volume": 111200,
-      "sma20": 12.3,
-      "ema12": 12.175352014575772,
+      "open": 10.29,
+      "close": 10.25,
+      "high": 10.33,
+      "low": 10.17,
+      "volume": 111202,
+      "sma20": 10.25,
+      "ema12": 11.859967399191158,
       "rsi": 50.0,
-      "macd": 0.1123668703894829,
-      "macdSignal": 0.06813549636427309,
-      "bbUpper": 12.4,
-      "bbLower": 12.2
+      "macd": -0.05116589314327946,
+      "macdSignal": 0.03542894365772062,
+      "bbUpper": 10.33,
+      "bbLower": 10.17
     },
     {
       "date": "05-28",
-      "open": 12.3,
-      "close": 12.4,
-      "high": 12.45,
-      "low": 12.25,
-      "volume": 100500,
-      "sma20": 12.4,
-      "ema12": 12.209913243102577,
+      "open": 10.25,
+      "close": 10.33,
+      "high": 10.37,
+      "low": 10.21,
+      "volume": 100508,
+      "sma20": 10.33,
+      "ema12": 11.624587799315595,
       "rsi": 50.0,
-      "macd": 0.12196403552268009,
-      "macdSignal": 0.07890120419595449,
-      "bbUpper": 12.45,
-      "bbLower": 12.25
+      "macd": -0.16942450840147671,
+      "macdSignal": -0.005541746754118851,
+      "bbUpper": 10.37,
+      "bbLower": 10.21
     },
     {
       "date": "05-29",
-      "open": 12.4,
-      "close": 12.7,
-      "high": 12.8,
-      "low": 12.35,
-      "volume": 214300,
-      "sma20": 12.7,
-      "ema12": 12.28531120570218,
+      "open": 10.33,
+      "close": 10.58,
+      "high": 10.67,
+      "low": 10.29,
+      "volume": 214311,
+      "sma20": 10.58,
+      "ema12": 11.463881984036274,
       "rsi": 50.0,
-      "macd": 0.15202490238746158,
-      "macdSignal": 0.09352594383425591,
-      "bbUpper": 12.8,
-      "bbLower": 12.35
+      "macd": -0.24020348607212583,
+      "macdSignal": -0.05247409461772025,
+      "bbUpper": 10.67,
+      "bbLower": 10.29
     },
     {
       "date": "06-01",
-      "open": 12.65,
-      "close": 12.75,
-      "high": 12.8,
-      "low": 12.5,
-      "volume": 169600,
-      "sma20": 12.75,
-      "ema12": 12.356801789440306,
-      "rsi": 81.48148148148155,
-      "macd": 0.1778329900748261,
-      "macdSignal": 0.11038735308236995,
-      "bbUpper": 12.8,
-      "bbLower": 12.5
+      "open": 10.54,
+      "close": 10.62,
+      "high": 10.67,
+      "low": 10.42,
+      "volume": 169635,
+      "sma20": 10.62,
+      "ema12": 11.334053986492231,
+      "rsi": 30.72289156626502,
+      "macd": -0.28972885620073185,
+      "macdSignal": -0.09992504693432258,
+      "bbUpper": 10.67,
+      "bbLower": 10.42
     },
     {
       "date": "06-02",
-      "open": 12.85,
-      "close": 13.0,
-      "high": 13.05,
-      "low": 12.65,
-      "volume": 330200,
-      "sma20": 13.0,
-      "ema12": 12.455755360295644,
-      "rsi": 84.37500000000007,
-      "macd": 0.21596943495723586,
-      "macdSignal": 0.13150376945734313,
-      "bbUpper": 13.05,
-      "bbLower": 12.65
+      "open": 10.71,
+      "close": 10.83,
+      "high": 10.87,
+      "low": 10.54,
+      "volume": 330323,
+      "sma20": 10.83,
+      "ema12": 11.25650721933958,
+      "rsi": 34.8441926345609,
+      "macd": -0.3084768942650147,
+      "macdSignal": -0.141635416400461,
+      "bbUpper": 10.87,
+      "bbLower": 10.54
     },
     {
       "date": "06-03",
-      "open": 12.95,
-      "close": 12.8,
-      "high": 13.0,
-      "low": 12.7,
-      "volume": 289800,
-      "sma20": 12.8,
-      "ema12": 12.508716074096315,
-      "rsi": 73.52941176470597,
-      "macd": 0.22743280989408454,
-      "macdSignal": 0.15068957754469142,
-      "bbUpper": 13.0,
-      "bbLower": 12.7
+      "open": 10.79,
+      "close": 10.67,
+      "high": 10.83,
+      "low": 10.58,
+      "volume": 289890,
+      "sma20": 10.67,
+      "ema12": 11.166275339441183,
+      "rsi": 31.47632311977715,
+      "macd": -0.33241365463714523,
+      "macdSignal": -0.17979106404779785,
+      "bbUpper": 10.83,
+      "bbLower": 10.58
     },
     {
       "date": "06-04",
-      "open": 12.85,
-      "close": 12.8,
-      "high": 12.9,
-      "low": 12.7,
-      "volume": 175900,
-      "sma20": 12.8,
-      "ema12": 12.553528985773804,
-      "rsi": 73.52941176470597,
-      "macd": 0.2338222596606272,
-      "macdSignal": 0.16731611396787857,
-      "bbUpper": 12.9,
-      "bbLower": 12.7
+      "open": 10.71,
+      "close": 10.67,
+      "high": 10.75,
+      "low": 10.58,
+      "volume": 175960,
+      "sma20": 10.67,
+      "ema12": 11.089925287219463,
+      "rsi": 31.47632311977715,
+      "macd": -0.34737933692713696,
+      "macdSignal": -0.21330871862366568,
+      "bbUpper": 10.75,
+      "bbLower": 10.58
     },
     {
       "date": "06-05",
-      "open": 12.8,
-      "close": 12.8,
-      "high": 12.9,
-      "low": 12.7,
-      "volume": 138100,
-      "sma20": 12.8,
-      "ema12": 12.591447603347065,
-      "rsi": 73.52941176470597,
-      "macd": 0.23616359768671558,
-      "macdSignal": 0.18108561071164597,
-      "bbUpper": 12.9,
-      "bbLower": 12.7
+      "open": 10.67,
+      "close": 10.67,
+      "high": 10.75,
+      "low": 10.58,
+      "volume": 138116,
+      "sma20": 10.67,
+      "ema12": 11.025321396878008,
+      "rsi": 31.47632311977715,
+      "macd": -0.35514584770217716,
+      "macdSignal": -0.24167614443936797,
+      "bbUpper": 10.75,
+      "bbLower": 10.58
     },
     {
       "date": "06-08",
-      "open": 12.7,
-      "close": 12.8,
-      "high": 12.9,
-      "low": 12.6,
-      "volume": 205900,
-      "sma20": 12.8,
-      "ema12": 12.623532587447517,
-      "rsi": 78.12500000000009,
-      "macd": 0.23530665628052638,
-      "macdSignal": 0.19192981982542207,
-      "bbUpper": 12.9,
-      "bbLower": 12.6
+      "open": 10.58,
+      "close": 10.67,
+      "high": 10.75,
+      "low": 10.5,
+      "volume": 205922,
+      "sma20": 10.67,
+      "ema12": 10.970656566589083,
+      "rsi": 32.37822349570199,
+      "macd": -0.35718347468886513,
+      "macdSignal": -0.2647776104892674,
+      "bbUpper": 10.75,
+      "bbLower": 10.5
     },
     {
       "date": "06-09",
-      "open": 12.75,
-      "close": 12.95,
-      "high": 13.0,
-      "low": 12.65,
-      "volume": 218400,
-      "sma20": 12.43,
-      "ema12": 12.673758343224822,
-      "rsi": 78.78787878787885,
-      "macd": 0.24391951807020185,
-      "macdSignal": 0.20232775947437803,
-      "bbUpper": 13.177909366870502,
-      "bbLower": 11.682090633129498
+      "open": 10.62,
+      "close": 10.79,
+      "high": 10.83,
+      "low": 10.54,
+      "volume": 218433,
+      "sma20": 11.369,
+      "ema12": 10.942863248652301,
+      "rsi": 32.76353276353275,
+      "macd": -0.34513678956802174,
+      "macdSignal": -0.2808494463050183,
+      "bbUpper": 12.97867992895613,
+      "bbLower": 9.75932007104387
     },
     {
       "date": "06-10",
-      "open": 12.9,
-      "close": 13.2,
-      "high": 13.4,
-      "low": 12.85,
-      "volume": 368500,
-      "sma20": 12.495000000000001,
-      "ema12": 12.75471859811331,
-      "rsi": 77.41935483870975,
-      "macd": 0.2678307970442173,
-      "macdSignal": 0.2154283669883459,
-      "bbUpper": 13.274270914313336,
-      "bbLower": 11.715729085686666
+      "open": 10.75,
+      "close": 11.0,
+      "high": 11.17,
+      "low": 10.71,
+      "volume": 368648,
+      "sma20": 11.324,
+      "ema12": 10.951653518090408,
+      "rsi": 29.97032640949554,
+      "macd": -0.315013183965446,
+      "macdSignal": -0.2876821938371038,
+      "bbUpper": 12.92145060050464,
+      "bbLower": 9.72654939949536
     },
     {
       "date": "06-11",
-      "open": 13.3,
-      "close": 13.5,
-      "high": 13.55,
-      "low": 13.15,
-      "volume": 280500,
-      "sma20": 12.57,
-      "ema12": 12.869377275326647,
-      "rsi": 80.00000000000009,
-      "macd": 0.3074441261885976,
-      "macdSignal": 0.23383151882839623,
-      "bbUpper": 13.43292037810413,
-      "bbLower": 11.70707962189587
+      "open": 11.08,
+      "close": 11.25,
+      "high": 11.29,
+      "low": 10.96,
+      "volume": 280504,
+      "sma20": 11.2865,
+      "ema12": 10.99755297684573,
+      "rsi": 32.95454545454545,
+      "macd": -0.2678791546874688,
+      "macdSignal": -0.2837215860071768,
+      "bbUpper": 12.85202698374768,
+      "bbLower": 9.720973016252321
     },
     {
       "date": "06-12",
-      "open": 13.55,
-      "close": 13.45,
-      "high": 13.6,
-      "low": 13.3,
-      "volume": 205900,
-      "sma20": 12.6425,
-      "ema12": 12.958703848353316,
-      "rsi": 82.35294117647062,
-      "macd": 0.33098796952178944,
-      "macdSignal": 0.25326280896707487,
-      "bbUpper": 13.546453305733973,
-      "bbLower": 11.738546694266027
+      "open": 11.29,
+      "close": 11.21,
+      "high": 11.33,
+      "low": 11.08,
+      "volume": 205932,
+      "sma20": 11.247,
+      "ema12": 11.03023713425408,
+      "rsi": 33.52601156069365,
+      "macd": -0.23108891346184635,
+      "macdSignal": -0.2731950514981107,
+      "bbUpper": 12.776170397720005,
+      "bbLower": 9.717829602279995
     },
     {
       "date": "06-15",
-      "open": 13.5,
-      "close": 13.9,
-      "high": 13.95,
-      "low": 13.4,
-      "volume": 438800,
-      "sma20": 12.7375,
-      "ema12": 13.103518640914345,
-      "rsi": 86.04651162790702,
-      "macd": 0.3815594938481155,
-      "macdSignal": 0.278922145943283,
-      "bbUpper": 13.749987816690838,
-      "bbLower": 11.725012183309163
+      "open": 11.25,
+      "close": 11.58,
+      "high": 11.62,
+      "low": 11.17,
+      "volume": 438934,
+      "sma20": 11.225999999999999,
+      "ema12": 11.11481603667653,
+      "rsi": 39.947780678851174,
+      "macd": -0.1701154889863652,
+      "macdSignal": -0.25257913899576157,
+      "bbUpper": 12.722823302865104,
+      "bbLower": 9.729176697134895
     },
     {
       "date": "06-16",
-      "open": 14.0,
-      "close": 14.35,
-      "high": 14.4,
-      "low": 13.9,
-      "volume": 365200,
-      "sma20": 12.86,
-      "ema12": 13.2952850038506,
-      "rsi": 90.19607843137254,
-      "macd": 0.4527302380485345,
-      "macdSignal": 0.3136837643643333,
-      "bbUpper": 14.026912254853093,
-      "bbLower": 11.693087745146906
+      "open": 11.67,
+      "close": 11.96,
+      "high": 12.0,
+      "low": 11.58,
+      "volume": 365244,
+      "sma20": 11.229,
+      "ema12": 11.244844338726294,
+      "rsi": 90.52132701421804,
+      "macd": -0.09009225910972063,
+      "macdSignal": -0.22008176301855337,
+      "bbUpper": 12.731739953691607,
+      "bbLower": 9.726260046308392
     },
     {
       "date": "06-17",
-      "open": 14.6,
-      "close": 14.55,
-      "high": 14.9,
-      "low": 14.35,
-      "volume": 301900,
-      "sma20": 12.9875,
-      "ema12": 13.488318080181276,
-      "rsi": 90.56603773584905,
-      "macd": 0.5192858896238093,
-      "macdSignal": 0.3548041894162285,
-      "bbUpper": 14.306141645585983,
-      "bbLower": 11.668858354414018
+      "open": 12.17,
+      "close": 12.12,
+      "high": 12.42,
+      "low": 11.96,
+      "volume": 301942,
+      "sma20": 11.235,
+      "ema12": 11.379483671229941,
+      "rsi": 90.86757990867582,
+      "macd": -0.013605771210812634,
+      "macdSignal": -0.1787865646570052,
+      "bbUpper": 12.75159591120863,
+      "bbLower": 9.718404088791369
     },
     {
       "date": "06-18",
-      "open": 14.65,
-      "close": 15.0,
-      "high": 15.15,
-      "low": 14.55,
-      "volume": 414500,
-      "sma20": 13.12,
-      "ema12": 13.720884529384158,
-      "rsi": 91.07142857142857,
-      "macd": 0.6014102788679843,
-      "macdSignal": 0.40412540730657964,
-      "bbUpper": 14.679487095169442,
-      "bbLower": 11.560512904830556
+      "open": 12.21,
+      "close": 12.5,
+      "high": 12.62,
+      "low": 12.12,
+      "volume": 414565,
+      "sma20": 11.2425,
+      "ema12": 11.551870798733027,
+      "rsi": 91.37931034482762,
+      "macd": 0.07678798165825462,
+      "macdSignal": -0.12767165539395325,
+      "bbUpper": 12.78359837795201,
+      "bbLower": 9.701401622047989
     },
     {
       "date": "06-19",
-      "open": 15.35,
-      "close": 14.95,
-      "high": 15.4,
-      "low": 14.9,
-      "volume": 255700,
-      "sma20": 13.245,
-      "ema12": 13.90997921717121,
-      "rsi": 89.28571428571426,
-      "macd": 0.6549104666932717,
-      "macdSignal": 0.45428241918391804,
-      "bbUpper": 14.970322242975291,
-      "bbLower": 11.519677757024708
+      "open": 12.79,
+      "close": 12.46,
+      "high": 12.83,
+      "low": 12.42,
+      "volume": 255712,
+      "sma20": 11.243,
+      "ema12": 11.69158298354333,
+      "rsi": 89.65517241379317,
+      "macd": 0.14354333810372566,
+      "macdSignal": -0.07342865669441748,
+      "bbUpper": 12.785753519215767,
+      "bbLower": 9.700246480784234
     },
     {
       "date": "06-22",
@@ -71935,13 +72432,13 @@ export const candlestickByTicker = {
       "high": 12.62,
       "low": 12.25,
       "volume": 230322,
-      "sma20": 13.244,
-      "ema12": 13.666905491452562,
-      "rsi": 43.52030947775629,
-      "macd": 0.4803603521211368,
-      "macdSignal": 0.4594980057713618,
-      "bbUpper": 14.971528200699067,
-      "bbLower": 11.516471799300932
+      "sma20": 11.242,
+      "ema12": 11.789800986075125,
+      "rsi": 83.48214285714288,
+      "macd": 0.18383835140882354,
+      "macdSignal": -0.021975255073769275,
+      "bbUpper": 12.781755277889795,
+      "bbLower": 9.702244722110207
     },
     {
       "date": "06-23",
@@ -71950,13 +72447,13 @@ export const candlestickByTicker = {
       "high": 12.37,
       "low": 12.17,
       "volume": 286190,
-      "sma20": 13.243,
-      "ema12": 13.461227723536783,
-      "rsi": 45.27162977867203,
-      "macd": 0.3381303723039828,
-      "macdSignal": 0.435224479077886,
-      "bbUpper": 14.972728910917311,
-      "bbLower": 11.51327108908269
+      "sma20": 11.241,
+      "ema12": 11.872908526678952,
+      "rsi": 89.90384615384619,
+      "macd": 0.2133134945805235,
+      "macdSignal": 0.025082494857089285,
+      "bbUpper": 12.777748447037995,
+      "bbLower": 9.704251552962004
     },
     {
       "date": "06-24",
@@ -71965,13 +72462,13 @@ export const candlestickByTicker = {
       "high": 12.5,
       "low": 12.29,
       "volume": 564702,
-      "sma20": 13.249,
-      "ema12": 13.301038842992662,
-      "rsi": 46.24505928853754,
-      "macd": 0.23002277703636587,
-      "macdSignal": 0.39418413866958196,
-      "bbUpper": 14.965739872395849,
-      "bbLower": 11.532260127604152
+      "sma20": 11.349499999999999,
+      "ema12": 11.95707644565142,
+      "rsi": 90.32258064516132,
+      "macd": 0.24115511963435665,
+      "macdSignal": 0.06829701981254276,
+      "bbUpper": 12.89802017644011,
+      "bbLower": 9.800979823559889
     },
     {
       "date": "06-25",
@@ -71980,13 +72477,13 @@ export const candlestickByTicker = {
       "high": 12.8,
       "low": 12.4,
       "volume": 192014,
-      "sma20": 13.256499999999999,
-      "ema12": 13.185494405609177,
-      "rsi": 47.591522157996145,
-      "macd": 0.15307212231630984,
-      "macdSignal": 0.34596173539892755,
-      "bbUpper": 14.95887326601487,
-      "bbLower": 11.554126733985129
+      "sma20": 11.4605,
+      "ema12": 12.04829545401274,
+      "rsi": 90.86956521739134,
+      "macd": 0.2705905225154588,
+      "macdSignal": 0.10875572035312596,
+      "bbUpper": 13.019547955104587,
+      "bbLower": 9.901452044895413
     },
     {
       "date": "06-26",
@@ -71995,13 +72492,13 @@ export const candlestickByTicker = {
       "high": 12.55,
       "low": 12.3,
       "volume": 319400,
-      "sma20": 13.241500000000002,
-      "ema12": 13.064649112438534,
-      "rsi": 46.25468164794007,
-      "macd": 0.07907292420439838,
-      "macdSignal": 0.2925839731600217,
-      "bbUpper": 14.969611533924892,
-      "bbLower": 11.513388466075112
+      "sma20": 11.5515,
+      "ema12": 12.102403845703087,
+      "rsi": 85.30612244897961,
+      "macd": 0.27860298320560517,
+      "macdSignal": 0.1427251729236218,
+      "bbUpper": 13.106610759297942,
+      "bbLower": 9.99638924070206
     }
   ],
   "SBT": [
@@ -96540,273 +97037,273 @@ export const candlestickByTicker = {
     },
     {
       "date": "05-27",
-      "open": 59.1,
-      "close": 58.8,
-      "high": 59.2,
-      "low": 58.7,
-      "volume": 2976500,
-      "sma20": 58.8,
-      "ema12": 59.2897937128375,
+      "open": 57.23,
+      "close": 56.94,
+      "high": 57.32,
+      "low": 56.84,
+      "volume": 2982766,
+      "sma20": 56.94,
+      "ema12": 59.00363986668365,
       "rsi": 50.0,
-      "macd": -0.05695405067545778,
-      "macdSignal": 0.025606140850591902,
-      "bbUpper": 59.2,
-      "bbLower": 58.7
+      "macd": -0.2053301190515313,
+      "macdSignal": -0.0040690728246228144,
+      "bbUpper": 57.32,
+      "bbLower": 56.84
     },
     {
       "date": "05-28",
-      "open": 59.0,
-      "close": 59.0,
-      "high": 59.8,
-      "low": 59.0,
-      "volume": 3798600,
-      "sma20": 59.0,
-      "ema12": 59.24521006470865,
+      "open": 57.13,
+      "close": 57.13,
+      "high": 57.9,
+      "low": 57.13,
+      "volume": 3805834,
+      "sma20": 57.13,
+      "ema12": 58.71538757950155,
       "rsi": 50.0,
-      "macd": -0.07585267928482864,
-      "macdSignal": 0.005314376823507792,
-      "bbUpper": 59.8,
-      "bbLower": 59.0
+      "macd": -0.3395846295125011,
+      "macdSignal": -0.07117218416219848,
+      "bbUpper": 57.9,
+      "bbLower": 57.13
     },
     {
       "date": "05-29",
-      "open": 59.0,
-      "close": 59.2,
-      "high": 59.3,
-      "low": 58.9,
-      "volume": 1960700,
-      "sma20": 59.2,
-      "ema12": 59.23825467013809,
+      "open": 57.13,
+      "close": 57.32,
+      "high": 57.42,
+      "low": 57.03,
+      "volume": 1964054,
+      "sma20": 57.32,
+      "ema12": 58.50071256727055,
       "rsi": 50.0,
-      "macd": -0.07384046318920667,
-      "macdSignal": -0.010516591179035101,
-      "bbUpper": 59.3,
-      "bbLower": 58.9
+      "macd": -0.4257431818165429,
+      "macdSignal": -0.14208638369306736,
+      "bbUpper": 57.42,
+      "bbLower": 57.03
     },
     {
       "date": "06-01",
-      "open": 59.2,
-      "close": 59.1,
-      "high": 59.3,
-      "low": 58.8,
-      "volume": 2259500,
-      "sma20": 59.1,
-      "ema12": 59.216984720886074,
-      "rsi": 48.00000000000005,
-      "macd": -0.0793996618243824,
-      "macdSignal": -0.024293205308104564,
-      "bbUpper": 59.3,
-      "bbLower": 58.8
+      "open": 57.32,
+      "close": 57.23,
+      "high": 57.42,
+      "low": 56.94,
+      "volume": 2264390,
+      "sma20": 57.23,
+      "ema12": 58.305218326152,
+      "rsi": 34.846266471449525,
+      "macd": -0.4955740341138224,
+      "macdSignal": -0.2127839137772184,
+      "bbUpper": 57.42,
+      "bbLower": 56.94
     },
     {
       "date": "06-02",
-      "open": 59.1,
-      "close": 58.6,
-      "high": 59.2,
-      "low": 58.6,
-      "volume": 2961900,
-      "sma20": 58.6,
-      "ema12": 59.12206399459591,
-      "rsi": 43.6363636363637,
-      "macd": -0.12273635976562502,
-      "macdSignal": -0.04398183619960866,
-      "bbUpper": 59.2,
-      "bbLower": 58.6
+      "open": 57.23,
+      "close": 56.74,
+      "high": 57.32,
+      "low": 56.74,
+      "volume": 2967574,
+      "sma20": 56.74,
+      "ema12": 58.064415506744,
+      "rsi": 32.51366120218586,
+      "macd": -0.5837255675762094,
+      "macdSignal": -0.2869722445370166,
+      "bbUpper": 57.32,
+      "bbLower": 56.74
     },
     {
       "date": "06-03",
-      "open": 58.6,
-      "close": 58.3,
-      "high": 58.8,
-      "low": 58.1,
-      "volume": 3814300,
-      "sma20": 58.3,
-      "ema12": 58.995592610811926,
-      "rsi": 32.00000000000004,
-      "macd": -0.17922253211542483,
-      "macdSignal": -0.07102997538277189,
-      "bbUpper": 58.8,
-      "bbLower": 58.1
+      "open": 56.74,
+      "close": 56.45,
+      "high": 56.94,
+      "low": 56.26,
+      "volume": 3822803,
+      "sma20": 56.45,
+      "ema12": 57.81604389032184,
+      "rsi": 23.20117474302502,
+      "macd": -0.6692719192339069,
+      "macdSignal": -0.36343217947639467,
+      "bbUpper": 56.94,
+      "bbLower": 56.26
     },
     {
       "date": "06-04",
-      "open": 58.6,
-      "close": 58.6,
-      "high": 58.8,
-      "low": 58.2,
-      "volume": 2126500,
-      "sma20": 58.6,
-      "ema12": 58.93473220914855,
-      "rsi": 38.0000000000001,
-      "macd": -0.19750403430270325,
-      "macdSignal": -0.09632478716675816,
-      "bbUpper": 58.8,
-      "bbLower": 58.2
+      "open": 56.74,
+      "close": 56.74,
+      "high": 56.94,
+      "low": 56.36,
+      "volume": 2130781,
+      "sma20": 56.74,
+      "ema12": 57.650498676426174,
+      "rsi": 27.500000000000057,
+      "macd": -0.705534480569888,
+      "macdSignal": -0.43185263969509335,
+      "bbUpper": 56.94,
+      "bbLower": 56.36
     },
     {
       "date": "06-05",
-      "open": 58.8,
-      "close": 58.4,
-      "high": 58.9,
-      "low": 58.3,
-      "volume": 1866100,
-      "sma20": 58.4,
-      "ema12": 58.85246571543339,
-      "rsi": 26.66666666666677,
-      "macd": -0.2255308062807302,
-      "macdSignal": -0.12216599098955257,
-      "bbUpper": 58.9,
-      "bbLower": 58.3
+      "open": 56.94,
+      "close": 56.55,
+      "high": 57.03,
+      "low": 56.45,
+      "volume": 1870110,
+      "sma20": 56.55,
+      "ema12": 57.481191187745225,
+      "rsi": 18.600953895071555,
+      "macd": -0.7410617353992777,
+      "macdSignal": -0.4936944588359302,
+      "bbUpper": 57.03,
+      "bbLower": 56.45
     },
     {
       "date": "06-08",
-      "open": 58.2,
-      "close": 58.0,
-      "high": 58.8,
-      "low": 57.8,
-      "volume": 3179800,
-      "sma20": 58.0,
-      "ema12": 58.72131714382825,
-      "rsi": 28.571428571428697,
-      "macd": -0.27682778368482275,
-      "macdSignal": -0.1530983495286066,
-      "bbUpper": 58.8,
-      "bbLower": 57.8
+      "open": 56.36,
+      "close": 56.16,
+      "high": 56.94,
+      "low": 55.97,
+      "volume": 3186894,
+      "sma20": 56.16,
+      "ema12": 57.27793100501519,
+      "rsi": 19.56521739130436,
+      "macd": -0.7915624423408332,
+      "macdSignal": -0.5532680555369108,
+      "bbUpper": 56.94,
+      "bbLower": 55.97
     },
     {
       "date": "06-09",
-      "open": 58.1,
-      "close": 58.3,
-      "high": 58.5,
-      "low": 58.0,
-      "volume": 1228000,
-      "sma20": 59.08,
-      "ema12": 58.656499121700826,
-      "rsi": 39.47368421052631,
-      "macd": -0.289931366737207,
-      "macdSignal": -0.18046495297032666,
-      "bbUpper": 60.35584853085474,
-      "bbLower": 57.80415146914525
+      "open": 56.26,
+      "close": 56.45,
+      "high": 56.65,
+      "low": 56.16,
+      "volume": 1232594,
+      "sma20": 58.1505,
+      "ema12": 57.15055700424362,
+      "rsi": 26.211849192100615,
+      "macd": -0.7989739655304717,
+      "macdSignal": -0.602409237535623,
+      "bbUpper": 61.1120463599453,
+      "bbLower": 55.1889536400547
     },
     {
       "date": "06-10",
-      "open": 58.4,
-      "close": 58.9,
-      "high": 58.9,
-      "low": 58.2,
-      "volume": 2353200,
-      "sma20": 59.06,
-      "ema12": 58.693960795285314,
-      "rsi": 48.83720930232557,
-      "macd": -0.24903039771286473,
-      "macdSignal": -0.19417804191883428,
-      "bbUpper": 60.333866885551735,
-      "bbLower": 57.78613311444827
+      "open": 56.55,
+      "close": 57.03,
+      "high": 57.03,
+      "low": 56.36,
+      "volume": 2357629,
+      "sma20": 58.037,
+      "ema12": 57.132009772821526,
+      "rsi": 33.71900826446284,
+      "macd": -0.7494077917841153,
+      "macdSignal": -0.6318089483853215,
+      "bbUpper": 60.9870265832879,
+      "bbLower": 55.0869734167121
     },
     {
       "date": "06-11",
-      "open": 58.8,
-      "close": 59.2,
-      "high": 59.6,
-      "low": 58.5,
-      "volume": 1804500,
-      "sma20": 59.015,
-      "ema12": 58.77181298062604,
-      "rsi": 46.3414634146342,
-      "macd": -0.1902159017796805,
-      "macdSignal": -0.19338561389100353,
-      "bbUpper": 60.194250430971884,
-      "bbLower": 57.83574956902812
+      "open": 56.94,
+      "close": 57.32,
+      "high": 57.71,
+      "low": 56.65,
+      "volume": 1809873,
+      "sma20": 57.89799999999999,
+      "ema12": 57.160931346233596,
+      "rsi": 31.335616438356197,
+      "macd": -0.6788997321049592,
+      "macdSignal": -0.6412271051292491,
+      "bbUpper": 60.696846378891046,
+      "bbLower": 55.09915362110893
     },
     {
       "date": "06-12",
-      "open": 59.3,
-      "close": 59.0,
-      "high": 59.8,
-      "low": 59.0,
-      "volume": 3489300,
-      "sma20": 58.975,
-      "ema12": 58.80691867591434,
-      "rsi": 48.71794871794871,
-      "macd": -0.1579228818687355,
-      "macdSignal": -0.18629306748654992,
-      "bbUpper": 60.09491541033946,
-      "bbLower": 57.85508458966054
+      "open": 57.42,
+      "close": 57.13,
+      "high": 57.9,
+      "low": 57.13,
+      "volume": 3494401,
+      "sma20": 57.7645,
+      "ema12": 57.156172677582276,
+      "rsi": 32.504440497335736,
+      "macd": -0.6310783208793467,
+      "macdSignal": -0.6391973482792686,
+      "bbUpper": 60.43303379809568,
+      "bbLower": 55.09596620190432
     },
     {
       "date": "06-15",
-      "open": 59.3,
-      "close": 59.7,
-      "high": 59.8,
-      "low": 59.3,
-      "volume": 2021700,
-      "sma20": 58.935,
-      "ema12": 58.94431580269675,
-      "rsi": 56.52173913043475,
-      "macd": -0.074981935991282,
-      "macdSignal": -0.16403084118749633,
-      "bbUpper": 59.866947592834215,
-      "bbLower": 58.00305240716579
+      "open": 57.42,
+      "close": 57.81,
+      "high": 57.9,
+      "low": 57.42,
+      "volume": 2026853,
+      "sma20": 57.629999999999995,
+      "ema12": 57.25676149641577,
+      "rsi": 39.77812995245644,
+      "macd": -0.532174613270918,
+      "macdSignal": -0.6177928012775984,
+      "bbUpper": 59.96879861197334,
+      "bbLower": 55.29120138802665
     },
     {
       "date": "06-16",
-      "open": 59.8,
-      "close": 59.1,
-      "high": 59.8,
-      "low": 59.1,
-      "volume": 2029500,
-      "sma20": 58.9,
-      "ema12": 58.96826721766648,
-      "rsi": 53.061224489795954,
-      "macd": -0.05700846630391965,
-      "macdSignal": -0.142626366210781,
-      "bbUpper": 59.74355138987997,
-      "bbLower": 58.05644861012003
+      "open": 57.9,
+      "close": 57.23,
+      "high": 57.9,
+      "low": 57.23,
+      "volume": 2034353,
+      "sma20": 57.5015,
+      "ema12": 57.252644343121034,
+      "rsi": 53.06553911205072,
+      "macd": -0.4948890917740485,
+      "macdSignal": -0.5932120593768884,
+      "bbUpper": 59.6092928091527,
+      "bbLower": 55.3937071908473
     },
     {
       "date": "06-17",
-      "open": 59.1,
-      "close": 59.0,
-      "high": 59.7,
-      "low": 59.0,
-      "volume": 2838900,
-      "sma20": 58.895,
-      "ema12": 58.97314918417933,
+      "open": 57.23,
+      "close": 57.13,
+      "high": 57.81,
+      "low": 57.13,
+      "volume": 2843129,
+      "sma20": 57.403000000000006,
+      "ema12": 57.23377598264088,
       "rsi": 50.0,
-      "macd": -0.05025422690437864,
-      "macdSignal": -0.12415193834950053,
-      "bbUpper": 59.73473680087088,
-      "bbLower": 58.05526319912913
+      "macd": -0.4680142348545715,
+      "macdSignal": -0.568172494472425,
+      "bbUpper": 59.37608308038595,
+      "bbLower": 55.42991691961406
     },
     {
       "date": "06-18",
-      "open": 59.5,
-      "close": 59.2,
-      "high": 59.7,
-      "low": 59.1,
-      "volume": 2482800,
-      "sma20": 58.90500000000001,
-      "ema12": 59.0080493096902,
+      "open": 57.61,
+      "close": 57.32,
+      "high": 57.81,
+      "low": 57.23,
+      "volume": 2486869,
+      "sma20": 57.319,
+      "ema12": 57.247041216080746,
       "rsi": 50.0,
-      "macd": -0.028435330202121634,
-      "macdSignal": -0.10500861672002475,
-      "bbUpper": 59.75470583144993,
-      "bbLower": 58.055294168550084
+      "macd": -0.4264682445631891,
+      "macdSignal": -0.5398316444905779,
+      "bbUpper": 59.143244905072855,
+      "bbLower": 55.49475509492715
     },
     {
       "date": "06-19",
-      "open": 59.2,
-      "close": 59.0,
-      "high": 59.4,
-      "low": 58.9,
-      "volume": 3349900,
-      "sma20": 58.88000000000001,
-      "ema12": 59.00681095435325,
-      "rsi": 48.979591836734684,
-      "macd": -0.026971119621123307,
-      "macdSignal": -0.08940111730024446,
-      "bbUpper": 59.68419950392007,
-      "bbLower": 58.07580049607995
+      "open": 57.32,
+      "close": 57.13,
+      "high": 57.52,
+      "low": 57.03,
+      "volume": 3354797,
+      "sma20": 57.2005,
+      "ema12": 57.229034875145246,
+      "rsi": 48.94514767932495,
+      "macd": -0.4042146254509902,
+      "macdSignal": -0.5127082406826603,
+      "bbUpper": 58.70875762143992,
+      "bbLower": 55.692242378560074
     },
     {
       "date": "06-22",
@@ -96815,13 +97312,13 @@ export const candlestickByTicker = {
       "high": 57.71,
       "low": 56.74,
       "volume": 3005261,
-      "sma20": 58.762,
-      "ema12": 58.658070807529676,
-      "rsi": 36.036036036036094,
-      "macd": -0.2058014831873365,
-      "macdSignal": -0.11268119047766287,
-      "bbUpper": 60.00379157501953,
-      "bbLower": 57.520208424980474
+      "sma20": 57.082499999999996,
+      "ema12": 57.15379874050752,
+      "rsi": 50.0,
+      "macd": -0.4132841304149224,
+      "macdSignal": -0.4928234186291127,
+      "bbUpper": 58.3077582971508,
+      "bbLower": 55.857241702849194
     },
     {
       "date": "06-23",
@@ -96830,13 +97327,13 @@ export const candlestickByTicker = {
       "high": 57.13,
       "low": 56.55,
       "volume": 2300575,
-      "sma20": 58.6345,
-      "ema12": 58.33375222175588,
-      "rsi": 36.641221374045855,
-      "macd": -0.35872212150061245,
-      "macdSignal": -0.16188937668225278,
-      "bbUpper": 60.20918760477486,
-      "bbLower": 57.059812395225144
+      "sma20": 56.955000000000005,
+      "ema12": 57.06090662658328,
+      "rsi": 51.10132158590302,
+      "macd": -0.4308367724189779,
+      "macdSignal": -0.48042608938708575,
+      "bbUpper": 57.75224525711982,
+      "bbLower": 56.15775474288019
     },
     {
       "date": "06-24",
@@ -96845,13 +97342,13 @@ export const candlestickByTicker = {
       "high": 56.84,
       "low": 56.26,
       "volume": 1538566,
-      "sma20": 58.51700000000001,
-      "ema12": 58.04394418763959,
-      "rsi": 33.07086614173234,
-      "macd": -0.48242094500530897,
-      "macdSignal": -0.225995690346864,
-      "bbUpper": 60.36642779201968,
-      "bbLower": 56.66757220798034
+      "sma20": 56.930499999999995,
+      "ema12": 56.966920991724315,
+      "rsi": 46.66666666666668,
+      "macd": -0.44765622957407203,
+      "macdSignal": -0.473872117424483,
+      "bbUpper": 57.75918253079338,
+      "bbLower": 56.10181746920661
     },
     {
       "date": "06-25",
@@ -96860,13 +97357,13 @@ export const candlestickByTicker = {
       "high": 56.74,
       "low": 56.36,
       "volume": 1812950,
-      "sma20": 58.38950000000001,
-      "ema12": 57.79872200492581,
-      "rsi": 34.1463414634147,
-      "macd": -0.5738383030787304,
-      "macdSignal": -0.2955642128932373,
-      "bbUpper": 60.439449678458125,
-      "bbLower": 56.3395503215419
+      "sma20": 56.8965,
+      "ema12": 56.88739468530519,
+      "rsi": 48.798076923076984,
+      "macd": -0.4557323714525765,
+      "macdSignal": -0.4702441682301017,
+      "bbUpper": 57.74624980838017,
+      "bbLower": 56.046750191619836
     },
     {
       "date": "06-26",
@@ -96875,13 +97372,13 @@ export const candlestickByTicker = {
       "high": 56.8,
       "low": 55.9,
       "volume": 3173400,
-      "sma20": 58.2445,
-      "ema12": 57.568149388783375,
-      "rsi": 35.59322033898307,
-      "macd": -0.6508879334430446,
-      "macdSignal": -0.36662895700319875,
-      "bbUpper": 60.45688118919769,
-      "bbLower": 56.03211881080232
+      "sma20": 56.845499999999994,
+      "ema12": 56.79702627218131,
+      "rsi": 51.78571428571429,
+      "macd": -0.4688321137055098,
+      "macdSignal": -0.4699617573251833,
+      "bbUpper": 57.71052753226644,
+      "bbLower": 55.98047246773355
     }
   ],
   "VOS": [
@@ -97876,503 +98373,6 @@ export const candlestickByTicker = {
       "macdSignal": -0.19740155074351856,
       "bbUpper": 26.99717917078478,
       "bbLower": 25.63282082921523
-    }
-  ],
-  "VPG": [
-    {
-      "date": "05-13",
-      "open": 3.6,
-      "close": 3.85,
-      "high": 3.85,
-      "low": 3.49,
-      "volume": 728900,
-      "sma20": 3.85,
-      "ema12": 3.85,
-      "rsi": 50.0,
-      "macd": 0.0,
-      "macdSignal": 0.0,
-      "bbUpper": 3.85,
-      "bbLower": 3.49
-    },
-    {
-      "date": "05-14",
-      "open": 3.83,
-      "close": 3.86,
-      "high": 4.04,
-      "low": 3.61,
-      "volume": 408400,
-      "sma20": 3.86,
-      "ema12": 3.851538461538462,
-      "rsi": 50.0,
-      "macd": 0.0007977207977210021,
-      "macdSignal": 0.00015954415954420043,
-      "bbUpper": 4.04,
-      "bbLower": 3.61
-    },
-    {
-      "date": "05-15",
-      "open": 3.84,
-      "close": 3.6,
-      "high": 3.85,
-      "low": 3.59,
-      "volume": 882700,
-      "sma20": 3.6,
-      "ema12": 3.812840236686391,
-      "rsi": 50.0,
-      "macd": -0.019327115851332177,
-      "macdSignal": -0.0037377878426310754,
-      "bbUpper": 3.85,
-      "bbLower": 3.59
-    },
-    {
-      "date": "05-18",
-      "open": 3.72,
-      "close": 3.59,
-      "high": 3.72,
-      "low": 3.56,
-      "volume": 74800,
-      "sma20": 3.59,
-      "ema12": 3.7785571233500233,
-      "rsi": 50.0,
-      "macd": -0.03567190677749821,
-      "macdSignal": -0.010124611629604503,
-      "bbUpper": 3.72,
-      "bbLower": 3.56
-    },
-    {
-      "date": "05-19",
-      "open": 3.59,
-      "close": 3.5,
-      "high": 3.63,
-      "low": 3.45,
-      "volume": 171900,
-      "sma20": 3.5,
-      "ema12": 3.7357021812961735,
-      "rsi": 50.0,
-      "macd": -0.055250624377457314,
-      "macdSignal": -0.019149814179175065,
-      "bbUpper": 3.63,
-      "bbLower": 3.45
-    },
-    {
-      "date": "05-20",
-      "open": 3.47,
-      "close": 3.46,
-      "high": 3.51,
-      "low": 3.41,
-      "volume": 183200,
-      "sma20": 3.46,
-      "ema12": 3.693286461096762,
-      "rsi": 50.0,
-      "macd": -0.07315132193437757,
-      "macdSignal": -0.029950115730215568,
-      "bbUpper": 3.51,
-      "bbLower": 3.41
-    },
-    {
-      "date": "05-21",
-      "open": 3.47,
-      "close": 3.43,
-      "high": 3.47,
-      "low": 3.38,
-      "volume": 107600,
-      "sma20": 3.43,
-      "ema12": 3.65278085169726,
-      "rsi": 50.0,
-      "macd": -0.08873561407231367,
-      "macdSignal": -0.041707215398635186,
-      "bbUpper": 3.47,
-      "bbLower": 3.38
-    },
-    {
-      "date": "05-22",
-      "open": 3.42,
-      "close": 3.35,
-      "high": 3.43,
-      "low": 3.34,
-      "volume": 197400,
-      "sma20": 3.35,
-      "ema12": 3.606199182205374,
-      "rsi": 50.0,
-      "macd": -0.10631606387756465,
-      "macdSignal": -0.05462898509442108,
-      "bbUpper": 3.43,
-      "bbLower": 3.34
-    },
-    {
-      "date": "05-25",
-      "open": 3.43,
-      "close": 3.34,
-      "high": 3.43,
-      "low": 3.26,
-      "volume": 127700,
-      "sma20": 3.34,
-      "ema12": 3.565245461866086,
-      "rsi": 50.0,
-      "macd": -0.11967606228478322,
-      "macdSignal": -0.06763840053249351,
-      "bbUpper": 3.43,
-      "bbLower": 3.26
-    },
-    {
-      "date": "05-26",
-      "open": 3.33,
-      "close": 3.3,
-      "high": 3.33,
-      "low": 3.25,
-      "volume": 82000,
-      "sma20": 3.3,
-      "ema12": 3.5244384677328418,
-      "rsi": 50.0,
-      "macd": -0.13197035092537046,
-      "macdSignal": -0.0805047906110689,
-      "bbUpper": 3.33,
-      "bbLower": 3.25
-    },
-    {
-      "date": "05-27",
-      "open": 3.27,
-      "close": 3.26,
-      "high": 3.34,
-      "low": 3.26,
-      "volume": 134900,
-      "sma20": 3.26,
-      "ema12": 3.4837556265431737,
-      "rsi": 50.0,
-      "macd": -0.14328957591813385,
-      "macdSignal": -0.09306174767248189,
-      "bbUpper": 3.34,
-      "bbLower": 3.26
-    },
-    {
-      "date": "05-28",
-      "open": 3.26,
-      "close": 3.29,
-      "high": 3.33,
-      "low": 3.26,
-      "volume": 101500,
-      "sma20": 3.29,
-      "ema12": 3.453947068613455,
-      "rsi": 50.0,
-      "macd": -0.1481318225544226,
-      "macdSignal": -0.10407576264887003,
-      "bbUpper": 3.33,
-      "bbLower": 3.26
-    },
-    {
-      "date": "05-29",
-      "open": 3.31,
-      "close": 3.21,
-      "high": 3.31,
-      "low": 3.21,
-      "volume": 110600,
-      "sma20": 3.21,
-      "ema12": 3.416416750365231,
-      "rsi": 50.0,
-      "macd": -0.15661925997539594,
-      "macdSignal": -0.11458446211417521,
-      "bbUpper": 3.31,
-      "bbLower": 3.21
-    },
-    {
-      "date": "06-01",
-      "open": 3.16,
-      "close": 3.14,
-      "high": 3.22,
-      "low": 3.14,
-      "volume": 187000,
-      "sma20": 3.14,
-      "ema12": 3.373891096462888,
-      "rsi": 5.063291139240519,
-      "macd": -0.16706817237102634,
-      "macdSignal": -0.12508120416554544,
-      "bbUpper": 3.22,
-      "bbLower": 3.14
-    },
-    {
-      "date": "06-02",
-      "open": 2.93,
-      "close": 3.04,
-      "high": 3.13,
-      "low": 2.93,
-      "volume": 470300,
-      "sma20": 3.04,
-      "ema12": 3.3225232354685974,
-      "rsi": 4.49438202247191,
-      "macd": -0.18132793937761926,
-      "macdSignal": -0.1363305512079602,
-      "bbUpper": 3.13,
-      "bbLower": 2.93
-    },
-    {
-      "date": "06-03",
-      "open": 3.05,
-      "close": 3.01,
-      "high": 3.05,
-      "low": 2.95,
-      "volume": 201700,
-      "sma20": 3.01,
-      "ema12": 3.274442737704198,
-      "rsi": 3.2967032967033276,
-      "macd": -0.19282686863489173,
-      "macdSignal": -0.14762981469334652,
-      "bbUpper": 3.05,
-      "bbLower": 2.95
-    },
-    {
-      "date": "06-04",
-      "open": 3.03,
-      "close": 2.96,
-      "high": 3.03,
-      "low": 2.95,
-      "volume": 166300,
-      "sma20": 2.96,
-      "ema12": 3.226066931903552,
-      "rsi": 4.28571428571432,
-      "macd": -0.20362714804004955,
-      "macdSignal": -0.15882928136268712,
-      "bbUpper": 3.03,
-      "bbLower": 2.95
-    },
-    {
-      "date": "06-05",
-      "open": 2.96,
-      "close": 2.94,
-      "high": 2.99,
-      "low": 2.93,
-      "volume": 109400,
-      "sma20": 2.94,
-      "ema12": 3.182056634687621,
-      "rsi": 4.225352112676077,
-      "macd": -0.2113638097046029,
-      "macdSignal": -0.16933618703107028,
-      "bbUpper": 2.99,
-      "bbLower": 2.93
-    },
-    {
-      "date": "06-08",
-      "open": 2.85,
-      "close": 2.87,
-      "high": 2.93,
-      "low": 2.82,
-      "volume": 132700,
-      "sma20": 2.87,
-      "ema12": 3.1340479216587562,
-      "rsi": 4.347826086956559,
-      "macd": -0.22060063796367313,
-      "macdSignal": -0.17958907721759085,
-      "bbUpper": 2.93,
-      "bbLower": 2.82
-    },
-    {
-      "date": "06-09",
-      "open": 2.86,
-      "close": 2.86,
-      "high": 2.9,
-      "low": 2.82,
-      "volume": 176500,
-      "sma20": 3.293,
-      "ema12": 3.0918867029420243,
-      "rsi": 4.545454545454575,
-      "macd": -0.226121222634299,
-      "macdSignal": -0.1888955063009325,
-      "bbUpper": 3.8888841286163296,
-      "bbLower": 2.6971158713836707
-    },
-    {
-      "date": "06-10",
-      "open": 2.9,
-      "close": 3.06,
-      "high": 3.06,
-      "low": 2.88,
-      "volume": 758000,
-      "sma20": 3.2535,
-      "ema12": 3.086981056335559,
-      "rsi": 27.710843373494,
-      "macd": -0.21191517104992563,
-      "macdSignal": -0.19349943925073113,
-      "bbUpper": 3.7962910327770327,
-      "bbLower": 2.710708967222967
-    },
-    {
-      "date": "06-11",
-      "open": 3.07,
-      "close": 3.05,
-      "high": 3.21,
-      "low": 3.05,
-      "volume": 307800,
-      "sma20": 3.213,
-      "ema12": 3.0812916630531655,
-      "rsi": 30.26315789473685,
-      "macd": -0.19916780674820922,
-      "macdSignal": -0.19463311275022674,
-      "bbUpper": 3.6809676102152014,
-      "bbLower": 2.745032389784799
-    },
-    {
-      "date": "06-12",
-      "open": 2.91,
-      "close": 2.91,
-      "high": 3.06,
-      "low": 2.88,
-      "volume": 321000,
-      "sma20": 3.1785,
-      "ema12": 3.054939099506525,
-      "rsi": 25.84269662921352,
-      "macd": -0.1980789280873405,
-      "macdSignal": -0.1953222758176495,
-      "bbUpper": 3.627699287621876,
-      "bbLower": 2.7293007123781243
-    },
-    {
-      "date": "06-15",
-      "open": 2.91,
-      "close": 2.89,
-      "high": 2.97,
-      "low": 2.85,
-      "volume": 380600,
-      "sma20": 3.1435000000000004,
-      "ema12": 3.029563853428598,
-      "rsi": 26.436781609195435,
-      "macd": -0.19656394989905523,
-      "macdSignal": -0.19557061063393064,
-      "bbUpper": 3.565987620497554,
-      "bbLower": 2.721012379502447
-    },
-    {
-      "date": "06-16",
-      "open": 2.91,
-      "close": 2.92,
-      "high": 2.96,
-      "low": 2.9,
-      "volume": 316200,
-      "sma20": 3.1145,
-      "ema12": 3.0127078759780446,
-      "rsi": 30.232558139534902,
-      "macd": -0.19074379376978268,
-      "macdSignal": -0.19460524726110104,
-      "bbUpper": 3.512890181658768,
-      "bbLower": 2.716109818341232
-    },
-    {
-      "date": "06-17",
-      "open": 2.92,
-      "close": 2.93,
-      "high": 2.94,
-      "low": 2.92,
-      "volume": 215000,
-      "sma20": 3.088,
-      "ema12": 2.999983587366038,
-      "rsi": 28.571428571428584,
-      "macd": -0.18321240314120946,
-      "macdSignal": -0.19232667843712273,
-      "bbUpper": 3.459205716834382,
-      "bbLower": 2.716794283165618
-    },
-    {
-      "date": "06-18",
-      "open": 2.92,
-      "close": 2.9,
-      "high": 2.94,
-      "low": 2.89,
-      "volume": 399500,
-      "sma20": 3.0615,
-      "ema12": 2.984601497002032,
-      "rsi": 30.379746835443044,
-      "macd": -0.17761701272690056,
-      "macdSignal": -0.1893847452950783,
-      "bbUpper": 3.4045068282272632,
-      "bbLower": 2.718493171772737
-    },
-    {
-      "date": "06-19",
-      "open": 2.92,
-      "close": 2.89,
-      "high": 2.92,
-      "low": 2.87,
-      "volume": 207500,
-      "sma20": 3.0385,
-      "ema12": 2.970047420540181,
-      "rsi": 32.87671232876713,
-      "macd": -0.1720067551347566,
-      "macdSignal": -0.18590914726301394,
-      "bbUpper": 3.3611387910243984,
-      "bbLower": 2.7158612089756016
-    },
-    {
-      "date": "06-22",
-      "open": 2.93,
-      "close": 2.87,
-      "high": 2.93,
-      "low": 2.73,
-      "volume": 84900,
-      "sma20": 3.015,
-      "ema12": 2.9546555096878455,
-      "rsi": 36.923076923076934,
-      "macd": -0.16724650482598546,
-      "macdSignal": -0.18217661877560826,
-      "bbUpper": 3.312675202722348,
-      "bbLower": 2.7173247972776524
-    },
-    {
-      "date": "06-23",
-      "open": 2.89,
-      "close": 2.75,
-      "high": 2.89,
-      "low": 2.75,
-      "volume": 176300,
-      "sma20": 2.9875,
-      "ema12": 2.9231700466589463,
-      "rsi": 32.43243243243245,
-      "macd": -0.1711836704834897,
-      "macdSignal": -0.17997802911718455,
-      "bbUpper": 3.2757889632223036,
-      "bbLower": 2.699211036777696
-    },
-    {
-      "date": "06-24",
-      "open": 2.75,
-      "close": 2.68,
-      "high": 2.78,
-      "low": 2.68,
-      "volume": 288500,
-      "sma20": 2.9585,
-      "ema12": 2.8857592702498778,
-      "rsi": 31.57894736842107,
-      "macd": -0.1779015789560816,
-      "macdSignal": -0.17956273908496395,
-      "bbUpper": 3.2480568301641983,
-      "bbLower": 2.6689431698358015
-    },
-    {
-      "date": "06-25",
-      "open": 2.68,
-      "close": 2.69,
-      "high": 2.72,
-      "low": 2.68,
-      "volume": 178800,
-      "sma20": 2.9285,
-      "ema12": 2.8556424594422043,
-      "rsi": 33.33333333333333,
-      "macd": -0.18033980834109142,
-      "macdSignal": -0.17971815293618945,
-      "bbUpper": 3.197006591117771,
-      "bbLower": 2.659993408882229
-    },
-    {
-      "date": "06-26",
-      "open": 2.69,
-      "close": 2.62,
-      "high": 2.69,
-      "low": 2.52,
-      "volume": 284000,
-      "sma20": 2.899,
-      "ema12": 2.819389773374173,
-      "rsi": 33.33333333333333,
-      "macd": -0.18577899309184165,
-      "macdSignal": -0.1809303209673199,
-      "bbUpper": 3.16692772002519,
-      "bbLower": 2.63107227997481
     }
   ],
   "VPI": [
@@ -102926,6 +102926,12 @@ export const stockList = [
     "sector": "Chứng khoán"
   },
   {
+    "ticker": "ACB",
+    "name": "Ngân hàng TMCP Á Châu",
+    "exchange": "HOSE",
+    "sector": "Ngân hàng"
+  },
+  {
     "ticker": "GEX",
     "name": "CTCP Tập đoàn GELEX",
     "exchange": "HOSE",
@@ -102936,12 +102942,6 @@ export const stockList = [
     "name": "CTCP Chứng khoán VNDIRECT",
     "exchange": "HOSE",
     "sector": "Chứng khoán"
-  },
-  {
-    "ticker": "ACB",
-    "name": "Ngân hàng TMCP Á Châu",
-    "exchange": "HOSE",
-    "sector": "Ngân hàng"
   },
   {
     "ticker": "VPB",
@@ -102992,6 +102992,12 @@ export const stockList = [
     "sector": "Tiêu dùng"
   },
   {
+    "ticker": "BID",
+    "name": "Ngân hàng TMCP Đầu tư và Phát triển Việt Nam",
+    "exchange": "HOSE",
+    "sector": "Ngân hàng"
+  },
+  {
     "ticker": "VJC",
     "name": "CTCP Hàng không Vietjet",
     "exchange": "HOSE",
@@ -103008,12 +103014,6 @@ export const stockList = [
     "name": "CTCP Đầu tư Nam Long",
     "exchange": "HOSE",
     "sector": "Bất động sản"
-  },
-  {
-    "ticker": "BID",
-    "name": "Ngân hàng TMCP Đầu tư và Phát triển Việt Nam",
-    "exchange": "HOSE",
-    "sector": "Ngân hàng"
   },
   {
     "ticker": "MSB",
@@ -103142,6 +103142,12 @@ export const stockList = [
     "sector": "Chứng khoán"
   },
   {
+    "ticker": "BMP",
+    "name": "CTCP Nhựa Bình Minh",
+    "exchange": "HOSE",
+    "sector": "Nhựa & bao bì"
+  },
+  {
     "ticker": "ORS",
     "name": "CTCP Chứng khoán Tiên Phong",
     "exchange": "HOSE",
@@ -103158,12 +103164,6 @@ export const stockList = [
     "name": "CTCP Đầu tư và Kinh doanh Nhà Khang Điền",
     "exchange": "HOSE",
     "sector": "Bất động sản"
-  },
-  {
-    "ticker": "BMP",
-    "name": "CTCP Nhựa Bình Minh",
-    "exchange": "HOSE",
-    "sector": "Nhựa & bao bì"
   },
   {
     "ticker": "HCM",
@@ -103212,6 +103212,12 @@ export const stockList = [
     "name": "CTCP Tập đoàn Hóa chất Đức Giang",
     "exchange": "HOSE",
     "sector": "Hóa chất & phân bón"
+  },
+  {
+    "ticker": "BAF",
+    "name": "CTCP Nông nghiệp BAF Việt Nam",
+    "exchange": "HOSE",
+    "sector": "Nông nghiệp & thực phẩm"
   },
   {
     "ticker": "PVT",
@@ -103288,12 +103294,6 @@ export const stockList = [
   {
     "ticker": "HAG",
     "name": "CTCP Hoàng Anh Gia Lai",
-    "exchange": "HOSE",
-    "sector": "Nông nghiệp & thực phẩm"
-  },
-  {
-    "ticker": "BAF",
-    "name": "CTCP Nông nghiệp BAF Việt Nam",
     "exchange": "HOSE",
     "sector": "Nông nghiệp & thực phẩm"
   },
@@ -103460,6 +103460,12 @@ export const stockList = [
     "sector": "Dầu khí"
   },
   {
+    "ticker": "AAN",
+    "name": "CTCP Lương thực A An",
+    "exchange": "HOSE",
+    "sector": "Nông nghiệp & thực phẩm"
+  },
+  {
     "ticker": "BSI",
     "name": "CTCP Chứng khoán BIDV",
     "exchange": "HOSE",
@@ -103470,12 +103476,6 @@ export const stockList = [
     "name": "CTCP KOSY",
     "exchange": "HOSE",
     "sector": "Bất động sản"
-  },
-  {
-    "ticker": "AAN",
-    "name": "CTCP Lương thực A An",
-    "exchange": "HOSE",
-    "sector": "Nông nghiệp & thực phẩm"
   },
   {
     "ticker": "CTD",
@@ -103520,6 +103520,12 @@ export const stockList = [
     "sector": "Chứng khoán"
   },
   {
+    "ticker": "BCM",
+    "name": "Tập đoàn Đầu tư và Phát triển Công nghiệp Becamex - CTCP",
+    "exchange": "HOSE",
+    "sector": "Bất động sản khu công nghiệp"
+  },
+  {
     "ticker": "VDS",
     "name": "CTCP Chứng khoán Rồng Việt",
     "exchange": "HOSE",
@@ -103550,6 +103556,12 @@ export const stockList = [
     "sector": "Ngân hàng"
   },
   {
+    "ticker": "ANV",
+    "name": "CTCP Nam Việt",
+    "exchange": "HOSE",
+    "sector": "Nông nghiệp & thực phẩm"
+  },
+  {
     "ticker": "HSL",
     "name": "CTCP Đầu tư Phát triển Thực phẩm Hồng Hà",
     "exchange": "HOSE",
@@ -103562,22 +103574,10 @@ export const stockList = [
     "sector": "Khoáng sản & VLXD"
   },
   {
-    "ticker": "BCM",
-    "name": "Tập đoàn Đầu tư và Phát triển Công nghiệp Becamex - CTCP",
-    "exchange": "HOSE",
-    "sector": "Bất động sản khu công nghiệp"
-  },
-  {
     "ticker": "SMC",
     "name": "CTCP Đầu tư Thương mại SMC",
     "exchange": "HOSE",
     "sector": "Thép"
-  },
-  {
-    "ticker": "ANV",
-    "name": "CTCP Nam Việt",
-    "exchange": "HOSE",
-    "sector": "Nông nghiệp & thực phẩm"
   },
   {
     "ticker": "ELC",
@@ -103634,10 +103634,22 @@ export const stockList = [
     "sector": "Xây dựng & hạ tầng"
   },
   {
+    "ticker": "AAA",
+    "name": "CTCP Nhựa An Phát Xanh",
+    "exchange": "HOSE",
+    "sector": "Nhựa & bao bì"
+  },
+  {
     "ticker": "CTF",
     "name": "CTCP City Auto",
     "exchange": "HOSE",
     "sector": "Bán lẻ"
+  },
+  {
+    "ticker": "ASP",
+    "name": "CTCP Tập đoàn Dầu khí An Pha",
+    "exchange": "HOSE",
+    "sector": "Khác"
   },
   {
     "ticker": "PAN",
@@ -103652,12 +103664,6 @@ export const stockList = [
     "sector": "Bất động sản"
   },
   {
-    "ticker": "AAA",
-    "name": "CTCP Nhựa An Phát Xanh",
-    "exchange": "HOSE",
-    "sector": "Nhựa & bao bì"
-  },
-  {
     "ticker": "TDP",
     "name": "CTCP Thuận Đức",
     "exchange": "HOSE",
@@ -103670,12 +103676,6 @@ export const stockList = [
     "sector": "Khoáng sản & VLXD"
   },
   {
-    "ticker": "ASP",
-    "name": "CTCP Tập đoàn Dầu khí An Pha",
-    "exchange": "HOSE",
-    "sector": "Khác"
-  },
-  {
     "ticker": "MSH",
     "name": "CTCP May Sông Hồng",
     "exchange": "HOSE",
@@ -103686,6 +103686,12 @@ export const stockList = [
     "name": "CTCP Tập đoàn Cơ khí Công nghệ cao Siba",
     "exchange": "HOSE",
     "sector": "Công nghiệp"
+  },
+  {
+    "ticker": "AGR",
+    "name": "CTCP Chứng khoán Agribank",
+    "exchange": "HOSE",
+    "sector": "Chứng khoán"
   },
   {
     "ticker": "GEG",
@@ -103710,12 +103716,6 @@ export const stockList = [
     "name": "CTCP Hóa chất Cơ bản Miền Nam",
     "exchange": "HOSE",
     "sector": "Hóa chất & phân bón"
-  },
-  {
-    "ticker": "AGR",
-    "name": "CTCP Chứng khoán Agribank",
-    "exchange": "HOSE",
-    "sector": "Chứng khoán"
   },
   {
     "ticker": "FCN",
@@ -103790,14 +103790,14 @@ export const stockList = [
     "sector": "Công nghệ"
   },
   {
-    "ticker": "VIP",
-    "name": "CTCP Vận tải Xăng dầu VIPCO",
+    "ticker": "ASM",
+    "name": "CTCP Tập đoàn Sao Mai",
     "exchange": "HOSE",
     "sector": "Khác"
   },
   {
-    "ticker": "MCM",
-    "name": "CTCP Giống Bò sữa Mộc Châu",
+    "ticker": "VIP",
+    "name": "CTCP Vận tải Xăng dầu VIPCO",
     "exchange": "HOSE",
     "sector": "Khác"
   },
@@ -103808,10 +103808,16 @@ export const stockList = [
     "sector": "Chứng khoán"
   },
   {
-    "ticker": "ASM",
-    "name": "CTCP Tập đoàn Sao Mai",
+    "ticker": "MCM",
+    "name": "CTCP Giống Bò sữa Mộc Châu",
     "exchange": "HOSE",
     "sector": "Khác"
+  },
+  {
+    "ticker": "AGG",
+    "name": "CTCP Đầu tư và Phát triển Bất động sản An Gia",
+    "exchange": "HOSE",
+    "sector": "Bất động sản"
   },
   {
     "ticker": "CDC",
@@ -103830,12 +103836,6 @@ export const stockList = [
     "name": "CTCP Tư vấn Xây dựng Điện 2",
     "exchange": "HOSE",
     "sector": "Điện nước & tiện ích"
-  },
-  {
-    "ticker": "AGG",
-    "name": "CTCP Đầu tư và Phát triển Bất động sản An Gia",
-    "exchange": "HOSE",
-    "sector": "Bất động sản"
   },
   {
     "ticker": "BKG",
@@ -103862,6 +103862,12 @@ export const stockList = [
     "sector": "Khác"
   },
   {
+    "ticker": "BFC",
+    "name": "CTCP Phân bón Bình Điền",
+    "exchange": "HOSE",
+    "sector": "Khác"
+  },
+  {
     "ticker": "TTA",
     "name": "CTCP Đầu tư Xây dựng và Phát triển Trường Thành",
     "exchange": "HOSE",
@@ -103870,12 +103876,6 @@ export const stockList = [
   {
     "ticker": "TCO",
     "name": "CTCP Janus Group",
-    "exchange": "HOSE",
-    "sector": "Khác"
-  },
-  {
-    "ticker": "BFC",
-    "name": "CTCP Phân bón Bình Điền",
     "exchange": "HOSE",
     "sector": "Khác"
   },
@@ -104012,6 +104012,12 @@ export const stockList = [
     "sector": "Khác"
   },
   {
+    "ticker": "AFX",
+    "name": "CTCP Xuất nhập khẩu Nông sản Thực phẩm An Giang",
+    "exchange": "HOSE",
+    "sector": "Khác"
+  },
+  {
     "ticker": "DHA",
     "name": "CTCP Hóa An",
     "exchange": "HOSE",
@@ -104024,8 +104030,8 @@ export const stockList = [
     "sector": "Khác"
   },
   {
-    "ticker": "AFX",
-    "name": "CTCP Xuất nhập khẩu Nông sản Thực phẩm An Giang",
+    "ticker": "ADS",
+    "name": "CTCP Damsan",
     "exchange": "HOSE",
     "sector": "Khác"
   },
@@ -104044,12 +104050,6 @@ export const stockList = [
   {
     "ticker": "HAX",
     "name": "CTCP Dịch vụ Ô tô Hàng Xanh",
-    "exchange": "HOSE",
-    "sector": "Khác"
-  },
-  {
-    "ticker": "VPG",
-    "name": "CTCP Đầu tư Thương mại Xuất nhập khẩu Việt Phát",
     "exchange": "HOSE",
     "sector": "Khác"
   }
@@ -104107,8 +104107,8 @@ export const technicalSignals = [
     "close": 2.42,
     "bbUpper": 2.763488725852071,
     "bbLower": 2.3305112741479284,
-    "volume": 744100,
-    "volSma20": 232045.0,
+    "volume": 757400,
+    "volSma20": 232710.0,
     "signal": "volume_spike",
     "pct": -6.923076923076929
   },
@@ -104121,8 +104121,8 @@ export const technicalSignals = [
     "close": 8.33,
     "bbUpper": 8.111722973613888,
     "bbLower": 6.893277026386113,
-    "volume": 513100,
-    "volSma20": 173570.0,
+    "volume": 566500,
+    "volSma20": 176240.0,
     "signal": "overbought",
     "pct": 6.794871794871798
   },
@@ -104429,8 +104429,8 @@ export const technicalSignals = [
     "close": 8.51,
     "bbUpper": 9.040149912091128,
     "bbLower": 8.484850087908871,
-    "volume": 2500,
-    "volSma20": 8930.35,
+    "volume": 2600,
+    "volSma20": 8935.35,
     "signal": "macd_positive",
     "pct": -3.7330316742081453
   },
@@ -104511,7 +104511,7 @@ export const dagStatus = [
     "status": "success",
     "lastRun": "latest",
     "duration": "snapshot",
-    "records": 30,
+    "records": 15,
     "tasks": 2,
     "failed": 0
   },
@@ -104529,7 +104529,7 @@ export const dagStatus = [
     "status": "success",
     "lastRun": "latest",
     "duration": "snapshot",
-    "records": 0,
+    "records": 229,
     "tasks": 1,
     "failed": 0
   }
@@ -104569,26 +104569,6 @@ export const ingestHistory = [
 ];
 
 export const kafkaLag = [
-  {
-    "time": "09:June",
-    "lag": 0
-  },
-  {
-    "time": "09:June",
-    "lag": 0
-  },
-  {
-    "time": "09:June",
-    "lag": 0
-  },
-  {
-    "time": "09:June",
-    "lag": 0
-  },
-  {
-    "time": "09:June",
-    "lag": 0
-  },
   {
     "time": "09:June",
     "lag": 0
@@ -104651,46 +104631,6 @@ export const vwapData = [
     "sessionVwap": 58281.75,
     "volume": 640,
     "deviation": 0.43452710325273347
-  },
-  {
-    "time": "09:June",
-    "price": 58655.0,
-    "vwap": 58633.63636363636,
-    "sessionVwap": 58345.20491803279,
-    "volume": 660,
-    "deviation": 0.5309692242960361
-  },
-  {
-    "time": "09:June",
-    "price": 58775.0,
-    "vwap": 58753.60294117647,
-    "sessionVwap": 58409.1935483871,
-    "volume": 680,
-    "deviation": 0.626282318570041
-  },
-  {
-    "time": "09:June",
-    "price": 58895.0,
-    "vwap": 58873.57142857143,
-    "sessionVwap": 58473.69047619047,
-    "volume": 700,
-    "deviation": 0.7205112596426198
-  },
-  {
-    "time": "09:June",
-    "price": 59015.0,
-    "vwap": 58993.541666666664,
-    "sessionVwap": 58538.671875,
-    "volume": 720,
-    "deviation": 0.8136982096504047
-  },
-  {
-    "time": "09:June",
-    "price": 59135.0,
-    "vwap": 59113.51351351351,
-    "sessionVwap": 58604.11538461538,
-    "volume": 740,
-    "deviation": 0.9058828239287503
   }
 ];
 
@@ -104700,12 +104640,12 @@ export const vwapDeviations = [
     "name": "Ngân hàng TMCP Ngoại thương Việt Nam",
     "sector": "Ngân hàng",
     "exchange": "HOSE",
-    "price": 51125.0,
-    "sessionVwap": 50599.86363636364,
-    "vwap": 50599.86363636364,
-    "deviation": 1.0378216973276002,
-    "volume": 5500,
-    "volSma": 550.0,
+    "price": 50525.0,
+    "sessionVwap": 50273.6,
+    "vwap": 50273.6,
+    "deviation": 0.5000636516979119,
+    "volume": 2500,
+    "volSma": 500.0,
     "alerts": 0
   },
   {
@@ -104713,12 +104653,12 @@ export const vwapDeviations = [
     "name": "CTCP FPT",
     "sector": "Công nghệ",
     "exchange": "HOSE",
-    "price": 59135.0,
-    "sessionVwap": 58604.11538461538,
-    "vwap": 58604.11538461538,
-    "deviation": 0.9058828239287503,
-    "volume": 6500,
-    "volSma": 650.0,
+    "price": 58535.0,
+    "sessionVwap": 58281.75,
+    "vwap": 58281.75,
+    "deviation": 0.43452710325273347,
+    "volume": 3000,
+    "volSma": 600.0,
     "alerts": 0
   },
   {
@@ -104726,12 +104666,12 @@ export const vwapDeviations = [
     "name": "CTCP Tập đoàn Hòa Phát",
     "sector": "Thép",
     "exchange": "HOSE",
-    "price": 67145.0,
-    "sessionVwap": 66609.9,
-    "vwap": 66609.9,
-    "deviation": 0.8033340389341612,
-    "volume": 7500,
-    "volSma": 750.0,
+    "price": 66545.0,
+    "sessionVwap": 66290.42857142857,
+    "vwap": 66290.42857142857,
+    "deviation": 0.38402441205691057,
+    "volume": 3500,
+    "volSma": 700.0,
     "alerts": 0
   }
 ];
@@ -105726,8 +105666,1330 @@ export const sentimentByDate = [
   }
 ];
 
-export const alertHistory = [];
+export const alertHistory = [
+  {
+    "id": 1,
+    "user": "demo_user",
+    "ticker": "TCH",
+    "condition": "BB_BREAK",
+    "threshold": 0.0,
+    "actual": 14.25,
+    "channel": "TELEGRAM",
+    "status": "failed",
+    "sentAt": null,
+    "triggeredAt": "06:June:41",
+    "cooldown": 30
+  },
+  {
+    "id": 6,
+    "user": "demo_user",
+    "ticker": "SKG",
+    "condition": "BB_BREAK",
+    "threshold": 0.0,
+    "actual": 8.34,
+    "channel": "TELEGRAM",
+    "status": "failed",
+    "sentAt": null,
+    "triggeredAt": "06:June:41",
+    "cooldown": 30
+  },
+  {
+    "id": 9,
+    "user": "demo_user",
+    "ticker": "REE",
+    "condition": "BB_BREAK",
+    "threshold": 0.0,
+    "actual": 49.2,
+    "channel": "TELEGRAM",
+    "status": "failed",
+    "sentAt": null,
+    "triggeredAt": "06:June:41",
+    "cooldown": 30
+  },
+  {
+    "id": 8,
+    "user": "demo_user",
+    "ticker": "SCS",
+    "condition": "BB_BREAK",
+    "threshold": 0.0,
+    "actual": 48.3,
+    "channel": "TELEGRAM",
+    "status": "failed",
+    "sentAt": null,
+    "triggeredAt": "06:June:41",
+    "cooldown": 30
+  },
+  {
+    "id": 7,
+    "user": "demo_user",
+    "ticker": "SGN",
+    "condition": "BB_BREAK",
+    "threshold": 0.0,
+    "actual": 55.8,
+    "channel": "TELEGRAM",
+    "status": "failed",
+    "sentAt": null,
+    "triggeredAt": "06:June:41",
+    "cooldown": 30
+  },
+  {
+    "id": 2,
+    "user": "demo_user",
+    "ticker": "TCB",
+    "condition": "BB_BREAK",
+    "threshold": 0.0,
+    "actual": 33.4,
+    "channel": "TELEGRAM",
+    "status": "failed",
+    "sentAt": null,
+    "triggeredAt": "06:June:41",
+    "cooldown": 30
+  },
+  {
+    "id": 3,
+    "user": "demo_user",
+    "ticker": "STK",
+    "condition": "BB_BREAK",
+    "threshold": 0.0,
+    "actual": 10.05,
+    "channel": "TELEGRAM",
+    "status": "failed",
+    "sentAt": null,
+    "triggeredAt": "06:June:41",
+    "cooldown": 30
+  },
+  {
+    "id": 5,
+    "user": "demo_user",
+    "ticker": "SSB",
+    "condition": "BB_BREAK",
+    "threshold": 0.0,
+    "actual": 16.1,
+    "channel": "TELEGRAM",
+    "status": "failed",
+    "sentAt": null,
+    "triggeredAt": "06:June:41",
+    "cooldown": 30
+  },
+  {
+    "id": 4,
+    "user": "demo_user",
+    "ticker": "STG",
+    "condition": "BB_BREAK",
+    "threshold": 0.0,
+    "actual": 26.05,
+    "channel": "TELEGRAM",
+    "status": "failed",
+    "sentAt": null,
+    "triggeredAt": "06:June:41",
+    "cooldown": 30
+  },
+  {
+    "id": 16,
+    "user": "demo_user",
+    "ticker": "MCM",
+    "condition": "BB_BREAK",
+    "threshold": 0.0,
+    "actual": 28.3,
+    "channel": "TELEGRAM",
+    "status": "failed",
+    "sentAt": null,
+    "triggeredAt": "06:June:40",
+    "cooldown": 30
+  },
+  {
+    "id": 20,
+    "user": "demo_user",
+    "ticker": "KLB",
+    "condition": "BB_BREAK",
+    "threshold": 0.0,
+    "actual": 16.75,
+    "channel": "TELEGRAM",
+    "status": "failed",
+    "sentAt": null,
+    "triggeredAt": "06:June:40",
+    "cooldown": 30
+  },
+  {
+    "id": 19,
+    "user": "demo_user",
+    "ticker": "L10",
+    "condition": "BB_BREAK",
+    "threshold": 0.0,
+    "actual": 21.35,
+    "channel": "TELEGRAM",
+    "status": "failed",
+    "sentAt": null,
+    "triggeredAt": "06:June:40",
+    "cooldown": 30
+  },
+  {
+    "id": 18,
+    "user": "demo_user",
+    "ticker": "LAF",
+    "condition": "BB_BREAK",
+    "threshold": 0.0,
+    "actual": 20.75,
+    "channel": "TELEGRAM",
+    "status": "failed",
+    "sentAt": null,
+    "triggeredAt": "06:June:40",
+    "cooldown": 30
+  },
+  {
+    "id": 17,
+    "user": "demo_user",
+    "ticker": "LIX",
+    "condition": "BB_BREAK",
+    "threshold": 0.0,
+    "actual": 27.5,
+    "channel": "TELEGRAM",
+    "status": "failed",
+    "sentAt": null,
+    "triggeredAt": "06:June:40",
+    "cooldown": 30
+  },
+  {
+    "id": 10,
+    "user": "demo_user",
+    "ticker": "QNP",
+    "condition": "BB_BREAK",
+    "threshold": 0.0,
+    "actual": 32.45,
+    "channel": "TELEGRAM",
+    "status": "failed",
+    "sentAt": null,
+    "triggeredAt": "06:June:40",
+    "cooldown": 30
+  },
+  {
+    "id": 12,
+    "user": "demo_user",
+    "ticker": "PLP",
+    "condition": "BB_BREAK",
+    "threshold": 0.0,
+    "actual": 4.0,
+    "channel": "TELEGRAM",
+    "status": "failed",
+    "sentAt": null,
+    "triggeredAt": "06:June:40",
+    "cooldown": 30
+  },
+  {
+    "id": 11,
+    "user": "demo_user",
+    "ticker": "POW",
+    "condition": "BB_BREAK",
+    "threshold": 0.0,
+    "actual": 14.8,
+    "channel": "TELEGRAM",
+    "status": "failed",
+    "sentAt": null,
+    "triggeredAt": "06:June:40",
+    "cooldown": 30
+  },
+  {
+    "id": 15,
+    "user": "demo_user",
+    "ticker": "NBB",
+    "condition": "BB_BREAK",
+    "threshold": 0.0,
+    "actual": 17.75,
+    "channel": "TELEGRAM",
+    "status": "failed",
+    "sentAt": null,
+    "triggeredAt": "06:June:40",
+    "cooldown": 30
+  },
+  {
+    "id": 13,
+    "user": "demo_user",
+    "ticker": "PHR",
+    "condition": "BB_BREAK",
+    "threshold": 0.0,
+    "actual": 60.8,
+    "channel": "TELEGRAM",
+    "status": "failed",
+    "sentAt": null,
+    "triggeredAt": "06:June:40",
+    "cooldown": 30
+  },
+  {
+    "id": 14,
+    "user": "demo_user",
+    "ticker": "NHA",
+    "condition": "BB_BREAK",
+    "threshold": 0.0,
+    "actual": 10.7,
+    "channel": "TELEGRAM",
+    "status": "failed",
+    "sentAt": null,
+    "triggeredAt": "06:June:40",
+    "cooldown": 30
+  },
+  {
+    "id": 25,
+    "user": "demo_user",
+    "ticker": "KDH",
+    "condition": "BB_BREAK",
+    "threshold": 0.0,
+    "actual": 21.6,
+    "channel": "TELEGRAM",
+    "status": "failed",
+    "sentAt": null,
+    "triggeredAt": "06:June:39",
+    "cooldown": 30
+  },
+  {
+    "id": 22,
+    "user": "demo_user",
+    "ticker": "IMP",
+    "condition": "BB_BREAK",
+    "threshold": 0.0,
+    "actual": 42.05,
+    "channel": "TELEGRAM",
+    "status": "failed",
+    "sentAt": null,
+    "triggeredAt": "06:June:39",
+    "cooldown": 30
+  },
+  {
+    "id": 23,
+    "user": "demo_user",
+    "ticker": "HDG",
+    "condition": "BB_BREAK",
+    "threshold": 0.0,
+    "actual": 20.55,
+    "channel": "TELEGRAM",
+    "status": "failed",
+    "sentAt": null,
+    "triggeredAt": "06:June:39",
+    "cooldown": 30
+  },
+  {
+    "id": 24,
+    "user": "demo_user",
+    "ticker": "HAX",
+    "condition": "BB_BREAK",
+    "threshold": 0.0,
+    "actual": 9.52,
+    "channel": "TELEGRAM",
+    "status": "failed",
+    "sentAt": null,
+    "triggeredAt": "06:June:39",
+    "cooldown": 30
+  },
+  {
+    "id": 21,
+    "user": "demo_user",
+    "ticker": "HAR",
+    "condition": "BB_BREAK",
+    "threshold": 0.0,
+    "actual": 3.22,
+    "channel": "TELEGRAM",
+    "status": "failed",
+    "sentAt": null,
+    "triggeredAt": "06:June:39",
+    "cooldown": 30
+  },
+  {
+    "id": 26,
+    "user": "demo_user",
+    "ticker": "GVR",
+    "condition": "BB_BREAK",
+    "threshold": 0.0,
+    "actual": 32.1,
+    "channel": "TELEGRAM",
+    "status": "failed",
+    "sentAt": null,
+    "triggeredAt": "06:June:39",
+    "cooldown": 30
+  },
+  {
+    "id": 27,
+    "user": "demo_user",
+    "ticker": "GAS",
+    "condition": "BB_BREAK",
+    "threshold": 0.0,
+    "actual": 77.0,
+    "channel": "TELEGRAM",
+    "status": "failed",
+    "sentAt": null,
+    "triggeredAt": "06:June:39",
+    "cooldown": 30
+  },
+  {
+    "id": 28,
+    "user": "demo_user",
+    "ticker": "FDC",
+    "condition": "BB_BREAK",
+    "threshold": 0.0,
+    "actual": 18.1,
+    "channel": "TELEGRAM",
+    "status": "failed",
+    "sentAt": null,
+    "triggeredAt": "06:June:39",
+    "cooldown": 30
+  },
+  {
+    "id": 29,
+    "user": "demo_user",
+    "ticker": "DTA",
+    "condition": "BB_BREAK",
+    "threshold": 0.0,
+    "actual": 3.27,
+    "channel": "TELEGRAM",
+    "status": "failed",
+    "sentAt": null,
+    "triggeredAt": "06:June:39",
+    "cooldown": 30
+  },
+  {
+    "id": 30,
+    "user": "demo_user",
+    "ticker": "DPG",
+    "condition": "BB_BREAK",
+    "threshold": 0.0,
+    "actual": 37.2,
+    "channel": "TELEGRAM",
+    "status": "failed",
+    "sentAt": null,
+    "triggeredAt": "06:June:39",
+    "cooldown": 30
+  },
+  {
+    "id": 35,
+    "user": "demo_user",
+    "ticker": "DC4",
+    "condition": "BB_BREAK",
+    "threshold": 0.0,
+    "actual": 7.12,
+    "channel": "TELEGRAM",
+    "status": "failed",
+    "sentAt": null,
+    "triggeredAt": "06:June:38",
+    "cooldown": 30
+  },
+  {
+    "id": 32,
+    "user": "demo_user",
+    "ticker": "DBD",
+    "condition": "BB_BREAK",
+    "threshold": 0.0,
+    "actual": 53.2,
+    "channel": "TELEGRAM",
+    "status": "failed",
+    "sentAt": null,
+    "triggeredAt": "06:June:38",
+    "cooldown": 30
+  },
+  {
+    "id": 33,
+    "user": "demo_user",
+    "ticker": "CNG",
+    "condition": "BB_BREAK",
+    "threshold": 0.0,
+    "actual": 21.15,
+    "channel": "TELEGRAM",
+    "status": "failed",
+    "sentAt": null,
+    "triggeredAt": "06:June:38",
+    "cooldown": 30
+  },
+  {
+    "id": 34,
+    "user": "demo_user",
+    "ticker": "YEG",
+    "condition": "BB_BREAK",
+    "threshold": 0.0,
+    "actual": 9.68,
+    "channel": "TELEGRAM",
+    "status": "failed",
+    "sentAt": null,
+    "triggeredAt": "06:June:38",
+    "cooldown": 30
+  },
+  {
+    "id": 31,
+    "user": "demo_user",
+    "ticker": "CLW",
+    "condition": "BB_BREAK",
+    "threshold": 0.0,
+    "actual": 59.0,
+    "channel": "TELEGRAM",
+    "status": "failed",
+    "sentAt": null,
+    "triggeredAt": "06:June:38",
+    "cooldown": 30
+  },
+  {
+    "id": 36,
+    "user": "demo_user",
+    "ticker": "YBM",
+    "condition": "BB_BREAK",
+    "threshold": 0.0,
+    "actual": 9.8,
+    "channel": "TELEGRAM",
+    "status": "failed",
+    "sentAt": null,
+    "triggeredAt": "06:June:38",
+    "cooldown": 30
+  },
+  {
+    "id": 37,
+    "user": "demo_user",
+    "ticker": "VSH",
+    "condition": "BB_BREAK",
+    "threshold": 0.0,
+    "actual": 42.5,
+    "channel": "TELEGRAM",
+    "status": "failed",
+    "sentAt": null,
+    "triggeredAt": "06:June:38",
+    "cooldown": 30
+  },
+  {
+    "id": 38,
+    "user": "demo_user",
+    "ticker": "CCC",
+    "condition": "BB_BREAK",
+    "threshold": 0.0,
+    "actual": 7.09,
+    "channel": "TELEGRAM",
+    "status": "failed",
+    "sentAt": null,
+    "triggeredAt": "06:June:38",
+    "cooldown": 30
+  },
+  {
+    "id": 39,
+    "user": "demo_user",
+    "ticker": "VPG",
+    "condition": "BB_BREAK",
+    "threshold": 0.0,
+    "actual": 2.62,
+    "channel": "TELEGRAM",
+    "status": "failed",
+    "sentAt": null,
+    "triggeredAt": "06:June:38",
+    "cooldown": 30
+  },
+  {
+    "id": 40,
+    "user": "demo_user",
+    "ticker": "BIC",
+    "condition": "BB_BREAK",
+    "threshold": 0.0,
+    "actual": 23.2,
+    "channel": "TELEGRAM",
+    "status": "failed",
+    "sentAt": null,
+    "triggeredAt": "06:June:38",
+    "cooldown": 30
+  },
+  {
+    "id": 41,
+    "user": "demo_user",
+    "ticker": "TVS",
+    "condition": "BB_BREAK",
+    "threshold": 0.0,
+    "actual": 14.9,
+    "channel": "TELEGRAM",
+    "status": "failed",
+    "sentAt": null,
+    "triggeredAt": "06:June:38",
+    "cooldown": 30
+  },
+  {
+    "id": 42,
+    "user": "demo_user",
+    "ticker": "ASP",
+    "condition": "BB_BREAK",
+    "threshold": 0.0,
+    "actual": 8.33,
+    "channel": "TELEGRAM",
+    "status": "failed",
+    "sentAt": null,
+    "triggeredAt": "06:June:38",
+    "cooldown": 30
+  },
+  {
+    "id": 43,
+    "user": "demo_user",
+    "ticker": "YBM",
+    "condition": "RSI_BELOW",
+    "threshold": 30.0,
+    "actual": 25.0,
+    "channel": "TELEGRAM",
+    "status": "failed",
+    "sentAt": null,
+    "triggeredAt": "06:June:38",
+    "cooldown": 30
+  },
+  {
+    "id": 44,
+    "user": "demo_user",
+    "ticker": "TNH",
+    "condition": "BB_BREAK",
+    "threshold": 0.0,
+    "actual": 8.5,
+    "channel": "TELEGRAM",
+    "status": "failed",
+    "sentAt": null,
+    "triggeredAt": "06:June:38",
+    "cooldown": 30
+  },
+  {
+    "id": 45,
+    "user": "demo_user",
+    "ticker": "VTO",
+    "condition": "RSI_BELOW",
+    "threshold": 30.0,
+    "actual": 17.647058823529463,
+    "channel": "TELEGRAM",
+    "status": "failed",
+    "sentAt": null,
+    "triggeredAt": "06:June:38",
+    "cooldown": 30
+  },
+  {
+    "id": 46,
+    "user": "demo_user",
+    "ticker": "THG",
+    "condition": "BB_BREAK",
+    "threshold": 0.0,
+    "actual": 35.2,
+    "channel": "TELEGRAM",
+    "status": "failed",
+    "sentAt": null,
+    "triggeredAt": "06:June:38",
+    "cooldown": 30
+  },
+  {
+    "id": 47,
+    "user": "demo_user",
+    "ticker": "VSH",
+    "condition": "RSI_BELOW",
+    "threshold": 30.0,
+    "actual": 20.000000000000284,
+    "channel": "TELEGRAM",
+    "status": "failed",
+    "sentAt": null,
+    "triggeredAt": "06:June:38",
+    "cooldown": 30
+  },
+  {
+    "id": 48,
+    "user": "demo_user",
+    "ticker": "TEG",
+    "condition": "BB_BREAK",
+    "threshold": 0.0,
+    "actual": 5.71,
+    "channel": "TELEGRAM",
+    "status": "failed",
+    "sentAt": null,
+    "triggeredAt": "06:June:38",
+    "cooldown": 30
+  },
+  {
+    "id": 52,
+    "user": "demo_user",
+    "ticker": "THG",
+    "condition": "RSI_BELOW",
+    "threshold": 30.0,
+    "actual": 28.125000000000085,
+    "channel": "TELEGRAM",
+    "status": "failed",
+    "sentAt": null,
+    "triggeredAt": "06:June:37",
+    "cooldown": 30
+  },
+  {
+    "id": 50,
+    "user": "demo_user",
+    "ticker": "TCH",
+    "condition": "BB_BREAK",
+    "threshold": 0.0,
+    "actual": 14.25,
+    "channel": "TELEGRAM",
+    "status": "failed",
+    "sentAt": null,
+    "triggeredAt": "06:June:37",
+    "cooldown": 30
+  },
+  {
+    "id": 51,
+    "user": "demo_user",
+    "ticker": "TNH",
+    "condition": "RSI_BELOW",
+    "threshold": 30.0,
+    "actual": 18.96551724137923,
+    "channel": "TELEGRAM",
+    "status": "failed",
+    "sentAt": null,
+    "triggeredAt": "06:June:37",
+    "cooldown": 30
+  },
+  {
+    "id": 49,
+    "user": "demo_user",
+    "ticker": "TCB",
+    "condition": "BB_BREAK",
+    "threshold": 0.0,
+    "actual": 33.4,
+    "channel": "TELEGRAM",
+    "status": "failed",
+    "sentAt": null,
+    "triggeredAt": "06:June:37",
+    "cooldown": 30
+  },
+  {
+    "id": 53,
+    "user": "demo_user",
+    "ticker": "TCO",
+    "condition": "RSI_BELOW",
+    "threshold": 30.0,
+    "actual": 21.311475409836106,
+    "channel": "TELEGRAM",
+    "status": "failed",
+    "sentAt": null,
+    "triggeredAt": "06:June:37",
+    "cooldown": 30
+  },
+  {
+    "id": 54,
+    "user": "demo_user",
+    "ticker": "STK",
+    "condition": "BB_BREAK",
+    "threshold": 0.0,
+    "actual": 10.05,
+    "channel": "TELEGRAM",
+    "status": "failed",
+    "sentAt": null,
+    "triggeredAt": "06:June:37",
+    "cooldown": 30
+  },
+  {
+    "id": 55,
+    "user": "demo_user",
+    "ticker": "TCM",
+    "condition": "RSI_BELOW",
+    "threshold": 30.0,
+    "actual": 18.181818181818414,
+    "channel": "TELEGRAM",
+    "status": "failed",
+    "sentAt": null,
+    "triggeredAt": "06:June:37",
+    "cooldown": 30
+  },
+  {
+    "id": 56,
+    "user": "demo_user",
+    "ticker": "STG",
+    "condition": "BB_BREAK",
+    "threshold": 0.0,
+    "actual": 26.05,
+    "channel": "TELEGRAM",
+    "status": "failed",
+    "sentAt": null,
+    "triggeredAt": "06:June:37",
+    "cooldown": 30
+  },
+  {
+    "id": 57,
+    "user": "demo_user",
+    "ticker": "TCI",
+    "condition": "RSI_BELOW",
+    "threshold": 30.0,
+    "actual": 26.086956521739083,
+    "channel": "TELEGRAM",
+    "status": "failed",
+    "sentAt": null,
+    "triggeredAt": "06:June:37",
+    "cooldown": 30
+  },
+  {
+    "id": 58,
+    "user": "demo_user",
+    "ticker": "SSB",
+    "condition": "BB_BREAK",
+    "threshold": 0.0,
+    "actual": 16.1,
+    "channel": "TELEGRAM",
+    "status": "failed",
+    "sentAt": null,
+    "triggeredAt": "06:June:37",
+    "cooldown": 30
+  },
+  {
+    "id": 59,
+    "user": "demo_user",
+    "ticker": "TAL",
+    "condition": "RSI_BELOW",
+    "threshold": 30.0,
+    "actual": 24.39024390243901,
+    "channel": "TELEGRAM",
+    "status": "failed",
+    "sentAt": null,
+    "triggeredAt": "06:June:37",
+    "cooldown": 30
+  },
+  {
+    "id": 60,
+    "user": "demo_user",
+    "ticker": "SKG",
+    "condition": "BB_BREAK",
+    "threshold": 0.0,
+    "actual": 8.34,
+    "channel": "TELEGRAM",
+    "status": "failed",
+    "sentAt": null,
+    "triggeredAt": "06:June:37",
+    "cooldown": 30
+  },
+  {
+    "id": 61,
+    "user": "demo_user",
+    "ticker": "SGN",
+    "condition": "BB_BREAK",
+    "threshold": 0.0,
+    "actual": 55.8,
+    "channel": "TELEGRAM",
+    "status": "failed",
+    "sentAt": null,
+    "triggeredAt": "06:June:37",
+    "cooldown": 30
+  },
+  {
+    "id": 62,
+    "user": "demo_user",
+    "ticker": "STK",
+    "condition": "RSI_BELOW",
+    "threshold": 30.0,
+    "actual": 18.181818181818215,
+    "channel": "TELEGRAM",
+    "status": "failed",
+    "sentAt": null,
+    "triggeredAt": "06:June:37",
+    "cooldown": 30
+  },
+  {
+    "id": 63,
+    "user": "demo_user",
+    "ticker": "STG",
+    "condition": "RSI_BELOW",
+    "threshold": 30.0,
+    "actual": 21.052631578947356,
+    "channel": "TELEGRAM",
+    "status": "failed",
+    "sentAt": null,
+    "triggeredAt": "06:June:37",
+    "cooldown": 30
+  },
+  {
+    "id": 64,
+    "user": "demo_user",
+    "ticker": "SCS",
+    "condition": "BB_BREAK",
+    "threshold": 0.0,
+    "actual": 48.3,
+    "channel": "TELEGRAM",
+    "status": "failed",
+    "sentAt": null,
+    "triggeredAt": "06:June:37",
+    "cooldown": 30
+  },
+  {
+    "id": 65,
+    "user": "demo_user",
+    "ticker": "REE",
+    "condition": "BB_BREAK",
+    "threshold": 0.0,
+    "actual": 49.2,
+    "channel": "TELEGRAM",
+    "status": "failed",
+    "sentAt": null,
+    "triggeredAt": "06:June:37",
+    "cooldown": 30
+  },
+  {
+    "id": 66,
+    "user": "demo_user",
+    "ticker": "SGR",
+    "condition": "RSI_BELOW",
+    "threshold": 30.0,
+    "actual": 21.621621621621642,
+    "channel": "TELEGRAM",
+    "status": "failed",
+    "sentAt": null,
+    "triggeredAt": "06:June:37",
+    "cooldown": 30
+  },
+  {
+    "id": 76,
+    "user": "demo_user",
+    "ticker": "NTC",
+    "condition": "RSI_BELOW",
+    "threshold": 30.0,
+    "actual": 24.242424242424505,
+    "channel": "TELEGRAM",
+    "status": "failed",
+    "sentAt": null,
+    "triggeredAt": "06:June:36",
+    "cooldown": 30
+  },
+  {
+    "id": 68,
+    "user": "demo_user",
+    "ticker": "KDH",
+    "condition": "RSI_BELOW",
+    "threshold": 30.0,
+    "actual": 28.947368421052616,
+    "channel": "TELEGRAM",
+    "status": "failed",
+    "sentAt": null,
+    "triggeredAt": "06:June:36",
+    "cooldown": 30
+  },
+  {
+    "id": 69,
+    "user": "demo_user",
+    "ticker": "SCS",
+    "condition": "RSI_BELOW",
+    "threshold": 30.0,
+    "actual": 24.46808510638293,
+    "channel": "TELEGRAM",
+    "status": "failed",
+    "sentAt": null,
+    "triggeredAt": "06:June:36",
+    "cooldown": 30
+  },
+  {
+    "id": 70,
+    "user": "demo_user",
+    "ticker": "POW",
+    "condition": "BB_BREAK",
+    "threshold": 0.0,
+    "actual": 14.8,
+    "channel": "TELEGRAM",
+    "status": "failed",
+    "sentAt": null,
+    "triggeredAt": "06:June:36",
+    "cooldown": 30
+  },
+  {
+    "id": 71,
+    "user": "demo_user",
+    "ticker": "PLP",
+    "condition": "BB_BREAK",
+    "threshold": 0.0,
+    "actual": 4.0,
+    "channel": "TELEGRAM",
+    "status": "failed",
+    "sentAt": null,
+    "triggeredAt": "06:June:36",
+    "cooldown": 30
+  },
+  {
+    "id": 72,
+    "user": "demo_user",
+    "ticker": "PLX",
+    "condition": "RSI_BELOW",
+    "threshold": 30.0,
+    "actual": 12.307692307692193,
+    "channel": "TELEGRAM",
+    "status": "failed",
+    "sentAt": null,
+    "triggeredAt": "06:June:36",
+    "cooldown": 30
+  },
+  {
+    "id": 73,
+    "user": "demo_user",
+    "ticker": "PGD",
+    "condition": "RSI_BELOW",
+    "threshold": 30.0,
+    "actual": 24.242424242424207,
+    "channel": "TELEGRAM",
+    "status": "failed",
+    "sentAt": null,
+    "triggeredAt": "06:June:36",
+    "cooldown": 30
+  },
+  {
+    "id": 74,
+    "user": "demo_user",
+    "ticker": "PHR",
+    "condition": "BB_BREAK",
+    "threshold": 0.0,
+    "actual": 60.8,
+    "channel": "TELEGRAM",
+    "status": "failed",
+    "sentAt": null,
+    "triggeredAt": "06:June:36",
+    "cooldown": 30
+  },
+  {
+    "id": 75,
+    "user": "demo_user",
+    "ticker": "SFC",
+    "condition": "RSI_BELOW",
+    "threshold": 30.0,
+    "actual": 26.000000000000014,
+    "channel": "TELEGRAM",
+    "status": "failed",
+    "sentAt": null,
+    "triggeredAt": "06:June:36",
+    "cooldown": 30
+  },
+  {
+    "id": 67,
+    "user": "demo_user",
+    "ticker": "NHA",
+    "condition": "BB_BREAK",
+    "threshold": 0.0,
+    "actual": 10.7,
+    "channel": "TELEGRAM",
+    "status": "failed",
+    "sentAt": null,
+    "triggeredAt": "06:June:36",
+    "cooldown": 30
+  },
+  {
+    "id": 77,
+    "user": "demo_user",
+    "ticker": "NBB",
+    "condition": "BB_BREAK",
+    "threshold": 0.0,
+    "actual": 17.75,
+    "channel": "TELEGRAM",
+    "status": "failed",
+    "sentAt": null,
+    "triggeredAt": "06:June:36",
+    "cooldown": 30
+  },
+  {
+    "id": 78,
+    "user": "demo_user",
+    "ticker": "NAF",
+    "condition": "RSI_BELOW",
+    "threshold": 30.0,
+    "actual": 19.444444444444386,
+    "channel": "TELEGRAM",
+    "status": "failed",
+    "sentAt": null,
+    "triggeredAt": "06:June:36",
+    "cooldown": 30
+  },
+  {
+    "id": 79,
+    "user": "demo_user",
+    "ticker": "MCM",
+    "condition": "BB_BREAK",
+    "threshold": 0.0,
+    "actual": 28.3,
+    "channel": "TELEGRAM",
+    "status": "failed",
+    "sentAt": null,
+    "triggeredAt": "06:June:36",
+    "cooldown": 30
+  },
+  {
+    "id": 80,
+    "user": "demo_user",
+    "ticker": "L10",
+    "condition": "RSI_BELOW",
+    "threshold": 30.0,
+    "actual": 0.0,
+    "channel": "TELEGRAM",
+    "status": "failed",
+    "sentAt": null,
+    "triggeredAt": "06:June:36",
+    "cooldown": 30
+  },
+  {
+    "id": 81,
+    "user": "demo_user",
+    "ticker": "LIX",
+    "condition": "BB_BREAK",
+    "threshold": 0.0,
+    "actual": 27.5,
+    "channel": "TELEGRAM",
+    "status": "failed",
+    "sentAt": null,
+    "triggeredAt": "06:June:36",
+    "cooldown": 30
+  },
+  {
+    "id": 82,
+    "user": "demo_user",
+    "ticker": "KMR",
+    "condition": "RSI_BELOW",
+    "threshold": 30.0,
+    "actual": 26.086956521739083,
+    "channel": "TELEGRAM",
+    "status": "failed",
+    "sentAt": null,
+    "triggeredAt": "06:June:36",
+    "cooldown": 30
+  },
+  {
+    "id": 83,
+    "user": "demo_user",
+    "ticker": "LAF",
+    "condition": "BB_BREAK",
+    "threshold": 0.0,
+    "actual": 20.75,
+    "channel": "TELEGRAM",
+    "status": "failed",
+    "sentAt": null,
+    "triggeredAt": "06:June:36",
+    "cooldown": 30
+  },
+  {
+    "id": 84,
+    "user": "demo_user",
+    "ticker": "QNP",
+    "condition": "BB_BREAK",
+    "threshold": 0.0,
+    "actual": 32.45,
+    "channel": "TELEGRAM",
+    "status": "failed",
+    "sentAt": null,
+    "triggeredAt": "06:June:36",
+    "cooldown": 30
+  },
+  {
+    "id": 85,
+    "user": "demo_user",
+    "ticker": "ITC",
+    "condition": "RSI_BELOW",
+    "threshold": 30.0,
+    "actual": 16.666666666666657,
+    "channel": "TELEGRAM",
+    "status": "failed",
+    "sentAt": null,
+    "triggeredAt": "06:June:35",
+    "cooldown": 30
+  },
+  {
+    "id": 86,
+    "user": "demo_user",
+    "ticker": "L10",
+    "condition": "BB_BREAK",
+    "threshold": 0.0,
+    "actual": 21.35,
+    "channel": "TELEGRAM",
+    "status": "failed",
+    "sentAt": null,
+    "triggeredAt": "06:June:35",
+    "cooldown": 30
+  },
+  {
+    "id": 87,
+    "user": "demo_user",
+    "ticker": "IMP",
+    "condition": "RSI_BELOW",
+    "threshold": 30.0,
+    "actual": 7.865168539325865,
+    "channel": "TELEGRAM",
+    "status": "failed",
+    "sentAt": null,
+    "triggeredAt": "06:June:35",
+    "cooldown": 30
+  },
+  {
+    "id": 88,
+    "user": "demo_user",
+    "ticker": "KLB",
+    "condition": "BB_BREAK",
+    "threshold": 0.0,
+    "actual": 16.75,
+    "channel": "TELEGRAM",
+    "status": "failed",
+    "sentAt": null,
+    "triggeredAt": "06:June:35",
+    "cooldown": 30
+  },
+  {
+    "id": 89,
+    "user": "demo_user",
+    "ticker": "KDH",
+    "condition": "BB_BREAK",
+    "threshold": 0.0,
+    "actual": 21.6,
+    "channel": "TELEGRAM",
+    "status": "failed",
+    "sentAt": null,
+    "triggeredAt": "06:June:35",
+    "cooldown": 30
+  },
+  {
+    "id": 90,
+    "user": "demo_user",
+    "ticker": "HTI",
+    "condition": "RSI_BELOW",
+    "threshold": 30.0,
+    "actual": 15.38461538461533,
+    "channel": "TELEGRAM",
+    "status": "failed",
+    "sentAt": null,
+    "triggeredAt": "06:June:35",
+    "cooldown": 30
+  },
+  {
+    "id": 91,
+    "user": "demo_user",
+    "ticker": "IMP",
+    "condition": "BB_BREAK",
+    "threshold": 0.0,
+    "actual": 42.05,
+    "channel": "TELEGRAM",
+    "status": "failed",
+    "sentAt": null,
+    "triggeredAt": "06:June:35",
+    "cooldown": 30
+  },
+  {
+    "id": 92,
+    "user": "demo_user",
+    "ticker": "HQC",
+    "condition": "RSI_BELOW",
+    "threshold": 30.0,
+    "actual": 8.82352941176488,
+    "channel": "TELEGRAM",
+    "status": "failed",
+    "sentAt": null,
+    "triggeredAt": "06:June:35",
+    "cooldown": 30
+  },
+  {
+    "id": 93,
+    "user": "demo_user",
+    "ticker": "HDG",
+    "condition": "BB_BREAK",
+    "threshold": 0.0,
+    "actual": 20.55,
+    "channel": "TELEGRAM",
+    "status": "failed",
+    "sentAt": null,
+    "triggeredAt": "06:June:35",
+    "cooldown": 30
+  },
+  {
+    "id": 94,
+    "user": "demo_user",
+    "ticker": "HAX",
+    "condition": "RSI_BELOW",
+    "threshold": 30.0,
+    "actual": 4.347826086956431,
+    "channel": "TELEGRAM",
+    "status": "failed",
+    "sentAt": null,
+    "triggeredAt": "06:June:35",
+    "cooldown": 30
+  },
+  {
+    "id": 95,
+    "user": "demo_user",
+    "ticker": "GAS",
+    "condition": "RSI_BELOW",
+    "threshold": 30.0,
+    "actual": 28.30188679245275,
+    "channel": "TELEGRAM",
+    "status": "failed",
+    "sentAt": null,
+    "triggeredAt": "06:June:35",
+    "cooldown": 30
+  },
+  {
+    "id": 96,
+    "user": "demo_user",
+    "ticker": "HAX",
+    "condition": "BB_BREAK",
+    "threshold": 0.0,
+    "actual": 9.52,
+    "channel": "TELEGRAM",
+    "status": "failed",
+    "sentAt": null,
+    "triggeredAt": "06:June:35",
+    "cooldown": 30
+  },
+  {
+    "id": 97,
+    "user": "demo_user",
+    "ticker": "HAR",
+    "condition": "BB_BREAK",
+    "threshold": 0.0,
+    "actual": 3.22,
+    "channel": "TELEGRAM",
+    "status": "failed",
+    "sentAt": null,
+    "triggeredAt": "06:June:35",
+    "cooldown": 30
+  },
+  {
+    "id": 98,
+    "user": "demo_user",
+    "ticker": "DTL",
+    "condition": "RSI_BELOW",
+    "threshold": 30.0,
+    "actual": 19.48051948051946,
+    "channel": "TELEGRAM",
+    "status": "failed",
+    "sentAt": null,
+    "triggeredAt": "06:June:35",
+    "cooldown": 30
+  },
+  {
+    "id": 99,
+    "user": "demo_user",
+    "ticker": "DTA",
+    "condition": "RSI_BELOW",
+    "threshold": 30.0,
+    "actual": 22.857142857142875,
+    "channel": "TELEGRAM",
+    "status": "failed",
+    "sentAt": null,
+    "triggeredAt": "06:June:35",
+    "cooldown": 30
+  },
+  {
+    "id": 100,
+    "user": "demo_user",
+    "ticker": "GVR",
+    "condition": "BB_BREAK",
+    "threshold": 0.0,
+    "actual": 32.1,
+    "channel": "TELEGRAM",
+    "status": "failed",
+    "sentAt": null,
+    "triggeredAt": "06:June:35",
+    "cooldown": 30
+  }
+];
 
-export const alertsByDay = [];
+export const alertsByDay = [
+  {
+    "date": "06-28",
+    "total": 230
+  }
+];
 
-export const alertsByCondition = [];
+export const alertsByCondition = [
+  {
+    "type": "BB_BREAK",
+    "count": 83,
+    "fill": "#8b5cf6"
+  },
+  {
+    "type": "RSI_ABOVE",
+    "count": 78,
+    "fill": "#3b82f6"
+  },
+  {
+    "type": "RSI_BELOW",
+    "count": 70,
+    "fill": "#a855f7"
+  }
+];

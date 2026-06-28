@@ -90,6 +90,10 @@ def fetch_latest_market_data(ch_client: Any, tickers: list[str]) -> dict[str, di
 
 
 def is_in_cooldown(ch_client: Any, rule: AlertRule) -> bool:
+    # Count any logged event in the window, not just is_sent=1: if the
+    # notification channel is unconfigured (is_sent always 0), filtering on
+    # is_sent=1 would mean the same condition never enters cooldown and
+    # fact_alert_event grows by one row per rule on every check cycle forever.
     result = ch_client.query(
         f"""
         SELECT count() AS cnt
@@ -97,7 +101,6 @@ def is_in_cooldown(ch_client: Any, rule: AlertRule) -> bool:
         WHERE user_id = {{user_id:String}}
           AND ticker = {{ticker:String}}
           AND condition_type = {{condition_type:String}}
-          AND is_sent = 1
           AND triggered_at >= now() - INTERVAL {int(rule.cooldown_minutes)} MINUTE
         """,
         parameters={

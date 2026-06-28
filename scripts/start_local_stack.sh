@@ -16,7 +16,7 @@ if [[ -d "$NODE_BIN" ]]; then
 fi
 
 echo "Starting Docker services..."
-docker compose up -d clickhouse minio postgres zookeeper kafka nlp-service airflow-webserver airflow-scheduler
+docker compose up -d clickhouse minio postgres zookeeper kafka nlp-service alert-engine realtime-vwap-consumer grafana airflow-webserver airflow-scheduler
 
 echo "Waiting for Airflow webserver..."
 for _ in $(seq 1 60); do

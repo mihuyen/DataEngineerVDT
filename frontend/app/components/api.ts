@@ -147,6 +147,8 @@ export type NewsSentimentRow = {
   headline: string;
   url?: string | null;
   source?: string | null;
+  publishedAt?: string;
+  newsDate?: string;
 };
 
 export type SentimentByDate = { date: string; positive: number; negative: number; neutral: number };
