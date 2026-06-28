@@ -11,6 +11,7 @@ REALTIME_VWAP_COLUMNS = [
     "ticker",
     "minute_ts",
     "trading_date",
+    "data_source",
     "open_price",
     "high_price",
     "low_price",
@@ -45,7 +46,9 @@ def generate_demo_trade_ticks(
         base_price = 50_000 + ticker_index * 8_000
         for minute_offset in range(minutes):
             for trade_index in range(trades_per_minute):
-                trade_ts = session_start + timedelta(minutes=minute_offset, seconds=trade_index * 12)
+                trade_ts = session_start + timedelta(
+                    minutes=minute_offset, seconds=trade_index * 12
+                )
                 price = base_price + minute_offset * 120 + trade_index * 15 + ticker_index * 10
                 volume = 100 + ticker_index * 25 + minute_offset * 5 + trade_index * 10
                 rows.append(
@@ -54,6 +57,7 @@ def generate_demo_trade_ticks(
                         "trade_ts": trade_ts,
                         "price": float(price),
                         "volume": int(volume),
+                        "data_source": "DEMO",
                     }
                 )
 
@@ -68,15 +72,18 @@ def build_fact_realtime_vwap(trade_ticks: pl.DataFrame) -> pl.DataFrame:
         raise ValueError(f"Realtime ticks missing columns: {', '.join(sorted(missing))}")
 
     now = datetime.now()
+    if "data_source" not in trade_ticks.columns:
+        trade_ticks = trade_ticks.with_columns(pl.lit("UNKNOWN").alias("data_source"))
     minute_bars = (
-        trade_ticks.sort(["ticker", "trade_ts"])
+        trade_ticks.sort(["data_source", "ticker", "trade_ts"])
         .with_columns(
             pl.col("ticker").str.to_uppercase(),
+            pl.col("data_source").cast(pl.String).str.to_uppercase(),
             pl.col("trade_ts").dt.truncate("1m").alias("minute_ts"),
             pl.col("trade_ts").dt.date().alias("trading_date"),
             (pl.col("price") * pl.col("volume")).alias("trade_value"),
         )
-        .group_by(["ticker", "trading_date", "minute_ts"], maintain_order=True)
+        .group_by(["data_source", "ticker", "trading_date", "minute_ts"], maintain_order=True)
         .agg(
             pl.col("price").first().alias("open_price"),
             pl.col("price").max().alias("high_price"),
@@ -88,14 +95,22 @@ def build_fact_realtime_vwap(trade_ticks: pl.DataFrame) -> pl.DataFrame:
             pl.len().cast(pl.UInt32).alias("trade_count"),
         )
         .with_columns((pl.col("total_value") / pl.col("total_volume")).alias("vwap_1m"))
-        .sort(["ticker", "trading_date", "minute_ts"])
+        .sort(["data_source", "ticker", "trading_date", "minute_ts"])
         .with_columns(
-            pl.col("total_volume").cum_sum().over(["ticker", "trading_date"]).alias("session_volume"),
-            pl.col("total_value").cum_sum().over(["ticker", "trading_date"]).alias("session_value"),
+            pl.col("total_volume")
+            .cum_sum()
+            .over(["data_source", "ticker", "trading_date"])
+            .alias("session_volume"),
+            pl.col("total_value")
+            .cum_sum()
+            .over(["data_source", "ticker", "trading_date"])
+            .alias("session_value"),
         )
         .with_columns((pl.col("session_value") / pl.col("session_volume")).alias("session_vwap"))
         .with_columns(
-            ((pl.col("close_price") - pl.col("vwap_1m")) / pl.col("vwap_1m") * 100).alias("price_vs_vwap_pct"),
+            ((pl.col("close_price") - pl.col("vwap_1m")) / pl.col("vwap_1m") * 100).alias(
+                "price_vs_vwap_pct"
+            ),
             ((pl.col("close_price") - pl.col("session_vwap")) / pl.col("session_vwap") * 100).alias(
                 "price_vs_session_vwap_pct"
             ),

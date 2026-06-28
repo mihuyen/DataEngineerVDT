@@ -1,11 +1,12 @@
 from __future__ import annotations
 
-from datetime import date, datetime
+from datetime import date, datetime, time
 import json
 import os
 from pathlib import Path
 import socket
 from typing import Any
+from zoneinfo import ZoneInfo
 
 from fastapi import FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
@@ -14,12 +15,15 @@ import requests
 
 from src.common.clickhouse_client import create_client
 from src.common.kafka_lag import get_consumer_group_lag
+from src.common.postgres_client import create_connection
 from src.loaders.load_fact_realtime_vwap import build_fact_realtime_vwap
 
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 DEFAULT_DNSE_BRONZE_DIR = PROJECT_ROOT / "data" / "bronze_local" / "dnse" / "trades"
 QUALITY_REPORTS_DIR = PROJECT_ROOT / "quality_reports"
+VIETNAM_TZ = ZoneInfo("Asia/Ho_Chi_Minh")
+REALTIME_FRESHNESS_SECONDS = 90
 
 AIRFLOW_BASE_URL = os.getenv("AIRFLOW_BASE_URL", "http://localhost:8080")
 AIRFLOW_DAG_ID = os.getenv("AIRFLOW_DAG_ID", "stock_lakehouse_daily")
@@ -161,15 +165,21 @@ def latest_dnse_bronze_ticks(base_dir: Path = DEFAULT_DNSE_BRONZE_DIR) -> pl.Dat
             }
         )
 
-    ticks = pl.concat(
-        [pl.read_parquet(path).select(["ticker", "trade_ts", "price", "volume"]) for path in paths],
-        how="diagonal_relaxed",
-    ).drop_nulls(["ticker", "trade_ts", "price", "volume"])
+    frames = []
+    for path in paths:
+        frame = pl.read_parquet(path)
+        if "data_source" not in frame.columns:
+            frame = frame.with_columns(pl.lit("DNSE").alias("data_source"))
+        frames.append(frame.select(["ticker", "trade_ts", "price", "volume", "data_source"]))
+    ticks = pl.concat(frames, how="diagonal_relaxed").drop_nulls(
+        ["ticker", "trade_ts", "price", "volume"]
+    )
     if ticks.is_empty():
         return ticks
 
     latest_date = ticks.select(pl.col("trade_ts").dt.date().max()).item()
     latest_ticks = ticks.filter(pl.col("trade_ts").dt.date() == latest_date)
+    latest_ticks = latest_ticks.filter(pl.col("data_source").str.to_uppercase() == "DNSE")
     metadata = latest_subscription_metadata(base_dir)
     symbols = metadata.get("symbols")
     if isinstance(symbols, list) and symbols:
@@ -215,6 +225,7 @@ def bronze_realtime_vwap_rows(base_dir: Path = DEFAULT_DNSE_BRONZE_DIR) -> list[
             pl.col("total_volume").mean().alias("volSma"),
             (pl.col("price_vs_session_vwap_pct").abs() >= 2).sum().alias("alerts"),
             pl.col("minute_ts").max().alias("updatedAt"),
+            pl.col("data_source").last().alias("dataSource"),
         )
         .with_columns(
             pl.col("ticker").alias("name"),
@@ -235,6 +246,7 @@ def bronze_realtime_vwap_rows(base_dir: Path = DEFAULT_DNSE_BRONZE_DIR) -> list[
                 "volSma",
                 "alerts",
                 "updatedAt",
+                "dataSource",
             ]
         )
         .sort(pl.col("deviation").abs(), descending=True)
@@ -242,7 +254,9 @@ def bronze_realtime_vwap_rows(base_dir: Path = DEFAULT_DNSE_BRONZE_DIR) -> list[
     return [clean_row(row) for row in latest_rows.to_dicts()]
 
 
-def bronze_realtime_vwap_series(ticker: str, base_dir: Path = DEFAULT_DNSE_BRONZE_DIR) -> list[dict[str, Any]]:
+def bronze_realtime_vwap_series(
+    ticker: str, base_dir: Path = DEFAULT_DNSE_BRONZE_DIR
+) -> list[dict[str, Any]]:
     symbol = ticker.upper()
     frame = bronze_realtime_vwap_frame(base_dir)
     if frame.is_empty():
@@ -301,13 +315,72 @@ def bronze_is_newer_than(value: Any) -> bool:
     return bronze_latest > clickhouse_latest
 
 
+def market_session_status(now: datetime | None = None) -> dict[str, Any]:
+    local_now = now or datetime.now(VIETNAM_TZ)
+    if local_now.tzinfo is None:
+        local_now = local_now.replace(tzinfo=VIETNAM_TZ)
+    else:
+        local_now = local_now.astimezone(VIETNAM_TZ)
+
+    current_time = local_now.time().replace(tzinfo=None)
+    if local_now.weekday() >= 5:
+        status, label = "closed", "Thị trường đã đóng cửa"
+    elif current_time < time(9, 0):
+        status, label = "pre_open", "Chưa mở cửa"
+    elif current_time < time(11, 30):
+        status, label = "live", "Đang giao dịch"
+    elif current_time < time(13, 0):
+        status, label = "lunch_break", "Nghỉ giữa phiên"
+    elif current_time < time(15, 0):
+        status, label = "live", "Đang giao dịch"
+    else:
+        status, label = "closed", "Thị trường đã đóng cửa"
+
+    return {"marketStatus": status, "statusLabel": label, "marketNow": local_now.isoformat()}
+
+
+def realtime_session_metadata(latest_minute: Any, source: str) -> dict[str, Any]:
+    session = market_session_status()
+    latest = as_datetime(latest_minute)
+    now = datetime.now(VIETNAM_TZ)
+    stale_seconds = None
+    session_date = None
+    if latest is not None:
+        session_date = latest.date().isoformat()
+        localized_latest = (
+            latest.replace(tzinfo=VIETNAM_TZ)
+            if latest.tzinfo is None
+            else latest.astimezone(VIETNAM_TZ)
+        )
+        stale_seconds = max(0, int((now - localized_latest).total_seconds()))
+    is_live = session["marketStatus"] == "live"
+    is_fresh = bool(
+        is_live
+        and session_date == now.date().isoformat()
+        and stale_seconds is not None
+        and stale_seconds <= REALTIME_FRESHNESS_SECONDS
+    )
+    return {
+        **session,
+        "sessionDate": session_date,
+        "staleSeconds": stale_seconds,
+        "isLive": is_live,
+        "isFresh": is_fresh,
+        "dataMode": "REAL",
+        "dataProvider": "DNSE",
+        "source": source,
+    }
+
+
 @app.get("/api/health")
 def health() -> dict[str, Any]:
     latest_price_date = None
     if clickhouse_available():
         try:
             latest_price_date = scalar("SELECT max(trading_date) FROM fact_daily_price")
-            latest_realtime_minute = scalar("SELECT max(minute_ts) FROM fact_realtime_vwap")
+            latest_realtime_minute = scalar(
+                "SELECT max(minute_ts) FROM fact_realtime_vwap WHERE data_source = 'DNSE'"
+            )
             if bronze_is_newer_than(latest_realtime_minute):
                 latest_realtime_minute = latest_bronze_realtime_minute()
                 realtime_source = "dnse_bronze"
@@ -326,6 +399,7 @@ def health() -> dict[str, Any]:
         "latestRealtimeMinute": latest_realtime_minute,
         "realtimeSource": realtime_source,
         "realtimeUniverseCount": bronze_universe_count(),
+        **realtime_session_metadata(latest_realtime_minute, realtime_source),
     }
 
 
@@ -339,9 +413,7 @@ def get_stocks(
     filters.append("s.exchange = 'HOSE'")
     if q:
         needle = quote(f"%{q.upper()}%")
-        filters.append(
-            f"(upper(s.ticker) LIKE {needle} OR upper(s.company_name) LIKE {needle})"
-        )
+        filters.append(f"(upper(s.ticker) LIKE {needle} OR upper(s.company_name) LIKE {needle})")
     where_sql = "WHERE " + " AND ".join(filters) if filters else ""
 
     data = rows(
@@ -488,8 +560,14 @@ def get_market_overview() -> dict[str, Any]:
         market_index_rows[0] if market_index_rows else {},
     )
     market_overview_stats = {
-        "totalValue": fmt_number(sum(row["total_value"] for row in market_index_rows) / 1_000_000_000, 1) + " tỷ",
-        "totalVolume": fmt_number(sum(row["total_volume"] for row in market_index_rows) / 1_000_000, 1) + " M",
+        "totalValue": fmt_number(
+            sum(row["total_value"] for row in market_index_rows) / 1_000_000_000, 1
+        )
+        + " tỷ",
+        "totalVolume": fmt_number(
+            sum(row["total_volume"] for row in market_index_rows) / 1_000_000, 1
+        )
+        + " M",
         "breadth": f"{vnindex.get('advance_count', 0)} / {vnindex.get('decline_count', 0)}",
         "breadthSub": f"Tăng / Giảm / Đứng: {vnindex.get('unchanged_count', 0)}",
     }
@@ -589,7 +667,9 @@ def get_realtime_vwap() -> dict[str, Any]:
     source = "dnse_bronze"
     if clickhouse_available():
         try:
-            clickhouse_latest = scalar("SELECT max(minute_ts) FROM fact_realtime_vwap")
+            clickhouse_latest = scalar(
+                "SELECT max(minute_ts) FROM fact_realtime_vwap WHERE data_source = 'DNSE'"
+            )
             if bronze_is_newer_than(clickhouse_latest):
                 raise RuntimeError("DNSE Bronze is newer than ClickHouse realtime VWAP")
             data = rows(
@@ -606,21 +686,26 @@ def get_realtime_vwap() -> dict[str, Any]:
                   argMax(f.session_volume, f.minute_ts) AS volume,
                   avg(f.total_volume) AS volSma,
                   countIf(abs(f.price_vs_session_vwap_pct) >= 2) AS alerts,
-                  max(f.minute_ts) AS updatedAt
+                  max(f.minute_ts) AS updatedAt,
+                  any(f.data_source) AS dataSource
                 FROM fact_realtime_vwap f
                 LEFT JOIN dim_stock s ON f.ticker = s.ticker
                 LEFT JOIN dim_sector sec ON s.sector_id = sec.sector_id
                 WHERE s.exchange = 'HOSE'
+                  AND f.data_source = 'DNSE'
+                  AND f.trading_date = (
+                    SELECT max(trading_date) FROM fact_realtime_vwap WHERE data_source = 'DNSE'
+                  )
                 GROUP BY f.ticker, name, sector, exchange
                 ORDER BY abs(deviation) DESC
                 """
             )
             latest_minute = clickhouse_latest
-            source = "clickhouse"
+            source = "clickhouse_dnse"
         except Exception:
             pass
 
-    if source != "clickhouse":
+    if source != "clickhouse_dnse":
         data = bronze_realtime_vwap_rows()
         latest_minute = latest_bronze_realtime_minute()
 
@@ -628,9 +713,11 @@ def get_realtime_vwap() -> dict[str, Any]:
         "count": len(data),
         "activeCount": len(data),
         "universeCount": bronze_universe_count() or len(data),
+        "subscribedCount": bronze_universe_count() or len(data),
         "latestMinute": latest_minute,
         "source": source,
         "data": data,
+        **realtime_session_metadata(latest_minute, source),
     }
 
 
@@ -641,7 +728,9 @@ def get_realtime_vwap_series(ticker: str) -> dict[str, Any]:
     source = "dnse_bronze"
     if clickhouse_available():
         try:
-            clickhouse_latest = scalar("SELECT max(minute_ts) FROM fact_realtime_vwap")
+            clickhouse_latest = scalar(
+                "SELECT max(minute_ts) FROM fact_realtime_vwap WHERE data_source = 'DNSE'"
+            )
             if bronze_is_newer_than(clickhouse_latest):
                 raise RuntimeError("DNSE Bronze is newer than ClickHouse realtime VWAP")
             data = rows(
@@ -655,15 +744,19 @@ def get_realtime_vwap_series(ticker: str) -> dict[str, Any]:
                   price_vs_session_vwap_pct AS deviation
                 FROM fact_realtime_vwap
                 WHERE ticker = {quote(symbol)}
+                  AND data_source = 'DNSE'
+                  AND trading_date = (
+                    SELECT max(trading_date) FROM fact_realtime_vwap WHERE data_source = 'DNSE'
+                  )
                   AND ticker IN (SELECT ticker FROM dim_stock WHERE exchange = 'HOSE')
                 ORDER BY minute_ts
                 """
             )
-            source = "clickhouse"
+            source = "clickhouse_dnse"
         except Exception:
             pass
 
-    if source != "clickhouse":
+    if source != "clickhouse_dnse":
         data = bronze_realtime_vwap_series(symbol)
 
     if not data:
@@ -775,6 +868,26 @@ def get_news_sentiment(days: int = Query(7, ge=1, le=60)) -> dict[str, Any]:
     return {"count": len(by_ticker), "data": by_ticker, "byDate": by_date}
 
 
+def alert_cooldown_lookup() -> dict[tuple[str, str, str], dict[str, int]]:
+    """(user_id, condition_type, channel) -> {ticker_or_'ALL': cooldown_minutes}.
+
+    fact_alert_event only stores the expanded concrete ticker (e.g. "AAA"),
+    never the wildcard rule's literal ticker="ALL" in user_alerts (Postgres,
+    not ClickHouse) -- so callers should fall back to the "ALL" entry when
+    the concrete ticker isn't a key of its own.
+    """
+    try:
+        with create_connection() as conn, conn.cursor() as cur:
+            cur.execute("SELECT user_id, ticker, condition_type, channel, cooldown_minutes FROM user_alerts")
+            db_rows = cur.fetchall()
+    except Exception:
+        return {}
+    lookup: dict[tuple[str, str, str], dict[str, int]] = {}
+    for user_id, ticker, condition_type, channel, cooldown_minutes in db_rows:
+        lookup.setdefault((user_id, condition_type, channel), {})[ticker] = cooldown_minutes
+    return lookup
+
+
 @app.get("/api/alerts")
 def get_alerts(limit: int = Query(200, ge=1, le=2000)) -> dict[str, Any]:
     raw = rows(
@@ -796,6 +909,7 @@ def get_alerts(limit: int = Query(200, ge=1, le=2000)) -> dict[str, Any]:
         LIMIT {limit}
         """
     )
+    cooldown_lookup = alert_cooldown_lookup()
     alerts = [
         {
             "id": row["id"],
@@ -809,7 +923,9 @@ def get_alerts(limit: int = Query(200, ge=1, le=2000)) -> dict[str, Any]:
             "status": "sent" if row["deliveryStatus"] == "sent" else "failed",
             "deliveryStatus": row["deliveryStatus"],
             "sentAt": row["sentAtFormatted"] if row["sentAt"] else None,
-            "cooldown": 0,
+            "cooldown": cooldown_lookup.get((row["user"], row["condition"], row["channel"]), {}).get(
+                row["ticker"], cooldown_lookup.get((row["user"], row["condition"], row["channel"]), {}).get("ALL", 0)
+            ),
         }
         for row in raw
     ]
@@ -993,9 +1109,16 @@ def get_pipeline_status() -> dict[str, Any]:
         # so this reports one current point -- total lag right now -- rather
         # than fabricating a multi-point trend with no real history behind it.
         partition_lags = get_consumer_group_lag()
-        kafka_lag = [
-            {"time": datetime.now().strftime("%H:%M"), "lag": sum(p["lag"] for p in partition_lags)}
-        ] if partition_lags else []
+        kafka_lag = (
+            [
+                {
+                    "time": datetime.now().strftime("%H:%M"),
+                    "lag": sum(p["lag"] for p in partition_lags),
+                }
+            ]
+            if partition_lags
+            else []
+        )
     except Exception:
         kafka_lag = []
 

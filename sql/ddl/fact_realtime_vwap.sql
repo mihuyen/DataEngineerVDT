@@ -3,6 +3,7 @@ CREATE TABLE IF NOT EXISTS fact_realtime_vwap
     ticker String,
     minute_ts DateTime,
     trading_date Date,
+    data_source LowCardinality(String),
     open_price Float64,
     high_price Float64,
     low_price Float64,

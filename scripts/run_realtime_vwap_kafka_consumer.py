@@ -29,7 +29,7 @@ def run_cycle(client: object) -> dict:
     ticks = query_dataframe(
         client,
         f"""
-        SELECT ticker, trade_ts, price, volume
+        SELECT ticker, trade_ts, price, volume, data_source
         FROM realtime_trade_ticks_raw
         WHERE toDate(trade_ts) = toDate('{today.isoformat()}')
         """,

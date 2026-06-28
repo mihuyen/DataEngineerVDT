@@ -37,6 +37,7 @@ export type VwapTicker = {
   volSma: number;
   alerts: number;
   updatedAt?: string;
+  dataSource?: string;
 };
 
 export type VwapPoint = {
@@ -52,8 +53,18 @@ export type RealtimeVwapPayload = {
   count: number;
   activeCount?: number;
   universeCount?: number;
+  subscribedCount?: number;
   latestMinute?: string;
   source?: string;
+  marketStatus: "live" | "lunch_break" | "pre_open" | "closed";
+  statusLabel: string;
+  marketNow?: string;
+  sessionDate?: string | null;
+  staleSeconds?: number | null;
+  isLive: boolean;
+  isFresh: boolean;
+  dataMode: "REAL" | "DEMO";
+  dataProvider: string;
   data: VwapTicker[];
 };
 

@@ -14,3 +14,24 @@ body,
 * {
   box-sizing: border-box;
 }
+
+@media (max-width: 1100px) {
+  .vwap-kpis {
+    grid-template-columns: repeat(3, minmax(120px, 1fr)) !important;
+  }
+}
+
+@media (max-width: 760px) {
+  .vwap-header {
+    flex-direction: column;
+  }
+
+  .vwap-kpis {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+
+  .vwap-workspace,
+  .vwap-secondary-charts {
+    grid-template-columns: minmax(0, 1fr) !important;
+  }
+}

@@ -1,6 +1,6 @@
 // Generated from ClickHouse by scripts/export_frontend_data.py.
 export const dataSnapshotMeta = {
-  "generatedAt": "2026-06-28T14:14:59",
+  "generatedAt": "2026-06-28T15:05:45",
   "latestPriceDate": "2026-06-26",
   "latestNewsDate": "2026-06-26"
 };
@@ -104511,7 +104511,7 @@ export const dagStatus = [
     "status": "success",
     "lastRun": "latest",
     "duration": "snapshot",
-    "records": 15,
+    "records": 0,
     "tasks": 2,
     "failed": 0
   },
@@ -104570,95 +104570,14 @@ export const ingestHistory = [
 
 export const kafkaLag = [
   {
-    "time": "14:15",
+    "time": "15:05",
     "lag": 0
   }
 ];
 
-export const vwapData = [
-  {
-    "time": "09:June",
-    "price": 58055.0,
-    "vwap": 58033.83928571428,
-    "sessionVwap": 58033.83928571428,
-    "volume": 560,
-    "deviation": 0.036462716487768825
-  },
-  {
-    "time": "09:June",
-    "price": 58175.0,
-    "vwap": 58153.793103448275,
-    "sessionVwap": 58094.86842105263,
-    "volume": 580,
-    "deviation": 0.13793228408161456
-  },
-  {
-    "time": "09:June",
-    "price": 58295.0,
-    "vwap": 58273.75,
-    "sessionVwap": 58156.55172413793,
-    "volume": 600,
-    "deviation": 0.23806135638645404
-  },
-  {
-    "time": "09:June",
-    "price": 58415.0,
-    "vwap": 58393.709677419356,
-    "sessionVwap": 58218.85593220339,
-    "volume": 620,
-    "deviation": 0.33690814540399355
-  },
-  {
-    "time": "09:June",
-    "price": 58535.0,
-    "vwap": 58513.671875,
-    "sessionVwap": 58281.75,
-    "volume": 640,
-    "deviation": 0.43452710325273347
-  }
-];
+export const vwapData = [];
 
-export const vwapDeviations = [
-  {
-    "ticker": "VCB",
-    "name": "Ngân hàng TMCP Ngoại thương Việt Nam",
-    "sector": "Ngân hàng",
-    "exchange": "HOSE",
-    "price": 50525.0,
-    "sessionVwap": 50273.6,
-    "vwap": 50273.6,
-    "deviation": 0.5000636516979119,
-    "volume": 2500,
-    "volSma": 500.0,
-    "alerts": 0
-  },
-  {
-    "ticker": "FPT",
-    "name": "CTCP FPT",
-    "sector": "Công nghệ",
-    "exchange": "HOSE",
-    "price": 58535.0,
-    "sessionVwap": 58281.75,
-    "vwap": 58281.75,
-    "deviation": 0.43452710325273347,
-    "volume": 3000,
-    "volSma": 600.0,
-    "alerts": 0
-  },
-  {
-    "ticker": "HPG",
-    "name": "CTCP Tập đoàn Hòa Phát",
-    "sector": "Thép",
-    "exchange": "HOSE",
-    "price": 66545.0,
-    "sessionVwap": 66290.42857142857,
-    "vwap": 66290.42857142857,
-    "deviation": 0.38402441205691057,
-    "volume": 3500,
-    "volSma": 700.0,
-    "alerts": 0
-  }
-];
+export const vwapDeviations = [];
 
 export const newsSentiment = [
   {
@@ -105663,7 +105582,7 @@ export const alertHistory = [
     "deliveryStatus": "sent",
     "sentAt": "12:June:13",
     "triggeredAt": "12:June:13",
-    "cooldown": 30
+    "cooldown": 1440
   },
   {
     "id": 2,
@@ -105677,7 +105596,7 @@ export const alertHistory = [
     "deliveryStatus": "sent",
     "sentAt": "12:June:13",
     "triggeredAt": "12:June:13",
-    "cooldown": 30
+    "cooldown": 1440
   },
   {
     "id": 3,
@@ -105691,7 +105610,7 @@ export const alertHistory = [
     "deliveryStatus": "sent",
     "sentAt": "12:June:13",
     "triggeredAt": "12:June:13",
-    "cooldown": 30
+    "cooldown": 1440
   },
   {
     "id": 4,
@@ -105705,7 +105624,7 @@ export const alertHistory = [
     "deliveryStatus": "sent",
     "sentAt": "12:June:13",
     "triggeredAt": "12:June:13",
-    "cooldown": 30
+    "cooldown": 1440
   },
   {
     "id": 18,
@@ -105719,7 +105638,7 @@ export const alertHistory = [
     "deliveryStatus": "sent",
     "sentAt": "12:June:12",
     "triggeredAt": "12:June:12",
-    "cooldown": 30
+    "cooldown": 1440
   },
   {
     "id": 6,
@@ -105733,7 +105652,7 @@ export const alertHistory = [
     "deliveryStatus": "sent",
     "sentAt": "12:June:12",
     "triggeredAt": "12:June:12",
-    "cooldown": 30
+    "cooldown": 1440
   },
   {
     "id": 7,
@@ -105747,7 +105666,7 @@ export const alertHistory = [
     "deliveryStatus": "sent",
     "sentAt": "12:June:12",
     "triggeredAt": "12:June:12",
-    "cooldown": 30
+    "cooldown": 1440
   },
   {
     "id": 8,
@@ -105761,7 +105680,7 @@ export const alertHistory = [
     "deliveryStatus": "sent",
     "sentAt": "12:June:12",
     "triggeredAt": "12:June:12",
-    "cooldown": 30
+    "cooldown": 1440
   },
   {
     "id": 9,
@@ -105775,7 +105694,7 @@ export const alertHistory = [
     "deliveryStatus": "sent",
     "sentAt": "12:June:12",
     "triggeredAt": "12:June:12",
-    "cooldown": 30
+    "cooldown": 1440
   },
   {
     "id": 10,
@@ -105789,7 +105708,7 @@ export const alertHistory = [
     "deliveryStatus": "sent",
     "sentAt": "12:June:12",
     "triggeredAt": "12:June:12",
-    "cooldown": 30
+    "cooldown": 1440
   },
   {
     "id": 11,
@@ -105803,7 +105722,7 @@ export const alertHistory = [
     "deliveryStatus": "sent",
     "sentAt": "12:June:12",
     "triggeredAt": "12:June:12",
-    "cooldown": 30
+    "cooldown": 1440
   },
   {
     "id": 12,
@@ -105817,7 +105736,7 @@ export const alertHistory = [
     "deliveryStatus": "sent",
     "sentAt": "12:June:12",
     "triggeredAt": "12:June:12",
-    "cooldown": 30
+    "cooldown": 1440
   },
   {
     "id": 13,
@@ -105831,7 +105750,7 @@ export const alertHistory = [
     "deliveryStatus": "sent",
     "sentAt": "12:June:12",
     "triggeredAt": "12:June:12",
-    "cooldown": 30
+    "cooldown": 1440
   },
   {
     "id": 14,
@@ -105845,7 +105764,7 @@ export const alertHistory = [
     "deliveryStatus": "sent",
     "sentAt": "12:June:12",
     "triggeredAt": "12:June:12",
-    "cooldown": 30
+    "cooldown": 1440
   },
   {
     "id": 15,
@@ -105859,7 +105778,7 @@ export const alertHistory = [
     "deliveryStatus": "sent",
     "sentAt": "12:June:12",
     "triggeredAt": "12:June:12",
-    "cooldown": 30
+    "cooldown": 1440
   },
   {
     "id": 16,
@@ -105873,7 +105792,7 @@ export const alertHistory = [
     "deliveryStatus": "sent",
     "sentAt": "12:June:12",
     "triggeredAt": "12:June:12",
-    "cooldown": 30
+    "cooldown": 1440
   },
   {
     "id": 17,
@@ -105887,7 +105806,7 @@ export const alertHistory = [
     "deliveryStatus": "sent",
     "sentAt": "12:June:12",
     "triggeredAt": "12:June:12",
-    "cooldown": 30
+    "cooldown": 1440
   },
   {
     "id": 5,
@@ -105901,7 +105820,7 @@ export const alertHistory = [
     "deliveryStatus": "sent",
     "sentAt": "12:June:12",
     "triggeredAt": "12:June:12",
-    "cooldown": 30
+    "cooldown": 1440
   },
   {
     "id": 19,
@@ -105915,7 +105834,7 @@ export const alertHistory = [
     "deliveryStatus": "sent",
     "sentAt": "12:June:12",
     "triggeredAt": "12:June:12",
-    "cooldown": 30
+    "cooldown": 1440
   },
   {
     "id": 21,
@@ -105929,7 +105848,7 @@ export const alertHistory = [
     "deliveryStatus": "sent",
     "sentAt": "12:June:11",
     "triggeredAt": "12:June:11",
-    "cooldown": 30
+    "cooldown": 1440
   },
   {
     "id": 20,
@@ -105943,7 +105862,7 @@ export const alertHistory = [
     "deliveryStatus": "sent",
     "sentAt": "12:June:11",
     "triggeredAt": "12:June:11",
-    "cooldown": 30
+    "cooldown": 1440
   },
   {
     "id": 22,
@@ -105957,7 +105876,7 @@ export const alertHistory = [
     "deliveryStatus": "sent",
     "sentAt": "12:June:11",
     "triggeredAt": "12:June:11",
-    "cooldown": 30
+    "cooldown": 1440
   },
   {
     "id": 23,
@@ -105971,7 +105890,7 @@ export const alertHistory = [
     "deliveryStatus": "sent",
     "sentAt": "12:June:11",
     "triggeredAt": "12:June:11",
-    "cooldown": 30
+    "cooldown": 1440
   },
   {
     "id": 24,
@@ -105985,7 +105904,7 @@ export const alertHistory = [
     "deliveryStatus": "sent",
     "sentAt": "12:June:11",
     "triggeredAt": "12:June:11",
-    "cooldown": 30
+    "cooldown": 1440
   },
   {
     "id": 25,
@@ -105999,7 +105918,7 @@ export const alertHistory = [
     "deliveryStatus": "sent",
     "sentAt": "12:June:11",
     "triggeredAt": "12:June:11",
-    "cooldown": 30
+    "cooldown": 1440
   },
   {
     "id": 26,
@@ -106013,7 +105932,7 @@ export const alertHistory = [
     "deliveryStatus": "sent",
     "sentAt": "12:June:11",
     "triggeredAt": "12:June:11",
-    "cooldown": 30
+    "cooldown": 1440
   },
   {
     "id": 27,
@@ -106027,7 +105946,7 @@ export const alertHistory = [
     "deliveryStatus": "sent",
     "sentAt": "12:June:11",
     "triggeredAt": "12:June:11",
-    "cooldown": 30
+    "cooldown": 1440
   },
   {
     "id": 28,
@@ -106041,7 +105960,7 @@ export const alertHistory = [
     "deliveryStatus": "sent",
     "sentAt": "12:June:10",
     "triggeredAt": "12:June:10",
-    "cooldown": 30
+    "cooldown": 1440
   },
   {
     "id": 29,
@@ -106055,7 +105974,7 @@ export const alertHistory = [
     "deliveryStatus": "sent",
     "sentAt": "12:June:10",
     "triggeredAt": "12:June:10",
-    "cooldown": 30
+    "cooldown": 1440
   },
   {
     "id": 30,
@@ -106069,7 +105988,7 @@ export const alertHistory = [
     "deliveryStatus": "sent",
     "sentAt": "12:June:10",
     "triggeredAt": "12:June:10",
-    "cooldown": 30
+    "cooldown": 1440
   },
   {
     "id": 31,
@@ -106083,7 +106002,7 @@ export const alertHistory = [
     "deliveryStatus": "sent",
     "sentAt": "12:June:09",
     "triggeredAt": "12:June:09",
-    "cooldown": 30
+    "cooldown": 1440
   },
   {
     "id": 32,
@@ -106097,7 +106016,7 @@ export const alertHistory = [
     "deliveryStatus": "sent",
     "sentAt": "12:June:09",
     "triggeredAt": "12:June:09",
-    "cooldown": 30
+    "cooldown": 1440
   },
   {
     "id": 33,
@@ -106111,7 +106030,7 @@ export const alertHistory = [
     "deliveryStatus": "sent",
     "sentAt": "12:June:09",
     "triggeredAt": "12:June:09",
-    "cooldown": 30
+    "cooldown": 1440
   },
   {
     "id": 34,
@@ -106125,7 +106044,7 @@ export const alertHistory = [
     "deliveryStatus": "sent",
     "sentAt": "12:June:09",
     "triggeredAt": "12:June:09",
-    "cooldown": 30
+    "cooldown": 1440
   },
   {
     "id": 35,
@@ -106139,7 +106058,7 @@ export const alertHistory = [
     "deliveryStatus": "sent",
     "sentAt": "12:June:09",
     "triggeredAt": "12:June:09",
-    "cooldown": 30
+    "cooldown": 1440
   },
   {
     "id": 47,
@@ -106153,7 +106072,7 @@ export const alertHistory = [
     "deliveryStatus": "sent",
     "sentAt": "12:June:08",
     "triggeredAt": "12:June:08",
-    "cooldown": 30
+    "cooldown": 1440
   },
   {
     "id": 37,
@@ -106167,7 +106086,7 @@ export const alertHistory = [
     "deliveryStatus": "sent",
     "sentAt": "12:June:08",
     "triggeredAt": "12:June:08",
-    "cooldown": 30
+    "cooldown": 1440
   },
   {
     "id": 38,
@@ -106181,7 +106100,7 @@ export const alertHistory = [
     "deliveryStatus": "sent",
     "sentAt": "12:June:08",
     "triggeredAt": "12:June:08",
-    "cooldown": 30
+    "cooldown": 1440
   },
   {
     "id": 39,
@@ -106195,7 +106114,7 @@ export const alertHistory = [
     "deliveryStatus": "sent",
     "sentAt": "12:June:08",
     "triggeredAt": "12:June:08",
-    "cooldown": 30
+    "cooldown": 1440
   },
   {
     "id": 40,
@@ -106209,7 +106128,7 @@ export const alertHistory = [
     "deliveryStatus": "sent",
     "sentAt": "12:June:08",
     "triggeredAt": "12:June:08",
-    "cooldown": 30
+    "cooldown": 1440
   },
   {
     "id": 41,
@@ -106223,7 +106142,7 @@ export const alertHistory = [
     "deliveryStatus": "sent",
     "sentAt": "12:June:08",
     "triggeredAt": "12:June:08",
-    "cooldown": 30
+    "cooldown": 1440
   },
   {
     "id": 42,
@@ -106237,7 +106156,7 @@ export const alertHistory = [
     "deliveryStatus": "sent",
     "sentAt": "12:June:08",
     "triggeredAt": "12:June:08",
-    "cooldown": 30
+    "cooldown": 1440
   },
   {
     "id": 43,
@@ -106251,7 +106170,7 @@ export const alertHistory = [
     "deliveryStatus": "sent",
     "sentAt": "12:June:08",
     "triggeredAt": "12:June:08",
-    "cooldown": 30
+    "cooldown": 1440
   },
   {
     "id": 44,
@@ -106265,7 +106184,7 @@ export const alertHistory = [
     "deliveryStatus": "sent",
     "sentAt": "12:June:08",
     "triggeredAt": "12:June:08",
-    "cooldown": 30
+    "cooldown": 1440
   },
   {
     "id": 45,
@@ -106279,7 +106198,7 @@ export const alertHistory = [
     "deliveryStatus": "sent",
     "sentAt": "12:June:08",
     "triggeredAt": "12:June:08",
-    "cooldown": 30
+    "cooldown": 1440
   },
   {
     "id": 46,
@@ -106293,7 +106212,7 @@ export const alertHistory = [
     "deliveryStatus": "sent",
     "sentAt": "12:June:08",
     "triggeredAt": "12:June:08",
-    "cooldown": 30
+    "cooldown": 1440
   },
   {
     "id": 36,
@@ -106307,7 +106226,7 @@ export const alertHistory = [
     "deliveryStatus": "sent",
     "sentAt": "12:June:08",
     "triggeredAt": "12:June:08",
-    "cooldown": 30
+    "cooldown": 1440
   },
   {
     "id": 48,
@@ -106321,7 +106240,7 @@ export const alertHistory = [
     "deliveryStatus": "sent",
     "sentAt": "12:June:08",
     "triggeredAt": "12:June:08",
-    "cooldown": 30
+    "cooldown": 1440
   },
   {
     "id": 49,
@@ -106335,7 +106254,7 @@ export const alertHistory = [
     "deliveryStatus": "sent",
     "sentAt": "12:June:08",
     "triggeredAt": "12:June:08",
-    "cooldown": 30
+    "cooldown": 1440
   },
   {
     "id": 50,
@@ -106349,7 +106268,7 @@ export const alertHistory = [
     "deliveryStatus": "sent",
     "sentAt": "12:June:07",
     "triggeredAt": "12:June:07",
-    "cooldown": 30
+    "cooldown": 1440
   },
   {
     "id": 51,
@@ -106363,7 +106282,7 @@ export const alertHistory = [
     "deliveryStatus": "sent",
     "sentAt": "12:June:07",
     "triggeredAt": "12:June:07",
-    "cooldown": 30
+    "cooldown": 1440
   },
   {
     "id": 52,
@@ -106377,7 +106296,7 @@ export const alertHistory = [
     "deliveryStatus": "sent",
     "sentAt": "12:June:07",
     "triggeredAt": "12:June:07",
-    "cooldown": 30
+    "cooldown": 1440
   },
   {
     "id": 53,
@@ -106391,7 +106310,7 @@ export const alertHistory = [
     "deliveryStatus": "sent",
     "sentAt": "12:June:07",
     "triggeredAt": "12:June:07",
-    "cooldown": 30
+    "cooldown": 1440
   },
   {
     "id": 54,
@@ -106405,7 +106324,7 @@ export const alertHistory = [
     "deliveryStatus": "sent",
     "sentAt": "12:June:07",
     "triggeredAt": "12:June:07",
-    "cooldown": 30
+    "cooldown": 1440
   },
   {
     "id": 55,
@@ -106419,7 +106338,7 @@ export const alertHistory = [
     "deliveryStatus": "sent",
     "sentAt": "12:June:07",
     "triggeredAt": "12:June:07",
-    "cooldown": 30
+    "cooldown": 1440
   },
   {
     "id": 56,
@@ -106433,7 +106352,7 @@ export const alertHistory = [
     "deliveryStatus": "sent",
     "sentAt": "12:June:07",
     "triggeredAt": "12:June:07",
-    "cooldown": 30
+    "cooldown": 1440
   },
   {
     "id": 57,
@@ -106447,7 +106366,7 @@ export const alertHistory = [
     "deliveryStatus": "sent",
     "sentAt": "12:June:07",
     "triggeredAt": "12:June:07",
-    "cooldown": 30
+    "cooldown": 1440
   },
   {
     "id": 58,
@@ -106461,7 +106380,7 @@ export const alertHistory = [
     "deliveryStatus": "sent",
     "sentAt": "12:June:07",
     "triggeredAt": "12:June:07",
-    "cooldown": 30
+    "cooldown": 1440
   },
   {
     "id": 59,
@@ -106475,7 +106394,7 @@ export const alertHistory = [
     "deliveryStatus": "sent",
     "sentAt": "12:June:07",
     "triggeredAt": "12:June:07",
-    "cooldown": 30
+    "cooldown": 1440
   },
   {
     "id": 60,
@@ -106489,7 +106408,7 @@ export const alertHistory = [
     "deliveryStatus": "sent",
     "sentAt": "12:June:07",
     "triggeredAt": "12:June:07",
-    "cooldown": 30
+    "cooldown": 1440
   },
   {
     "id": 61,
@@ -106503,7 +106422,7 @@ export const alertHistory = [
     "deliveryStatus": "sent",
     "sentAt": "12:June:07",
     "triggeredAt": "12:June:07",
-    "cooldown": 30
+    "cooldown": 1440
   },
   {
     "id": 62,
@@ -106517,7 +106436,7 @@ export const alertHistory = [
     "deliveryStatus": "sent",
     "sentAt": "12:June:07",
     "triggeredAt": "12:June:07",
-    "cooldown": 30
+    "cooldown": 1440
   },
   {
     "id": 63,
@@ -106531,7 +106450,7 @@ export const alertHistory = [
     "deliveryStatus": "sent",
     "sentAt": "12:June:07",
     "triggeredAt": "12:June:07",
-    "cooldown": 30
+    "cooldown": 1440
   },
   {
     "id": 65,
@@ -106545,7 +106464,7 @@ export const alertHistory = [
     "deliveryStatus": "sent",
     "sentAt": "12:June:06",
     "triggeredAt": "12:June:06",
-    "cooldown": 30
+    "cooldown": 1440
   },
   {
     "id": 64,
@@ -106559,7 +106478,7 @@ export const alertHistory = [
     "deliveryStatus": "sent",
     "sentAt": "12:June:06",
     "triggeredAt": "12:June:06",
-    "cooldown": 30
+    "cooldown": 1440
   },
   {
     "id": 66,
@@ -106573,7 +106492,7 @@ export const alertHistory = [
     "deliveryStatus": "sent",
     "sentAt": "12:June:06",
     "triggeredAt": "12:June:06",
-    "cooldown": 30
+    "cooldown": 1440
   },
   {
     "id": 67,
@@ -106587,7 +106506,7 @@ export const alertHistory = [
     "deliveryStatus": "sent",
     "sentAt": "12:June:06",
     "triggeredAt": "12:June:06",
-    "cooldown": 30
+    "cooldown": 1440
   },
   {
     "id": 68,
@@ -106601,7 +106520,7 @@ export const alertHistory = [
     "deliveryStatus": "sent",
     "sentAt": "12:June:06",
     "triggeredAt": "12:June:06",
-    "cooldown": 30
+    "cooldown": 1440
   },
   {
     "id": 69,
@@ -106615,7 +106534,7 @@ export const alertHistory = [
     "deliveryStatus": "sent",
     "sentAt": "12:June:06",
     "triggeredAt": "12:June:06",
-    "cooldown": 30
+    "cooldown": 1440
   },
   {
     "id": 70,
@@ -106629,7 +106548,7 @@ export const alertHistory = [
     "deliveryStatus": "sent",
     "sentAt": "12:June:06",
     "triggeredAt": "12:June:06",
-    "cooldown": 30
+    "cooldown": 1440
   },
   {
     "id": 71,
@@ -106643,7 +106562,7 @@ export const alertHistory = [
     "deliveryStatus": "sent",
     "sentAt": "12:June:06",
     "triggeredAt": "12:June:06",
-    "cooldown": 30
+    "cooldown": 1440
   },
   {
     "id": 72,
@@ -106657,7 +106576,7 @@ export const alertHistory = [
     "deliveryStatus": "sent",
     "sentAt": "12:June:06",
     "triggeredAt": "12:June:06",
-    "cooldown": 30
+    "cooldown": 1440
   },
   {
     "id": 73,
@@ -106671,7 +106590,7 @@ export const alertHistory = [
     "deliveryStatus": "sent",
     "sentAt": "12:June:06",
     "triggeredAt": "12:June:06",
-    "cooldown": 30
+    "cooldown": 1440
   },
   {
     "id": 74,
@@ -106685,7 +106604,7 @@ export const alertHistory = [
     "deliveryStatus": "sent",
     "sentAt": "12:June:06",
     "triggeredAt": "12:June:06",
-    "cooldown": 30
+    "cooldown": 1440
   },
   {
     "id": 75,
@@ -106699,7 +106618,7 @@ export const alertHistory = [
     "deliveryStatus": "sent",
     "sentAt": "12:June:06",
     "triggeredAt": "12:June:06",
-    "cooldown": 30
+    "cooldown": 1440
   },
   {
     "id": 76,
@@ -106713,7 +106632,7 @@ export const alertHistory = [
     "deliveryStatus": "sent",
     "sentAt": "12:June:06",
     "triggeredAt": "12:June:06",
-    "cooldown": 30
+    "cooldown": 1440
   },
   {
     "id": 77,
@@ -106727,7 +106646,7 @@ export const alertHistory = [
     "deliveryStatus": "sent",
     "sentAt": "12:June:06",
     "triggeredAt": "12:June:06",
-    "cooldown": 30
+    "cooldown": 1440
   },
   {
     "id": 79,
@@ -106741,7 +106660,7 @@ export const alertHistory = [
     "deliveryStatus": "sent",
     "sentAt": "12:June:05",
     "triggeredAt": "12:June:05",
-    "cooldown": 30
+    "cooldown": 1440
   },
   {
     "id": 78,
@@ -106755,7 +106674,7 @@ export const alertHistory = [
     "deliveryStatus": "sent",
     "sentAt": "12:June:05",
     "triggeredAt": "12:June:05",
-    "cooldown": 30
+    "cooldown": 1440
   },
   {
     "id": 80,
@@ -106769,7 +106688,7 @@ export const alertHistory = [
     "deliveryStatus": "sent",
     "sentAt": "12:June:05",
     "triggeredAt": "12:June:05",
-    "cooldown": 30
+    "cooldown": 1440
   },
   {
     "id": 81,
@@ -106783,7 +106702,7 @@ export const alertHistory = [
     "deliveryStatus": "sent",
     "sentAt": "12:June:05",
     "triggeredAt": "12:June:05",
-    "cooldown": 30
+    "cooldown": 1440
   },
   {
     "id": 82,
@@ -106797,7 +106716,7 @@ export const alertHistory = [
     "deliveryStatus": "sent",
     "sentAt": "12:June:05",
     "triggeredAt": "12:June:05",
-    "cooldown": 30
+    "cooldown": 1440
   },
   {
     "id": 83,
@@ -106811,7 +106730,7 @@ export const alertHistory = [
     "deliveryStatus": "sent",
     "sentAt": "12:June:05",
     "triggeredAt": "12:June:05",
-    "cooldown": 30
+    "cooldown": 1440
   },
   {
     "id": 84,
@@ -106825,7 +106744,7 @@ export const alertHistory = [
     "deliveryStatus": "sent",
     "sentAt": "12:June:05",
     "triggeredAt": "12:June:05",
-    "cooldown": 30
+    "cooldown": 1440
   },
   {
     "id": 85,
@@ -106839,7 +106758,7 @@ export const alertHistory = [
     "deliveryStatus": "sent",
     "sentAt": "12:June:05",
     "triggeredAt": "12:June:05",
-    "cooldown": 30
+    "cooldown": 1440
   },
   {
     "id": 86,
@@ -106853,7 +106772,7 @@ export const alertHistory = [
     "deliveryStatus": "sent",
     "sentAt": "12:June:05",
     "triggeredAt": "12:June:05",
-    "cooldown": 30
+    "cooldown": 1440
   },
   {
     "id": 87,
@@ -106867,7 +106786,7 @@ export const alertHistory = [
     "deliveryStatus": "sent",
     "sentAt": "12:June:05",
     "triggeredAt": "12:June:05",
-    "cooldown": 30
+    "cooldown": 1440
   },
   {
     "id": 88,
@@ -106881,7 +106800,7 @@ export const alertHistory = [
     "deliveryStatus": "sent",
     "sentAt": "12:June:05",
     "triggeredAt": "12:June:05",
-    "cooldown": 30
+    "cooldown": 1440
   },
   {
     "id": 89,
@@ -106895,7 +106814,7 @@ export const alertHistory = [
     "deliveryStatus": "sent",
     "sentAt": "12:June:05",
     "triggeredAt": "12:June:05",
-    "cooldown": 30
+    "cooldown": 1440
   },
   {
     "id": 90,
@@ -106909,7 +106828,7 @@ export const alertHistory = [
     "deliveryStatus": "sent",
     "sentAt": "12:June:05",
     "triggeredAt": "12:June:05",
-    "cooldown": 30
+    "cooldown": 1440
   },
   {
     "id": 91,
@@ -106923,7 +106842,7 @@ export const alertHistory = [
     "deliveryStatus": "sent",
     "sentAt": "12:June:05",
     "triggeredAt": "12:June:05",
-    "cooldown": 30
+    "cooldown": 1440
   },
   {
     "id": 92,
@@ -106937,7 +106856,7 @@ export const alertHistory = [
     "deliveryStatus": "sent",
     "sentAt": "12:June:05",
     "triggeredAt": "12:June:05",
-    "cooldown": 30
+    "cooldown": 1440
   },
   {
     "id": 100,
@@ -106951,7 +106870,7 @@ export const alertHistory = [
     "deliveryStatus": "sent",
     "sentAt": "12:June:04",
     "triggeredAt": "12:June:04",
-    "cooldown": 30
+    "cooldown": 1440
   },
   {
     "id": 98,
@@ -106965,7 +106884,7 @@ export const alertHistory = [
     "deliveryStatus": "sent",
     "sentAt": "12:June:04",
     "triggeredAt": "12:June:04",
-    "cooldown": 30
+    "cooldown": 1440
   },
   {
     "id": 95,
@@ -106979,7 +106898,7 @@ export const alertHistory = [
     "deliveryStatus": "sent",
     "sentAt": "12:June:04",
     "triggeredAt": "12:June:04",
-    "cooldown": 30
+    "cooldown": 1440
   },
   {
     "id": 94,
@@ -106993,7 +106912,7 @@ export const alertHistory = [
     "deliveryStatus": "sent",
     "sentAt": "12:June:04",
     "triggeredAt": "12:June:04",
-    "cooldown": 30
+    "cooldown": 1440
   },
   {
     "id": 96,
@@ -107007,7 +106926,7 @@ export const alertHistory = [
     "deliveryStatus": "sent",
     "sentAt": "12:June:04",
     "triggeredAt": "12:June:04",
-    "cooldown": 30
+    "cooldown": 1440
   },
   {
     "id": 97,
@@ -107021,7 +106940,7 @@ export const alertHistory = [
     "deliveryStatus": "sent",
     "sentAt": "12:June:04",
     "triggeredAt": "12:June:04",
-    "cooldown": 30
+    "cooldown": 1440
   },
   {
     "id": 93,
@@ -107035,7 +106954,7 @@ export const alertHistory = [
     "deliveryStatus": "sent",
     "sentAt": "12:June:04",
     "triggeredAt": "12:June:04",
-    "cooldown": 30
+    "cooldown": 1440
   },
   {
     "id": 102,
@@ -107049,7 +106968,7 @@ export const alertHistory = [
     "deliveryStatus": "sent",
     "sentAt": "12:June:04",
     "triggeredAt": "12:June:04",
-    "cooldown": 30
+    "cooldown": 1440
   }
 ];
 

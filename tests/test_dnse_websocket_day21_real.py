@@ -132,4 +132,5 @@ def test_parse_trade_message_returns_vwap_ready_tick() -> None:
     assert tick.ticker == "HPG"
     assert tick.price == 24.35
     assert tick.volume == 40
+    assert tick.to_dict()["data_source"] == "DNSE"
     assert tick.to_dict()["raw_json"]

@@ -2,7 +2,11 @@ from datetime import datetime
 
 import polars as pl
 
-from src.api.dashboard_api import bronze_realtime_vwap_rows, bronze_realtime_vwap_series
+from src.api.dashboard_api import (
+    bronze_realtime_vwap_rows,
+    bronze_realtime_vwap_series,
+    market_session_status,
+)
 
 
 def write_ticks(base_dir, rows):
@@ -33,6 +37,7 @@ def test_bronze_realtime_vwap_rows_returns_latest_dnse_ticks(tmp_path):
     vcb = next(row for row in rows if row["ticker"] == "VCB")
     assert vcb["price"] == 110.0
     assert vcb["sessionVwap"] == 107.5
+    assert vcb["dataSource"] == "DNSE"
 
 
 def test_bronze_realtime_vwap_series_returns_chart_shape(tmp_path):
@@ -55,3 +60,15 @@ def test_bronze_realtime_vwap_series_returns_chart_shape(tmp_path):
     assert [point["time"] for point in series] == ["09:15", "09:16"]
     assert series[-1]["price"] == 120.0
     assert series[-1]["sessionVwap"] == 115.0
+
+
+def test_market_session_status_covers_hose_trading_day():
+    assert market_session_status(datetime(2026, 6, 29, 8, 30))["marketStatus"] == "pre_open"
+    assert market_session_status(datetime(2026, 6, 29, 10, 0))["marketStatus"] == "live"
+    assert market_session_status(datetime(2026, 6, 29, 12, 0))["marketStatus"] == "lunch_break"
+    assert market_session_status(datetime(2026, 6, 29, 14, 0))["marketStatus"] == "live"
+    assert market_session_status(datetime(2026, 6, 29, 15, 1))["marketStatus"] == "closed"
+
+
+def test_market_session_status_closes_on_weekend():
+    assert market_session_status(datetime(2026, 6, 28, 10, 0))["marketStatus"] == "closed"

@@ -39,6 +39,7 @@ def main() -> None:
             price=row["price"],
             volume=row["volume"],
             topic=args.topic,
+            data_source="DEMO",
         )
     producer.flush()
     print(f"Published {ticks.height} demo ticks to topic '{args.topic}'")

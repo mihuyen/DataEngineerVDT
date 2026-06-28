@@ -1,9 +1,14 @@
-CREATE TABLE IF NOT EXISTS kafka_realtime_trade_ticks
+DROP TABLE IF EXISTS mv_realtime_trade_ticks_raw;
+
+DROP TABLE IF EXISTS kafka_realtime_trade_ticks;
+
+CREATE TABLE kafka_realtime_trade_ticks
 (
     ticker String,
     trade_ts DateTime,
     price Float64,
-    volume UInt64
+    volume UInt64,
+    data_source LowCardinality(String)
 )
 ENGINE = Kafka
 SETTINGS
@@ -19,6 +24,7 @@ CREATE TABLE IF NOT EXISTS realtime_trade_ticks_raw
     trade_ts DateTime,
     price Float64,
     volume UInt64,
+    data_source LowCardinality(String) DEFAULT 'UNKNOWN',
     ingested_at DateTime DEFAULT now()
 )
 ENGINE = MergeTree
@@ -32,5 +38,6 @@ SELECT
     ticker,
     trade_ts,
     price,
-    volume
+    volume,
+    data_source
 FROM kafka_realtime_trade_ticks;

@@ -20,12 +20,19 @@ def create_producer() -> KafkaProducer:
     )
 
 
-def trade_tick_to_kafka_message(ticker: str, trade_ts: datetime, price: float, volume: int) -> dict[str, Any]:
+def trade_tick_to_kafka_message(
+    ticker: str,
+    trade_ts: datetime,
+    price: float,
+    volume: int,
+    data_source: str = "DNSE",
+) -> dict[str, Any]:
     return {
         "ticker": ticker.upper(),
         "trade_ts": trade_ts.strftime("%Y-%m-%d %H:%M:%S"),
         "price": float(price),
         "volume": int(volume),
+        "data_source": data_source.strip().upper(),
     }
 
 
@@ -36,6 +43,7 @@ def publish_trade_tick(
     price: float,
     volume: int,
     topic: str = DEFAULT_TOPIC,
+    data_source: str = "DNSE",
 ) -> None:
-    message = trade_tick_to_kafka_message(ticker, trade_ts, price, volume)
+    message = trade_tick_to_kafka_message(ticker, trade_ts, price, volume, data_source=data_source)
     producer.send(topic, key=message["ticker"], value=message)

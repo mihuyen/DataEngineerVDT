@@ -15,7 +15,11 @@ sys.path.append(str(Path(__file__).resolve().parents[1]))
 
 from src.common.clickhouse_client import create_client, execute, query_dataframe
 from src.loaders.load_fact_realtime_vwap import build_fact_realtime_vwap
-from src.streaming.dnse_websocket import DNSEWebSocketConfig, collect_trade_ticks, stream_trade_ticks
+from src.streaming.dnse_websocket import (
+    DNSEWebSocketConfig,
+    collect_trade_ticks,
+    stream_trade_ticks,
+)
 from src.streaming.kafka_producer import create_producer, publish_trade_tick
 
 
@@ -92,8 +96,12 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--max-messages", type=int, default=100)
     parser.add_argument("--timeout-seconds", type=float, default=300)
     parser.add_argument("--output-dir", type=Path, default=DEFAULT_OUTPUT_DIR)
-    parser.add_argument("--load-vwap", action="store_true", help="Aggregate ticks and load fact_realtime_vwap.")
-    parser.add_argument("--append", action="store_true", help="Append instead of truncating fact_realtime_vwap.")
+    parser.add_argument(
+        "--load-vwap", action="store_true", help="Aggregate ticks and load fact_realtime_vwap."
+    )
+    parser.add_argument(
+        "--append", action="store_true", help="Append instead of truncating fact_realtime_vwap."
+    )
     parser.add_argument(
         "--produce-to-kafka",
         action="store_true",
@@ -123,7 +131,9 @@ def load_all_symbols() -> list[str]:
         ORDER BY ticker
         """,
     )
-    symbols = [str(ticker).strip().upper() for ticker in frame["ticker"].to_list() if str(ticker).strip()]
+    symbols = [
+        str(ticker).strip().upper() for ticker in frame["ticker"].to_list() if str(ticker).strip()
+    ]
     if not symbols:
         raise ValueError("No symbols found in dim_stock. Run the dimension loader first.")
     return symbols
@@ -254,6 +264,7 @@ async def main_async() -> None:
                 price=tick.price,
                 volume=tick.volume,
                 topic=args.kafka_topic,
+                data_source="DNSE",
             )
             rows.append(tick.to_dict())
         producer.flush()
@@ -266,6 +277,7 @@ async def main_async() -> None:
                     "trade_ts": pl.Datetime,
                     "price": pl.Float64,
                     "volume": pl.Int64,
+                    "data_source": pl.String,
                     "raw_json": pl.String,
                 }
             )
@@ -295,7 +307,9 @@ async def main_async() -> None:
         client = create_client()
         if not args.append:
             execute(client, "TRUNCATE TABLE IF EXISTS fact_realtime_vwap")
-        frame = build_fact_realtime_vwap(ticks.select(["ticker", "trade_ts", "price", "volume"]))
+        frame = build_fact_realtime_vwap(
+            ticks.select(["ticker", "trade_ts", "price", "volume", "data_source"])
+        )
         client.insert_df("fact_realtime_vwap", frame.to_pandas())
         counts = query_dataframe(
             client,

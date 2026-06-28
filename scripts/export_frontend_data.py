@@ -16,6 +16,7 @@ if str(ROOT) not in sys.path:
 
 from src.common.clickhouse_client import create_client  # noqa: E402
 from src.common.kafka_lag import get_consumer_group_lag  # noqa: E402
+from src.common.postgres_client import create_connection  # noqa: E402
 
 
 def rows(client: Any, sql: str) -> list[dict[str, Any]]:
@@ -520,15 +521,32 @@ def main() -> None:
           if(delivery_status = 'sent', 'sent', 'failed') AS status,
           delivery_status AS deliveryStatus,
           ifNull(formatDateTime(sent_at, '%H:%M:%S'), '') AS sentAt,
-          formatDateTime(triggered_at, '%H:%M:%S') AS triggeredAt,
-          30 AS cooldown
+          formatDateTime(triggered_at, '%H:%M:%S') AS triggeredAt
         FROM fact_alert_event
         ORDER BY triggered_at DESC
         LIMIT 100
         """,
     )
+    # fact_alert_event only stores the expanded concrete ticker (e.g. "AAA"),
+    # never a wildcard rule's literal ticker="ALL" in user_alerts (Postgres),
+    # so fall back to that rule's "ALL" entry when the concrete ticker isn't
+    # its own key.
+    cooldown_lookup: dict[tuple[str, str, str], dict[str, int]] = {}
+    try:
+        with create_connection() as pg_conn, pg_conn.cursor() as cur:
+            cur.execute("SELECT user_id, ticker, condition_type, channel, cooldown_minutes FROM user_alerts")
+            for user_id, ticker, condition_type, channel, cooldown_minutes in cur.fetchall():
+                cooldown_lookup.setdefault((user_id, condition_type, channel), {})[ticker] = cooldown_minutes
+    except Exception:
+        pass
     alert_history = [
-        {**r, "sentAt": r["sentAt"] or None}
+        {
+            **r,
+            "sentAt": r["sentAt"] or None,
+            "cooldown": cooldown_lookup.get((r["user"], r["condition"], r["channel"]), {}).get(
+                r["ticker"], cooldown_lookup.get((r["user"], r["condition"], r["channel"]), {}).get("ALL", 0)
+            ),
+        }
         for r in alert_history_rows
     ]
     alerts_by_day = rows(

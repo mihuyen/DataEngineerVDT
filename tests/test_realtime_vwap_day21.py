@@ -18,6 +18,7 @@ def test_day21_fact_realtime_vwap_ddl_matches_scheme() -> None:
     ddl = DDL_PATH.read_text(encoding="utf-8")
 
     assert "ticker String" in ddl
+    assert "data_source LowCardinality(String)" in ddl
     assert "minute_ts DateTime" in ddl
     assert "vwap_1m Float64" in ddl
     assert "session_vwap Float64" in ddl
@@ -30,6 +31,7 @@ def test_day21_generate_demo_trade_ticks_is_deterministic() -> None:
 
     assert ticks.height == 12
     assert set(ticks.get_column("ticker").to_list()) == {"VCB", "FPT"}
+    assert set(ticks.get_column("data_source").to_list()) == {"DEMO"}
 
 
 def test_day21_build_fact_realtime_vwap_aggregates_minute_bars() -> None:
@@ -43,6 +45,7 @@ def test_day21_build_fact_realtime_vwap_aggregates_minute_bars() -> None:
             ],
             "price": [100.0, 110.0, 120.0],
             "volume": [10, 30, 60],
+            "data_source": ["DNSE", "DNSE", "DNSE"],
         }
     )
 
@@ -65,6 +68,7 @@ def test_day21_streaming_sql_contains_kafka_engine_and_materialized_view() -> No
     assert "ENGINE = Kafka" in sql
     assert "dnse-trades-raw" in sql
     assert "CREATE MATERIALIZED VIEW" in sql
+    assert "data_source LowCardinality(String)" in sql
     # The MV lands raw ticks into a staging table; a Python consumer
     # (scripts/run_realtime_vwap_kafka_consumer.py) computes the correct
     # cumulative session VWAP and loads fact_realtime_vwap from there.

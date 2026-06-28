@@ -80,6 +80,7 @@ def fetch_latest_market_data(ch_client: Any, tickers: list[str]) -> dict[str, di
         SELECT ticker, argMax(price_vs_session_vwap_pct, minute_ts) AS deviation
         FROM fact_realtime_vwap
         WHERE ticker IN ({tickers_sql})
+          AND data_source = 'DNSE'
         GROUP BY ticker
         """
     )

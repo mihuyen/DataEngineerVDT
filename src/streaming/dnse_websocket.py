@@ -88,6 +88,7 @@ class DNSETradeTick:
             "trade_ts": self.trade_ts,
             "price": self.price,
             "volume": self.volume,
+            "data_source": "DNSE",
             "raw_json": json.dumps(self.raw, ensure_ascii=False, sort_keys=True),
         }
 

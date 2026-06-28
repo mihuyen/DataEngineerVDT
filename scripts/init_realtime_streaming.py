@@ -11,8 +11,30 @@ PROJECT_ROOT = Path(__file__).resolve().parents[1]
 STREAMING_SQL_PATH = PROJECT_ROOT / "sql" / "streaming" / "realtime_vwap_kafka_engine.sql"
 
 
+def table_exists(client, table_name: str) -> bool:
+    result = client.query(
+        "SELECT count() FROM system.tables WHERE database = currentDatabase() AND name = %(name)s",
+        parameters={"name": table_name},
+    )
+    return bool(result.result_rows[0][0])
+
+
 def main() -> None:
     client = create_client()
+    if table_exists(client, "fact_realtime_vwap"):
+        execute(
+            client,
+            "ALTER TABLE fact_realtime_vwap "
+            "ADD COLUMN IF NOT EXISTS data_source LowCardinality(String) "
+            "DEFAULT 'UNKNOWN' AFTER trading_date",
+        )
+    if table_exists(client, "realtime_trade_ticks_raw"):
+        execute(
+            client,
+            "ALTER TABLE realtime_trade_ticks_raw "
+            "ADD COLUMN IF NOT EXISTS data_source LowCardinality(String) "
+            "DEFAULT 'UNKNOWN' AFTER volume",
+        )
     sql_text = STREAMING_SQL_PATH.read_text(encoding="utf-8")
     statements = [statement.strip() for statement in sql_text.split(";") if statement.strip()]
     for statement in statements:
