@@ -73,6 +73,37 @@ def test_vwap_deviation_no_trigger_within_band() -> None:
     assert evaluate_condition(rule, {"price_vs_session_vwap_pct": 1.0}) is None
 
 
+def test_intraday_volume_spike_triggers_above_threshold() -> None:
+    rule = make_rule("INTRADAY_VOLUME_SPIKE", 2.0)
+    assert evaluate_condition(rule, {"intraday_volume_ratio": 3.2}) == 3.2
+
+
+def test_intraday_volume_spike_no_trigger_below_threshold() -> None:
+    rule = make_rule("INTRADAY_VOLUME_SPIKE", 2.0)
+    assert evaluate_condition(rule, {"intraday_volume_ratio": 1.1}) is None
+
+
+def test_intraday_breakout_triggers_above_rolling_high() -> None:
+    rule = make_rule("INTRADAY_BREAKOUT", 0.0)
+    assert evaluate_condition(rule, {"close": 105, "intraday_rolling_high_20": 100, "intraday_rolling_low_20": 80}) == 105
+
+
+def test_intraday_breakout_triggers_below_rolling_low() -> None:
+    rule = make_rule("INTRADAY_BREAKOUT", 0.0)
+    assert evaluate_condition(rule, {"close": 75, "intraday_rolling_high_20": 100, "intraday_rolling_low_20": 80}) == 75
+
+
+def test_intraday_breakout_no_trigger_inside_band() -> None:
+    rule = make_rule("INTRADAY_BREAKOUT", 0.0)
+    assert evaluate_condition(rule, {"close": 90, "intraday_rolling_high_20": 100, "intraday_rolling_low_20": 80}) is None
+
+
+def test_intraday_breakout_threshold_buffer_damps_noise() -> None:
+    rule = make_rule("INTRADAY_BREAKOUT", 5.0)
+    # 1% past the rolling high is inside a 5% buffer, so no trigger yet.
+    assert evaluate_condition(rule, {"close": 101, "intraday_rolling_high_20": 100, "intraday_rolling_low_20": 80}) is None
+
+
 def test_missing_market_field_returns_none() -> None:
     rule = make_rule("RSI_ABOVE", 70)
     assert evaluate_condition(rule, {}) is None

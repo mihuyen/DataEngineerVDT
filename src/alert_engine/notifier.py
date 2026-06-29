@@ -23,6 +23,8 @@ CONDITION_LABELS = {
     "RSI_BELOW": "RSI quá bán",
     "BB_BREAK": "Vượt Bollinger Band",
     "VWAP_DEVIATION": "Lệch VWAP",
+    "INTRADAY_VOLUME_SPIKE": "Khối lượng đột biến",
+    "INTRADAY_BREAKOUT": "Breakout trong phiên",
 }
 
 

@@ -10,6 +10,8 @@ CONDITION_TYPES = (
     "RSI_BELOW",
     "BB_BREAK",
     "VWAP_DEVIATION",
+    "INTRADAY_VOLUME_SPIKE",
+    "INTRADAY_BREAKOUT",
 )
 
 
@@ -65,5 +67,26 @@ def evaluate_condition(rule: AlertRule, market: dict[str, Any]) -> float | None:
     if condition == "VWAP_DEVIATION":
         deviation = market.get("price_vs_session_vwap_pct")
         return deviation if deviation is not None and abs(deviation) > threshold else None
+
+    if condition == "INTRADAY_VOLUME_SPIKE":
+        # threshold is a multiple of the trailing 20-minute average volume
+        # (e.g. 2.0 = latest minute's volume is at least 2x that average).
+        ratio = market.get("intraday_volume_ratio")
+        return ratio if ratio is not None and ratio > threshold else None
+
+    if condition == "INTRADAY_BREAKOUT":
+        # threshold is a % buffer past the trailing 20-minute high/low (0 =
+        # break the level exactly; a small positive value damps noise from
+        # prices hovering right at the band).
+        close = market.get("close")
+        rolling_high = market.get("intraday_rolling_high_20")
+        rolling_low = market.get("intraday_rolling_low_20")
+        if close is None:
+            return None
+        if rolling_high is not None and close > rolling_high * (1 + threshold / 100):
+            return close
+        if rolling_low is not None and close < rolling_low * (1 - threshold / 100):
+            return close
+        return None
 
     raise ValueError(f"Unknown condition_type: {condition}")

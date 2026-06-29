@@ -13,6 +13,8 @@ const CONDITION_LABELS: Record<string, string> = {
   RSI_BELOW: "RSI quá bán",
   BB_BREAK: "Vượt Bollinger Band",
   VWAP_DEVIATION: "Lệch VWAP (%)",
+  INTRADAY_VOLUME_SPIKE: "Khối lượng đột biến (x lần TB 20p)",
+  INTRADAY_BREAKOUT: "Breakout trong phiên (% vượt biên 20p)",
 };
 
 const FIELD_INPUT: React.CSSProperties = {

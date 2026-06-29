@@ -206,6 +206,33 @@ export async function fetchTechnicalSignals(): Promise<TechnicalSignalsPayload> 
   return getJson<TechnicalSignalsPayload>("/api/technical/signals");
 }
 
+export type IntradaySignalResolution = "1m" | "5m" | "15m";
+
+export type IntradayTechnicalSignal = {
+  ticker: string;
+  asOf: string;
+  name: string;
+  close: number;
+  volume: number;
+  rsi: number | null;
+  bbUpper: number | null;
+  bbLower: number | null;
+  volSma20: number | null;
+  signal: string;
+};
+
+export type IntradayTechnicalSignalsPayload = {
+  resolution: IntradaySignalResolution;
+  count: number;
+  data: IntradayTechnicalSignal[];
+};
+
+export async function fetchIntradayTechnicalSignals(
+  resolution: IntradaySignalResolution
+): Promise<IntradayTechnicalSignalsPayload> {
+  return getJson<IntradayTechnicalSignalsPayload>(`/api/technical/signals/intraday?resolution=${resolution}`);
+}
+
 export type NewsSentimentRow = {
   ticker: string;
   name: string;

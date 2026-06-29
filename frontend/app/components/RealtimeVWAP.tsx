@@ -70,6 +70,10 @@ function formatTimestamp(value?: string): string {
   return value.replace("T", " ").slice(0, 19);
 }
 
+function tickIntervalFor(pointCount: number, maxTicks: number): number {
+  return Math.max(0, Math.ceil(pointCount / maxTicks) - 1);
+}
+
 function statusPresentation(meta: RealtimeVwapPayload, hasError: boolean) {
   if (hasError) return { label: "Mất kết nối", color: "#ff4d6d", bg: "rgba(255,77,109,0.12)" };
   if (meta.marketStatus === "live" && !meta.isFresh) {
@@ -225,6 +229,8 @@ export function RealtimeVWAP({ onNavigate }: RealtimeVWAPProps) {
     ...item,
     fill: item.deviation >= 0 ? "#00d97e" : "#ff4d6d",
   }));
+  const mainChartTickInterval = tickIntervalFor(chartData.length, 7);
+  const compactChartTickInterval = tickIntervalFor(chartData.length, 4);
 
   const handleSort = (key: SortKey) => {
     if (sortKey === key) setSortDesc((value) => !value);
@@ -443,7 +449,15 @@ export function RealtimeVWAP({ onNavigate }: RealtimeVWAPProps) {
                 {chartData.length ? (
                   <ResponsiveContainer width="100%" height={220}>
                     <ComposedChart data={chartData} margin={{ left: 10, right: 20 }}>
-                      <XAxis dataKey="time" tick={{ fill: "#6b7fa3", fontSize: 10, ...MONO }} axisLine={false} tickLine={false} />
+                      <XAxis
+                        dataKey="time"
+                        interval={mainChartTickInterval}
+                        minTickGap={24}
+                        tickMargin={8}
+                        tick={{ fill: "#6b7fa3", fontSize: 10, ...MONO }}
+                        axisLine={false}
+                        tickLine={false}
+                      />
                       <YAxis domain={["auto", "auto"]} tick={{ fill: "#6b7fa3", fontSize: 10, ...MONO }} axisLine={false} tickLine={false} width={60} />
                       <Tooltip content={<CustomTooltip />} />
                       <Line type="monotone" dataKey="price" stroke="#e2e8f0" strokeWidth={2} dot={false} name="Giá" />
@@ -461,7 +475,15 @@ export function RealtimeVWAP({ onNavigate }: RealtimeVWAPProps) {
                   <div style={{ ...INTER, color: "#e2e8f0", fontSize: 13, fontWeight: 600, marginBottom: 12 }}>Khối lượng theo phút</div>
                   <ResponsiveContainer width="100%" height={130}>
                     <BarChart data={chartData}>
-                      <XAxis dataKey="time" tick={{ fill: "#6b7fa3", fontSize: 9, ...MONO }} axisLine={false} tickLine={false} />
+                      <XAxis
+                        dataKey="time"
+                        interval={compactChartTickInterval}
+                        minTickGap={18}
+                        tickMargin={6}
+                        tick={{ fill: "#6b7fa3", fontSize: 9, ...MONO }}
+                        axisLine={false}
+                        tickLine={false}
+                      />
                       <YAxis tick={{ fill: "#6b7fa3", fontSize: 9, ...MONO }} axisLine={false} tickLine={false} tickFormatter={formatVolume} />
                       <Tooltip content={<CustomTooltip />} />
                       <Bar dataKey="volume" fill="#3b82f6" opacity={0.7} radius={[2, 2, 0, 0]} name="Khối lượng" />
@@ -472,7 +494,15 @@ export function RealtimeVWAP({ onNavigate }: RealtimeVWAPProps) {
                   <div style={{ ...INTER, color: "#e2e8f0", fontSize: 13, fontWeight: 600, marginBottom: 12 }}>Lệch VWAP phiên (%)</div>
                   <ResponsiveContainer width="100%" height={130}>
                     <ComposedChart data={deviationChartData}>
-                      <XAxis dataKey="time" tick={{ fill: "#6b7fa3", fontSize: 9, ...MONO }} axisLine={false} tickLine={false} />
+                      <XAxis
+                        dataKey="time"
+                        interval={compactChartTickInterval}
+                        minTickGap={18}
+                        tickMargin={6}
+                        tick={{ fill: "#6b7fa3", fontSize: 9, ...MONO }}
+                        axisLine={false}
+                        tickLine={false}
+                      />
                       <YAxis tick={{ fill: "#6b7fa3", fontSize: 9, ...MONO }} axisLine={false} tickLine={false} tickFormatter={(value) => `${value}%`} />
                       <Tooltip content={<CustomTooltip />} />
                       <ReferenceLine y={2} stroke="#f59e0b" strokeDasharray="3 3" />

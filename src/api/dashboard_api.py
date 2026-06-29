@@ -44,6 +44,8 @@ ALERT_CONDITION_COLORS = {
     "VWAP_DEVIATION": "#a855f7",
     "PRICE_ABOVE": "#3b82f6",
     "PRICE_BELOW": "#06b6d4",
+    "INTRADAY_VOLUME_SPIKE": "#06b6d4",
+    "INTRADAY_BREAKOUT": "#f59e0b",
 }
 
 PIPELINE_TABLES = [
@@ -1013,6 +1015,105 @@ def get_technical_signals(limit: int = Query(150, ge=10, le=2000)) -> dict[str, 
     return {"trackedTickerCount": tracked_ticker_count, "count": len(signals), "data": signals}
 
 
+@app.get("/api/technical/signals/intraday")
+def get_intraday_technical_signals(
+    resolution: str = Query("5m", pattern="^(1m|5m|15m)$"),
+    limit: int = Query(150, ge=10, le=2000),
+) -> dict[str, Any]:
+    """Same overbought/oversold/breakout/volume-spike signals as the daily
+    scanner, but computed from today's fact_intraday_ohlcv buckets instead
+    of yesterday's EOD bar -- this is the only other consumer of the 1-minute
+    DNSE/Vnstock candles besides the StockDetail "Trong phiên" chart.
+
+    RSI14 and a 20-bucket Bollinger/volume baseline need that many buckets to
+    exist yet today, so a ticker with too little intraday history so far
+    just doesn't show up here -- there's no daily-bar fallback like the EOD
+    scanner has, because mixing a same-day intraday RSI with a prior-day
+    RSI would not be a meaningful comparison.
+    """
+    minutes = INTRADAY_RESOLUTION_MINUTES[resolution]
+    raw = rows(
+        f"""
+        WITH agg AS (
+            SELECT
+              ticker,
+              toStartOfInterval(minute_ts, INTERVAL {minutes} MINUTE) AS bucket_ts,
+              max(high) AS high,
+              min(low) AS low,
+              argMax(close, minute_ts) AS close,
+              sum(volume) AS volume
+            FROM fact_intraday_ohlcv
+            WHERE trading_date = today()
+            GROUP BY ticker, bucket_ts
+        ),
+        calc AS (
+            SELECT
+              ticker, bucket_ts, close, volume,
+              close - lagInFrame(close, 1, close) OVER (PARTITION BY ticker ORDER BY bucket_ts) AS price_change,
+              row_number() OVER (PARTITION BY ticker ORDER BY bucket_ts) AS rn,
+              avg(volume) OVER (PARTITION BY ticker ORDER BY bucket_ts ROWS BETWEEN 19 PRECEDING AND CURRENT ROW) AS vol_sma20,
+              avg(close) OVER (PARTITION BY ticker ORDER BY bucket_ts ROWS BETWEEN 19 PRECEDING AND CURRENT ROW) AS sma20,
+              stddevSamp(close) OVER (PARTITION BY ticker ORDER BY bucket_ts ROWS BETWEEN 19 PRECEDING AND CURRENT ROW) AS std20
+            FROM agg
+        ),
+        rsi_input AS (
+            SELECT *, greatest(price_change, 0) AS gain, greatest(-price_change, 0) AS loss FROM calc
+        ),
+        rsi_calc AS (
+            SELECT *,
+              avg(gain) OVER (PARTITION BY ticker ORDER BY bucket_ts ROWS BETWEEN 13 PRECEDING AND CURRENT ROW) AS avg_gain,
+              avg(loss) OVER (PARTITION BY ticker ORDER BY bucket_ts ROWS BETWEEN 13 PRECEDING AND CURRENT ROW) AS avg_loss
+            FROM rsi_input
+        ),
+        final AS (
+            SELECT
+              ticker, bucket_ts, close, volume, rn,
+              if(rn >= 14, if(avg_loss = 0, 100, 100 - (100 / (1 + avg_gain / avg_loss))), NULL) AS rsi,
+              if(rn >= 20, sma20 + 2 * std20, NULL) AS bbUpper,
+              if(rn >= 20, sma20 - 2 * std20, NULL) AS bbLower,
+              if(rn >= 20, vol_sma20, NULL) AS volSma20,
+              row_number() OVER (PARTITION BY ticker ORDER BY bucket_ts DESC) AS rn_desc
+            FROM rsi_calc
+        )
+        SELECT
+          f.ticker AS ticker,
+          formatDateTime(f.bucket_ts, '%H:%i') AS asOf,
+          ifNull(nullIf(s.company_name, ''), f.ticker) AS name,
+          f.close AS close,
+          f.volume AS volume,
+          f.rsi AS rsi,
+          f.bbUpper AS bbUpper,
+          f.bbLower AS bbLower,
+          f.volSma20 AS volSma20
+        FROM final f
+        LEFT JOIN dim_stock s ON f.ticker = s.ticker
+        WHERE f.rn_desc = 1
+          AND (f.rsi IS NOT NULL OR f.bbUpper IS NOT NULL)
+          AND (
+            (f.rsi IS NOT NULL AND (f.rsi > 70 OR f.rsi < 30))
+            OR (f.bbUpper IS NOT NULL AND (f.close > f.bbUpper OR f.close < f.bbLower))
+            OR (f.volSma20 IS NOT NULL AND f.volume > 1.5 * f.volSma20)
+          )
+        ORDER BY abs(ifNull(f.rsi, 50) - 50) DESC
+        LIMIT {limit}
+        """
+    )
+    signals = []
+    for row in raw:
+        if row["bbUpper"] is not None and row["close"] > row["bbUpper"]:
+            signal = "breakout"
+        elif row["bbLower"] is not None and row["close"] < row["bbLower"]:
+            signal = "breakdown"
+        elif row["rsi"] is not None and row["rsi"] > 70:
+            signal = "overbought"
+        elif row["rsi"] is not None and row["rsi"] < 30:
+            signal = "oversold"
+        else:
+            signal = "volume_spike"
+        signals.append({**row, "signal": signal})
+    return {"resolution": resolution, "count": len(signals), "data": signals}
+
+
 @app.get("/api/news/sentiment")
 def get_news_sentiment(days: int = Query(7, ge=1, le=60)) -> dict[str, Any]:
     by_ticker = rows(
@@ -1407,6 +1508,8 @@ VALID_CONDITION_TYPES = {
     "RSI_BELOW",
     "BB_BREAK",
     "VWAP_DEVIATION",
+    "INTRADAY_VOLUME_SPIKE",
+    "INTRADAY_BREAKOUT",
 }
 VALID_CHANNELS = {"TELEGRAM", "EMAIL"}
 

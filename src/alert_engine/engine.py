@@ -87,6 +87,35 @@ def fetch_latest_market_data(ch_client: Any, tickers: list[str]) -> dict[str, di
     for ticker, deviation in realtime.result_rows:
         market.setdefault(ticker, {})["price_vs_session_vwap_pct"] = deviation
 
+    # Trailing 20-minute volume average and high/low band, evaluated only at
+    # the latest minute per ticker (rn = 1) -- this is what
+    # INTRADAY_VOLUME_SPIKE/INTRADAY_BREAKOUT compare the current minute
+    # against. The "1 PRECEDING" window deliberately excludes the current
+    # minute itself, so a single huge print can't inflate its own baseline
+    # and mask the spike it's supposed to trigger.
+    intraday = ch_client.query(
+        f"""
+        WITH agg AS (
+            SELECT
+              ticker, minute_ts, close, volume,
+              avg(volume) OVER (PARTITION BY ticker ORDER BY minute_ts ROWS BETWEEN 20 PRECEDING AND 1 PRECEDING) AS vol_avg_20,
+              max(high) OVER (PARTITION BY ticker ORDER BY minute_ts ROWS BETWEEN 20 PRECEDING AND 1 PRECEDING) AS rolling_high_20,
+              min(low) OVER (PARTITION BY ticker ORDER BY minute_ts ROWS BETWEEN 20 PRECEDING AND 1 PRECEDING) AS rolling_low_20,
+              row_number() OVER (PARTITION BY ticker ORDER BY minute_ts DESC) AS rn
+            FROM fact_intraday_ohlcv
+            WHERE trading_date = today() AND ticker IN ({tickers_sql})
+        )
+        SELECT ticker, volume, vol_avg_20, rolling_high_20, rolling_low_20
+        FROM agg
+        WHERE rn = 1
+        """
+    )
+    for ticker, volume, vol_avg_20, rolling_high_20, rolling_low_20 in intraday.result_rows:
+        entry = market.setdefault(ticker, {})
+        entry["intraday_volume_ratio"] = (volume / vol_avg_20) if vol_avg_20 else None
+        entry["intraday_rolling_high_20"] = rolling_high_20
+        entry["intraday_rolling_low_20"] = rolling_low_20
+
     return market
 
 

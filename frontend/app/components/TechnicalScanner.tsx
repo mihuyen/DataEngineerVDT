@@ -1,7 +1,9 @@
 import { useEffect, useState } from "react";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from "recharts";
 import { technicalSignals as mockTechnicalSignals } from "./mockData";
-import { fetchTechnicalSignals, TechnicalSignal } from "./api";
+import { IntradaySignalResolution, TechnicalSignal, fetchIntradayTechnicalSignals, fetchTechnicalSignals } from "./api";
+
+type Timeframe = "EOD" | IntradaySignalResolution;
 
 const CARD: React.CSSProperties = { background: "#111827", border: "1px solid rgba(255,255,255,0.07)", borderRadius: 8, padding: 16 };
 const MONO: React.CSSProperties = { fontFamily: "JetBrains Mono, monospace" };
@@ -30,26 +32,59 @@ interface TechnicalScannerProps { onNavigate: (page: string, ticker?: string) =>
 export function TechnicalScanner({ onNavigate }: TechnicalScannerProps) {
   const [filterSignal, setFilterSignal] = useState<string>("all");
   const [filterExchange, setFilterExchange] = useState("ALL");
+  const [timeframe, setTimeframe] = useState<Timeframe>("EOD");
   const [technicalSignals, setTechnicalSignals] = useState<TechnicalSignal[]>(mockTechnicalSignals);
   const [trackedTickerCount, setTrackedTickerCount] = useState(930);
   const [apiStatus, setApiStatus] = useState("Snapshot local");
 
   useEffect(() => {
     let cancelled = false;
-    fetchTechnicalSignals()
-      .then((payload) => {
-        if (cancelled) return;
-        setTechnicalSignals(payload.data);
-        setTrackedTickerCount(payload.trackedTickerCount);
-        setApiStatus("ClickHouse live query");
-      })
-      .catch(() => {
-        if (!cancelled) setApiStatus("Snapshot local");
-      });
+    if (timeframe === "EOD") {
+      fetchTechnicalSignals()
+        .then((payload) => {
+          if (cancelled) return;
+          setTechnicalSignals(payload.data);
+          setTrackedTickerCount(payload.trackedTickerCount);
+          setApiStatus("ClickHouse · EOD");
+        })
+        .catch(() => {
+          if (!cancelled) setApiStatus("Snapshot local");
+        });
+    } else {
+      // Intraday signals have no MACD/%-ngày (those need EMA/yesterday's
+      // close, not available from fact_intraday_ohlcv alone) -- defaulted
+      // to neutral values here so the existing table/chart layout below
+      // doesn't need a second code path.
+      fetchIntradayTechnicalSignals(timeframe)
+        .then((payload) => {
+          if (cancelled) return;
+          setTechnicalSignals(
+            payload.data.map((s) => ({
+              ticker: s.ticker,
+              name: s.name,
+              signal: s.signal,
+              rsi: s.rsi ?? 50,
+              macd: 0,
+              macdSignal: 0,
+              close: s.close,
+              bbUpper: s.bbUpper ?? s.close,
+              bbLower: s.bbLower ?? s.close,
+              volume: s.volume,
+              volSma20: s.volSma20 ?? s.volume,
+              pct: 0,
+            }))
+          );
+          setTrackedTickerCount(payload.count);
+          setApiStatus(`ClickHouse · Trong phiên (${timeframe}, cập nhật cuối ${payload.data[0]?.asOf || "—"})`);
+        })
+        .catch(() => {
+          if (!cancelled) setApiStatus("Snapshot local");
+        });
+    }
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [timeframe]);
 
   const filtered = technicalSignals.filter((s) =>
     filterSignal === "all" || s.signal === filterSignal
@@ -79,6 +114,15 @@ export function TechnicalScanner({ onNavigate }: TechnicalScannerProps) {
           </p>
         </div>
         <div style={{ display: "flex", gap: 8 }}>
+          {(["EOD", "1m", "5m", "15m"] as Timeframe[]).map((tf) => (
+            <button key={tf} onClick={() => setTimeframe(tf)} style={{
+              padding: "5px 12px", borderRadius: 5, border: "1px solid rgba(255,255,255,0.1)",
+              background: timeframe === tf ? "#3b82f6" : "transparent",
+              color: timeframe === tf ? "#0b0f1a" : "#6b7fa3",
+              fontSize: 12, ...INTER, cursor: "pointer", fontWeight: timeframe === tf ? 600 : 400,
+            }}>{tf === "EOD" ? "Theo ngày" : tf}</button>
+          ))}
+          <span style={{ width: 1, background: "rgba(255,255,255,0.1)", margin: "2px 4px" }} />
           {["ALL", "HOSE", "HNX", "UPCOM"].map((ex) => (
             <button key={ex} onClick={() => setFilterExchange(ex)} style={{
               padding: "5px 12px", borderRadius: 5, border: "1px solid rgba(255,255,255,0.1)",

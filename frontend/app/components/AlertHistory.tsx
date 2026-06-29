@@ -13,11 +13,13 @@ const CONDITION_LABELS: Record<string, string> = {
   RSI_ABOVE: "RSI Quá mua", RSI_BELOW: "RSI Quá bán",
   BB_BREAK: "Bollinger Break", VWAP_DEVIATION: "VWAP Lệch",
   PRICE_ABOVE: "Giá vượt ngưỡng", PRICE_BELOW: "Giá dưới ngưỡng",
+  INTRADAY_VOLUME_SPIKE: "KL đột biến", INTRADAY_BREAKOUT: "Breakout phiên",
 };
 const CONDITION_COLORS: Record<string, string> = {
   RSI_ABOVE: "#ff4d6d", RSI_BELOW: "#00d97e",
   BB_BREAK: "#8b5cf6", VWAP_DEVIATION: "#a855f7",
   PRICE_ABOVE: "#3b82f6", PRICE_BELOW: "#06b6d4",
+  INTRADAY_VOLUME_SPIKE: "#06b6d4", INTRADAY_BREAKOUT: "#f59e0b",
 };
 
 const StatusIcon = ({ status }: { status: string }) => {
