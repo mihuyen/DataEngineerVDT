@@ -59,8 +59,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - run: cp .env.example .env
-      - run: docker compose config --quiet
+      - name: Validate Docker Compose configuration
+        run: docker compose --env-file configs/.env.example config --quiet
 
   frontend-build:
     runs-on: ubuntu-latest
