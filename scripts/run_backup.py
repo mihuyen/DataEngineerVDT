@@ -29,7 +29,9 @@ CLICKHOUSE_TABLES = [
     "fact_market_index",
     "fact_news_sentiment_daily",
     "fact_alert_event",
+    "fact_alert_rule_state",
     "fact_realtime_vwap",
+    "fact_intraday_ohlcv",
 ]
 
 RETENTION_DAYS = 14

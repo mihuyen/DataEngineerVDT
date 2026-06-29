@@ -19,6 +19,7 @@ DDL_DIR = PROJECT_ROOT / "sql" / "ddl"
 # if missing.
 NO_DROP_TABLES = [
     "fact_alert_event",
+    "fact_alert_rule_state",
     "fact_intraday_ohlcv",
     "fact_realtime_vwap",
 ]

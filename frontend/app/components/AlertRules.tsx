@@ -15,6 +15,12 @@ const CONDITION_LABELS: Record<string, string> = {
   VWAP_DEVIATION: "Lệch VWAP (%)",
   INTRADAY_VOLUME_SPIKE: "Khối lượng đột biến (x lần TB 20p)",
   INTRADAY_BREAKOUT: "Breakout trong phiên (% vượt biên 20p)",
+  STOP_LOSS: "Cắt lỗ (giá ≤ ngưỡng)",
+  TAKE_PROFIT: "Chốt lời (giá ≥ ngưỡng)",
+  VWAP_CROSS_UP: "Cắt lên VWAP (ngưỡng bỏ qua)",
+  VWAP_CROSS_DOWN: "Cắt xuống VWAP (ngưỡng bỏ qua)",
+  RSI_CROSS_UP: "RSI cắt lên ngưỡng",
+  RSI_CROSS_DOWN: "RSI cắt xuống ngưỡng",
 };
 
 const FIELD_INPUT: React.CSSProperties = {
@@ -81,9 +87,30 @@ export function AlertRules({ onNavigate, initialTicker }: AlertRulesProps) {
           <input
             value={form.ticker}
             onChange={(e) => setForm({ ...form, ticker: e.target.value })}
-            placeholder="Mã CK (hoặc ALL)"
-            style={{ ...FIELD_INPUT, width: 130 }}
+            placeholder="Mã CK"
+            style={{ ...FIELD_INPUT, width: 110 }}
           />
+          <div style={{ display: "flex", gap: 4 }}>
+            {[
+              { value: "WATCHLIST", label: "Watchlist" },
+              { value: "ALL", label: "Toàn HOSE" },
+            ].map((opt) => (
+              <button
+                key={opt.value}
+                type="button"
+                onClick={() => setForm({ ...form, ticker: opt.value })}
+                title={opt.value === "ALL" ? "Quét toàn bộ ~400 mã HOSE -- dễ gây nhiễu, chỉ nên dùng khi thực sự cần" : "Chỉ quét các mã đang theo dõi trong Watchlist"}
+                style={{
+                  padding: "7px 10px", borderRadius: 5, border: "1px solid rgba(255,255,255,0.1)",
+                  background: form.ticker === opt.value ? "#3b82f6" : "transparent",
+                  color: form.ticker === opt.value ? "#0b0f1a" : "#6b7fa3",
+                  fontSize: 11, ...INTER, cursor: "pointer", fontWeight: form.ticker === opt.value ? 600 : 400,
+                }}
+              >
+                {opt.label}
+              </button>
+            ))}
+          </div>
           <select value={form.conditionType} onChange={(e) => setForm({ ...form, conditionType: e.target.value })} style={{ ...FIELD_INPUT, width: 180, cursor: "pointer" }}>
             {Object.entries(CONDITION_LABELS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
           </select>
@@ -134,7 +161,7 @@ export function AlertRules({ onNavigate, initialTicker }: AlertRulesProps) {
           <tbody>
             {(rules ?? []).map((rule) => (
               <tr key={rule.id} style={{ borderBottom: "1px solid rgba(255,255,255,0.04)" }}>
-                <td style={{ padding: "9px 10px", ...MONO, color: "#8b5cf6", fontWeight: 700, fontSize: 12, cursor: rule.ticker !== "ALL" ? "pointer" : "default" }} onClick={() => rule.ticker !== "ALL" && onNavigate("stock", rule.ticker)}>
+                <td style={{ padding: "9px 10px", ...MONO, color: "#8b5cf6", fontWeight: 700, fontSize: 12, cursor: !["ALL", "WATCHLIST"].includes(rule.ticker) ? "pointer" : "default" }} onClick={() => !["ALL", "WATCHLIST"].includes(rule.ticker) && onNavigate("stock", rule.ticker)}>
                   {rule.ticker}
                 </td>
                 <td style={{ padding: "9px 10px", textAlign: "right", ...INTER, color: "#e2e8f0", fontSize: 12 }}>{CONDITION_LABELS[rule.conditionType] || rule.conditionType}</td>

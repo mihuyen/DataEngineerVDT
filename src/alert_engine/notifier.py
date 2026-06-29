@@ -25,6 +25,12 @@ CONDITION_LABELS = {
     "VWAP_DEVIATION": "Lệch VWAP",
     "INTRADAY_VOLUME_SPIKE": "Khối lượng đột biến",
     "INTRADAY_BREAKOUT": "Breakout trong phiên",
+    "STOP_LOSS": "Cắt lỗ",
+    "TAKE_PROFIT": "Chốt lời",
+    "VWAP_CROSS_UP": "Cắt lên VWAP",
+    "VWAP_CROSS_DOWN": "Cắt xuống VWAP",
+    "RSI_CROSS_UP": "RSI cắt lên",
+    "RSI_CROSS_DOWN": "RSI cắt xuống",
 }
 
 

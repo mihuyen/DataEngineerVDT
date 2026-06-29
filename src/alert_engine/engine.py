@@ -6,9 +6,15 @@ from datetime import datetime, timezone
 from typing import Any
 
 from src.alert_engine.notifier import DELIVERY_SENT, send_batch_notification
-from src.alert_engine.rules import AlertRule, evaluate_condition
+from src.alert_engine.rules import CROSSING_METRIC_FIELD, AlertRule, evaluate_condition
 
 ALL_TICKERS_WILDCARD = "ALL"
+# Scans only the user's own watchlist instead of every HOSE ticker -- the
+# recommended default for new rules, since a ticker="ALL" rule matching
+# dozens of tickers every cycle is what caused the original notification
+# spam (see notifier.py's batching fix). Most rules should not need the
+# full market, just the names someone is actually tracking.
+WATCHLIST_WILDCARD = "WATCHLIST"
 
 
 def load_active_rules(pg_conn: Any) -> list[AlertRule]:
@@ -45,12 +51,27 @@ def fetch_hose_tickers(ch_client: Any) -> list[str]:
     return [row[0] for row in result.result_rows]
 
 
-def expand_wildcard_rules(rules: list[AlertRule], hose_tickers: list[str]) -> list[AlertRule]:
-    """Turn each ticker='ALL' rule into one concrete rule per HOSE ticker."""
+def fetch_watchlist_tickers(pg_conn: Any, user_id: str) -> list[str]:
+    with pg_conn.cursor() as cur:
+        cur.execute("SELECT ticker FROM watchlist WHERE user_id = %s ORDER BY ticker", (user_id,))
+        return [row[0] for row in cur.fetchall()]
+
+
+def expand_wildcard_rules(
+    rules: list[AlertRule],
+    hose_tickers: list[str],
+    watchlist_tickers_by_user: dict[str, list[str]] | None = None,
+) -> list[AlertRule]:
+    """Turn each ticker='ALL'/'WATCHLIST' rule into one concrete rule per matching ticker."""
+    watchlist_tickers_by_user = watchlist_tickers_by_user or {}
     expanded: list[AlertRule] = []
     for rule in rules:
         if rule.ticker == ALL_TICKERS_WILDCARD:
             expanded.extend(replace(rule, ticker=ticker) for ticker in hose_tickers)
+        elif rule.ticker == WATCHLIST_WILDCARD:
+            expanded.extend(
+                replace(rule, ticker=ticker) for ticker in watchlist_tickers_by_user.get(rule.user_id, [])
+            )
         else:
             expanded.append(rule)
     return expanded
@@ -81,6 +102,7 @@ def fetch_latest_market_data(ch_client: Any, tickers: list[str]) -> dict[str, di
         FROM fact_realtime_vwap
         WHERE ticker IN ({tickers_sql})
           AND data_source = 'DNSE'
+          AND toDate(minute_ts) = today()
         GROUP BY ticker
         """
     )
@@ -105,13 +127,20 @@ def fetch_latest_market_data(ch_client: Any, tickers: list[str]) -> dict[str, di
             FROM fact_intraday_ohlcv
             WHERE trading_date = today() AND ticker IN ({tickers_sql})
         )
-        SELECT ticker, volume, vol_avg_20, rolling_high_20, rolling_low_20
+        SELECT ticker, close, volume, vol_avg_20, rolling_high_20, rolling_low_20
         FROM agg
         WHERE rn = 1
         """
     )
-    for ticker, volume, vol_avg_20, rolling_high_20, rolling_low_20 in intraday.result_rows:
+    for ticker, close, volume, vol_avg_20, rolling_high_20, rolling_low_20 in intraday.result_rows:
         entry = market.setdefault(ticker, {})
+        # Overrides the EOD close set above with today's latest traded
+        # price whenever it exists -- PRICE_ABOVE/BELOW and BB_BREAK were
+        # comparing against yesterday's close even during a live session,
+        # and INTRADAY_BREAKOUT was comparing yesterday's close against
+        # today's 20-minute band, which is not a meaningful comparison at
+        # all (two different sessions' price levels).
+        entry["close"] = close
         entry["intraday_volume_ratio"] = (volume / vol_avg_20) if vol_avg_20 else None
         entry["intraday_rolling_high_20"] = rolling_high_20
         entry["intraday_rolling_low_20"] = rolling_low_20
@@ -143,6 +172,36 @@ def is_in_cooldown(ch_client: Any, rule: AlertRule) -> bool:
         },
     )
     return result.result_rows[0][0] > 0
+
+
+def fetch_rule_state(ch_client: Any, alert_ids: list[str]) -> dict[tuple[str, str], float]:
+    """Latest persisted metric value per (alert_id, ticker), for *_CROSS_* conditions.
+
+    argMax(metric_value, updated_at) rather than relying on ReplacingMergeTree's
+    own deduplication: that only happens at merge time, which is not
+    immediate, so a plain SELECT could still return a stale duplicate row
+    right after an insert.
+    """
+    if not alert_ids:
+        return {}
+    alert_ids_sql = ", ".join("'" + alert_id.replace("'", "") + "'" for alert_id in alert_ids)
+    result = ch_client.query(
+        f"""
+        SELECT alert_id, ticker, argMax(metric_value, updated_at) AS value
+        FROM fact_alert_rule_state
+        WHERE alert_id IN ({alert_ids_sql})
+        GROUP BY alert_id, ticker
+        """
+    )
+    return {(alert_id, ticker): value for alert_id, ticker, value in result.result_rows}
+
+
+def persist_rule_state(ch_client: Any, alert_id: str, ticker: str, metric_value: float) -> None:
+    ch_client.insert(
+        "fact_alert_rule_state",
+        [[alert_id, ticker, float(metric_value), datetime.now(timezone.utc).replace(microsecond=0, tzinfo=None)]],
+        column_names=["alert_id", "ticker", "metric_value", "updated_at"],
+    )
 
 
 def record_alert_event(ch_client: Any, rule: AlertRule, actual_value: float, delivery_status: str) -> None:
@@ -219,8 +278,16 @@ def run_check_cycle(pg_conn: Any, ch_client: Any) -> list[CheckResult]:
         hose_tickers = fetch_hose_tickers(ch_client)
     else:
         hose_tickers = []
-    rules = expand_wildcard_rules(raw_rules, hose_tickers)
+    watchlist_users = {rule.user_id for rule in raw_rules if rule.ticker == WATCHLIST_WILDCARD}
+    watchlist_tickers_by_user = {user_id: fetch_watchlist_tickers(pg_conn, user_id) for user_id in watchlist_users}
+    rules = expand_wildcard_rules(raw_rules, hose_tickers, watchlist_tickers_by_user)
     market = fetch_latest_market_data(ch_client, sorted({rule.ticker for rule in rules}))
+
+    # *_CROSS_* conditions need last cycle's value of whatever metric they
+    # track to detect an edge -- fetched once up front for every alert_id
+    # that needs it, rather than one query per rule per ticker.
+    crossing_alert_ids = sorted({rule.alert_id for rule in rules if rule.condition_type in CROSSING_METRIC_FIELD})
+    previous_state = fetch_rule_state(ch_client, crossing_alert_ids)
 
     results: list[CheckResult] = []
     # Keyed by (user_id, channel): pending (rule, actual_value, result) for
@@ -236,7 +303,18 @@ def run_check_cycle(pg_conn: Any, ch_client: Any) -> list[CheckResult]:
             )
             continue
 
-        actual_value = evaluate_condition(rule, data)
+        metric_field = CROSSING_METRIC_FIELD.get(rule.condition_type)
+        previous_value = previous_state.get((rule.alert_id, rule.ticker)) if metric_field else None
+        actual_value = evaluate_condition(rule, data, previous_value)
+
+        # Persisted every cycle regardless of whether the rule triggers --
+        # next cycle's crossing check needs this cycle's value as its
+        # "previous", not just the value from the last time it fired.
+        if metric_field is not None:
+            current_metric = data.get(metric_field)
+            if current_metric is not None:
+                persist_rule_state(ch_client, rule.alert_id, rule.ticker, current_metric)
+
         if actual_value is None:
             results.append(
                 CheckResult(rule, triggered=False, skipped_cooldown=False, actual_value=None, delivery_status=None)

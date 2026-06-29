@@ -5,6 +5,7 @@ from datetime import datetime, timedelta
 import pendulum
 from airflow import DAG
 from airflow.operators.bash import BashOperator
+from airflow.utils.trigger_rule import TriggerRule
 
 
 PROJECT_DIR = "/opt/airflow/project"
@@ -172,6 +173,21 @@ with DAG(
         execution_timeout=timedelta(hours=2),
     )
 
+    # Does not gate anything downstream: a quality finding here (e.g. the
+    # two DNSE WebSocket pipelines disagreeing on session volume because one
+    # missed ticks during a reconnect) should not block the daily batch from
+    # publishing, it's diagnostic for the realtime services specifically.
+    realtime_quality_check = BashOperator(
+        task_id="realtime_quality_check",
+        bash_command=f"{COMMON_ENV} && uv run python scripts/run_realtime_quality_check.py",
+        # Vnstock's rate limit makes intraday_ohlcv_backfill fail often for
+        # reasons unrelated to data quality -- this should still report on
+        # whatever intraday data exists rather than being skipped right
+        # along with it (the default trigger_rule, all_success, would do
+        # that).
+        trigger_rule=TriggerRule.ALL_DONE,
+    )
+
     init_minio >> [ingest_market_index, ingest_news, ingest_ohlcv, ingest_company_profile]
     ingest_ohlcv >> silver_ohlcv
     ingest_market_index >> silver_market_index
@@ -181,9 +197,14 @@ with DAG(
     quality_all >> migrate_gold >> load_gold >> reconcile_gold
     reconcile_gold >> init_user_alerts >> check_alerts
     reconcile_gold >> dbt_run >> dbt_test
-    # Backup does not gate export_frontend_data: a backup failure should not
-    # block the dashboard from getting fresh data, so it runs independently
-    # off reconcile_gold rather than joining the export fan-in below.
+    # Backup and the intraday backfill do not gate export_gold_to_minio or
+    # export_frontend_data: backfill specifically calls an external API
+    # (Vnstock) with a hard rate limit, so it fails often and for reasons
+    # that have nothing to do with whether the rest of Gold is fine -- a
+    # rate-limit error here must not block the dashboard from getting fresh
+    # daily-batch data. Both run as side branches off reconcile_gold instead
+    # of joining the export fan-in below.
     reconcile_gold >> backup_lakehouse
-    reconcile_gold >> intraday_ohlcv_backfill >> export_gold_to_minio
-    [export_gold_to_minio, check_alerts, dbt_test, intraday_ohlcv_backfill] >> export_frontend_data
+    reconcile_gold >> intraday_ohlcv_backfill >> realtime_quality_check
+    reconcile_gold >> export_gold_to_minio
+    [export_gold_to_minio, check_alerts, dbt_test] >> export_frontend_data

@@ -3,11 +3,7 @@ import {
   LineChart, Line, BarChart, Bar, XAxis, YAxis, Tooltip,
   ResponsiveContainer, Cell,
 } from "recharts";
-import {
-  dagStatus as mockDagStatus, dataQualityErrors as mockDataQualityErrors,
-  ingestHistory as mockIngestHistory, kafkaLag as mockKafkaLag,
-} from "./mockData";
-import { CheckCircle, XCircle, Loader, AlertTriangle, Database, Server, Activity, HardDrive } from "lucide-react";
+import { CheckCircle, XCircle, Loader, AlertTriangle, Database, Server, Activity, HardDrive, CircleAlert } from "lucide-react";
 import { fetchPipelineStatus, DagStatusRow, DataQualityError, IngestHistoryPoint, KafkaLagPoint } from "./api";
 
 const CARD: React.CSSProperties = { background: "#111827", border: "1px solid rgba(255,255,255,0.07)", borderRadius: 8, padding: 16 };
@@ -43,11 +39,13 @@ const ServiceCard = ({ name, status, metric, unit, icon }: { name: string; statu
 };
 
 export function PipelineMonitor() {
-  const [dagStatus, setDagStatus] = useState<DagStatusRow[]>(mockDagStatus);
-  const [dataQualityErrors, setDataQualityErrors] = useState<DataQualityError[]>(mockDataQualityErrors);
-  const [ingestHistory, setIngestHistory] = useState<IngestHistoryPoint[]>(mockIngestHistory);
-  const [kafkaLag, setKafkaLag] = useState<KafkaLagPoint[]>(mockKafkaLag);
-  const [apiStatus, setApiStatus] = useState("Snapshot local");
+  const [dagStatus, setDagStatus] = useState<DagStatusRow[]>([]);
+  const [dataQualityErrors, setDataQualityErrors] = useState<DataQualityError[]>([]);
+  const [ingestHistory, setIngestHistory] = useState<IngestHistoryPoint[]>([]);
+  const [kafkaLag, setKafkaLag] = useState<KafkaLagPoint[]>([]);
+  const [apiStatus, setApiStatus] = useState("Đang tải...");
+  const [loaded, setLoaded] = useState(false);
+  const [error, setError] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -64,9 +62,16 @@ export function PipelineMonitor() {
               ? "Airflow REST API trực tiếp"
               : "ClickHouse (Airflow không phản hồi)"
           );
+          setError(false);
+          setLoaded(true);
         })
         .catch(() => {
-          if (!cancelled) setApiStatus("Snapshot local");
+          if (cancelled) return;
+          // No mock fallback here: showing stale/fake numbers when the API
+          // is actually down would look identical to a healthy pipeline,
+          // which defeats the point of a monitoring page.
+          setError(true);
+          setLoaded(true);
         });
     };
     load();
@@ -76,6 +81,29 @@ export function PipelineMonitor() {
       window.clearInterval(timer);
     };
   }, []);
+
+  if (!loaded) {
+    return <div style={CARD}>Đang tải trạng thái pipeline...</div>;
+  }
+
+  if (error) {
+    return (
+      <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+        <div>
+          <h1 style={{ color: "#e2e8f0", margin: 0, fontSize: 18, fontWeight: 700, ...INTER }}>Giám sát pipeline dữ liệu</h1>
+        </div>
+        <div style={{ ...CARD, borderColor: "rgba(255,77,109,0.2)", background: "rgba(255,77,109,0.04)" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 8, color: "#ff4d6d" }}>
+            <CircleAlert size={16} />
+            <span style={{ ...INTER, fontSize: 13, fontWeight: 600 }}>Không kết nối được API giám sát pipeline.</span>
+          </div>
+          <div style={{ ...INTER, color: "#6b7fa3", fontSize: 12, marginTop: 6 }}>
+            Kiểm tra dashboard_api hoặc ClickHouse có đang chạy không. Trang sẽ tự thử lại mỗi 60 giây.
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   const successCount = dagStatus.filter((d) => d.status === "success").length;
   const failedCount = dagStatus.filter((d) => d.status === "failed").length;
@@ -210,25 +238,6 @@ export function PipelineMonitor() {
         </div>
       </div>
 
-      {/* Storage health */}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 12 }}>
-        {[
-          { layer: "Bronze (Raw)", used: 850, total: 3000, color: "#8b5cf6" },
-          { layer: "Silver (Cleaned)", used: 420, total: 2000, color: "#3b82f6" },
-          { layer: "Gold (Aggregated)", used: 180, total: 1000, color: "#00d97e" },
-        ].map((s) => (
-          <div key={s.layer} style={CARD}>
-            <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 8 }}>
-              <span style={{ ...INTER, color: "#e2e8f0", fontSize: 12, fontWeight: 600 }}>{s.layer}</span>
-              <span style={{ ...MONO, color: "#6b7fa3", fontSize: 12 }}>{s.used}GB / {s.total}GB</span>
-            </div>
-            <div style={{ height: 8, background: "rgba(255,255,255,0.06)", borderRadius: 4, overflow: "hidden", marginBottom: 6 }}>
-              <div style={{ width: `${(s.used / s.total) * 100}%`, height: "100%", background: s.color, borderRadius: 4, transition: "width 0.5s" }} />
-            </div>
-            <div style={{ ...MONO, color: s.color, fontSize: 11 }}>{((s.used / s.total) * 100).toFixed(1)}% used</div>
-          </div>
-        ))}
-      </div>
     </div>
   );
 }

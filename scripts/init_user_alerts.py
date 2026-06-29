@@ -12,7 +12,13 @@ PROJECT_ROOT = Path(__file__).resolve().parents[1]
 DDL_PATH = PROJECT_ROOT / "sql" / "ddl_postgres" / "user_alerts.sql"
 
 DEMO_ALERTS = [
-    # ticker = "ALL" means the rule scans every HOSE ticker, not one fixed stock.
+    # ticker = "WATCHLIST" means the rule scans only the tickers the user has
+    # actually added to their watchlist, not the whole ~400-ticker HOSE
+    # universe (ticker = "ALL" still works for that, but is no longer the
+    # default -- a rule matching dozens of tickers every cycle is what
+    # caused the original notification spam; scoping to watchlist by default
+    # keeps that from recurring for anyone who hasn't deliberately opted into
+    # market-wide scanning).
     #
     # RSI_ABOVE/RSI_BELOW/BB_BREAK all read fact_daily_price, which only gets
     # a new closing bar once a day (the 18:00 batch DAG). A 30-minute cooldown
@@ -25,9 +31,9 @@ DEMO_ALERTS = [
     # Channel is EMAIL for these: they are end-of-day, report-style signals,
     # not something that needs an instant push -- an email digest once the
     # daily bar lands is a better fit than a phone notification.
-    ("demo_user", "ALL", "RSI_ABOVE", 70.0, "EMAIL", 1440),
-    ("demo_user", "ALL", "RSI_BELOW", 30.0, "EMAIL", 1440),
-    ("demo_user", "ALL", "BB_BREAK", 0.0, "EMAIL", 1440),
+    ("demo_user", "WATCHLIST", "RSI_ABOVE", 70.0, "EMAIL", 1440),
+    ("demo_user", "WATCHLIST", "RSI_BELOW", 30.0, "EMAIL", 1440),
+    ("demo_user", "WATCHLIST", "BB_BREAK", 0.0, "EMAIL", 1440),
     # VWAP_DEVIATION reads fact_realtime_vwap, which genuinely updates
     # intraday, so a much shorter cooldown is appropriate -- but 15 minutes
     # was still aggressive given deviation can oscillate across the 2%
@@ -35,7 +41,7 @@ DEMO_ALERTS = [
     #
     # Channel stays TELEGRAM here: this is the one condition that's actually
     # time-sensitive intraday, so an instant push is the right fit.
-    ("demo_user", "ALL", "VWAP_DEVIATION", 2.0, "TELEGRAM", 60),
+    ("demo_user", "WATCHLIST", "VWAP_DEVIATION", 2.0, "TELEGRAM", 60),
 ]
 
 

@@ -104,6 +104,49 @@ def test_intraday_breakout_threshold_buffer_damps_noise() -> None:
     assert evaluate_condition(rule, {"close": 101, "intraday_rolling_high_20": 100, "intraday_rolling_low_20": 80}) is None
 
 
+def test_stop_loss_triggers_at_or_below_threshold() -> None:
+    rule = make_rule("STOP_LOSS", 50)
+    assert evaluate_condition(rule, {"close": 49.5}) == 49.5
+    assert evaluate_condition(rule, {"close": 51}) is None
+
+
+def test_take_profit_triggers_at_or_above_threshold() -> None:
+    rule = make_rule("TAKE_PROFIT", 100)
+    assert evaluate_condition(rule, {"close": 101}) == 101
+    assert evaluate_condition(rule, {"close": 99}) is None
+
+
+def test_vwap_cross_up_requires_previous_value_at_or_below_zero() -> None:
+    rule = make_rule("VWAP_CROSS_UP", 0)
+    assert evaluate_condition(rule, {"price_vs_session_vwap_pct": 0.5}, previous_value=-0.2) == 0.5
+    # Already above VWAP last cycle too -- not a fresh cross, no trigger.
+    assert evaluate_condition(rule, {"price_vs_session_vwap_pct": 0.5}, previous_value=0.3) is None
+
+
+def test_vwap_cross_up_no_previous_value_returns_none() -> None:
+    rule = make_rule("VWAP_CROSS_UP", 0)
+    assert evaluate_condition(rule, {"price_vs_session_vwap_pct": 0.5}, previous_value=None) is None
+
+
+def test_vwap_cross_down_requires_previous_value_at_or_above_zero() -> None:
+    rule = make_rule("VWAP_CROSS_DOWN", 0)
+    assert evaluate_condition(rule, {"price_vs_session_vwap_pct": -0.4}, previous_value=0.1) == -0.4
+    assert evaluate_condition(rule, {"price_vs_session_vwap_pct": -0.4}, previous_value=-0.2) is None
+
+
+def test_rsi_cross_up_triggers_only_on_the_crossing_cycle() -> None:
+    rule = make_rule("RSI_CROSS_UP", 30)
+    assert evaluate_condition(rule, {"rsi_14": 32}, previous_value=28) == 32
+    # Still above 30 next cycle -- already crossed, no repeat trigger.
+    assert evaluate_condition(rule, {"rsi_14": 35}, previous_value=32) is None
+
+
+def test_rsi_cross_down_triggers_only_on_the_crossing_cycle() -> None:
+    rule = make_rule("RSI_CROSS_DOWN", 70)
+    assert evaluate_condition(rule, {"rsi_14": 68}, previous_value=72) == 68
+    assert evaluate_condition(rule, {"rsi_14": 65}, previous_value=68) is None
+
+
 def test_missing_market_field_returns_none() -> None:
     rule = make_rule("RSI_ABOVE", 70)
     assert evaluate_condition(rule, {}) is None
@@ -152,11 +195,15 @@ class FakeClickHouseClient:
         realtime_rows: list[tuple],
         cooldown_hits: set[tuple],
         hose_tickers: list[str] | None = None,
+        intraday_rows: list[tuple] | None = None,
+        rule_state_rows: list[tuple] | None = None,
     ) -> None:
         self._daily_rows = daily_rows
         self._realtime_rows = realtime_rows
         self._cooldown_hits = cooldown_hits
         self._hose_tickers = hose_tickers or []
+        self._intraday_rows = intraday_rows or []
+        self._rule_state_rows = rule_state_rows or []
         self.inserted: list[tuple] = []
 
     def query(self, sql: str, parameters: dict | None = None) -> FakeQueryResult:
@@ -171,6 +218,10 @@ class FakeClickHouseClient:
             return FakeQueryResult([[1 if key in self._cooldown_hits else 0]])
         if "dim_stock" in sql:
             return FakeQueryResult([[ticker] for ticker in self._hose_tickers])
+        if "fact_alert_rule_state" in sql:
+            return FakeQueryResult(self._rule_state_rows)
+        if "fact_intraday_ohlcv" in sql:
+            return FakeQueryResult(self._intraday_rows)
         if "fact_realtime_vwap" in sql:
             return FakeQueryResult(self._realtime_rows)
         return FakeQueryResult(self._daily_rows)
@@ -261,6 +312,91 @@ def test_run_check_cycle_skips_when_in_cooldown(monkeypatch: pytest.MonkeyPatch)
     assert results[0].sent is False
     assert send_calls == []
     assert len(ch_client.inserted) == 0
+
+
+def test_run_check_cycle_rsi_cross_up_triggers_using_persisted_previous_state(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(engine, "send_batch_notification", lambda channel, triggers: "sent")
+
+    pg_conn = FakePgConnection(
+        [("alert-1", "demo_user", "VCB", "RSI_CROSS_UP", 30.0, "TELEGRAM", 30)]
+    )
+    ch_client = FakeClickHouseClient(
+        daily_rows=[("VCB", 60.0, 32.0, 65.0, 58.0)],  # current RSI = 32, just above 30
+        realtime_rows=[],
+        cooldown_hits=set(),
+        rule_state_rows=[("alert-1", "VCB", 28.0)],  # previous RSI = 28, below 30
+    )
+
+    results = engine.run_check_cycle(pg_conn, ch_client)
+
+    assert results[0].triggered is True
+    assert results[0].actual_value == 32.0
+    # The new RSI value (32.0) must be persisted for next cycle's comparison.
+    state_inserts = [r for r in ch_client.inserted if r[0] == "fact_alert_rule_state"]
+    assert len(state_inserts) == 1
+    assert state_inserts[0][1] == [["alert-1", "VCB", 32.0, state_inserts[0][1][0][3]]]
+
+
+def test_run_check_cycle_rsi_cross_up_no_trigger_without_prior_state(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """First-ever evaluation for this (alert, ticker) has nothing to compare
+    against, so it must not trigger -- but it should still persist state so
+    the *next* cycle has something to compare against.
+    """
+    monkeypatch.setattr(engine, "send_batch_notification", lambda channel, triggers: "sent")
+
+    pg_conn = FakePgConnection(
+        [("alert-1", "demo_user", "VCB", "RSI_CROSS_UP", 30.0, "TELEGRAM", 30)]
+    )
+    ch_client = FakeClickHouseClient(
+        daily_rows=[("VCB", 60.0, 32.0, 65.0, 58.0)],
+        realtime_rows=[],
+        cooldown_hits=set(),
+        rule_state_rows=[],
+    )
+
+    results = engine.run_check_cycle(pg_conn, ch_client)
+
+    assert results[0].triggered is False
+    state_inserts = [r for r in ch_client.inserted if r[0] == "fact_alert_rule_state"]
+    assert len(state_inserts) == 1
+
+
+def test_fetch_latest_market_data_overrides_eod_close_with_intraday_close() -> None:
+    """PRICE_ABOVE/BELOW and BB_BREAK must compare against today's traded
+    price during a live session, not yesterday's EOD close -- and
+    INTRADAY_BREAKOUT comparing yesterday's close against today's 20-minute
+    band would not be a meaningful comparison at all.
+    """
+    ch_client = FakeClickHouseClient(
+        daily_rows=[("VCB", 60.0, 55.0, 65.0, 58.0)],  # ticker, close, rsi, bb_upper, bb_lower
+        realtime_rows=[],
+        cooldown_hits=set(),
+        intraday_rows=[("VCB", 62.5, 1000, 500.0, 63.0, 61.0)],  # ticker, close, volume, vol_avg_20, high20, low20
+    )
+
+    market = engine.fetch_latest_market_data(ch_client, ["VCB"])
+
+    assert market["VCB"]["close"] == 62.5
+    assert market["VCB"]["intraday_volume_ratio"] == 2.0
+    assert market["VCB"]["intraday_rolling_high_20"] == 63.0
+    assert market["VCB"]["intraday_rolling_low_20"] == 61.0
+
+
+def test_fetch_latest_market_data_keeps_eod_close_without_intraday_data() -> None:
+    ch_client = FakeClickHouseClient(
+        daily_rows=[("VCB", 60.0, 55.0, 65.0, 58.0)],
+        realtime_rows=[],
+        cooldown_hits=set(),
+        intraday_rows=[],
+    )
+
+    market = engine.fetch_latest_market_data(ch_client, ["VCB"])
+
+    assert market["VCB"]["close"] == 60.0
 
 
 def test_cooldown_is_scoped_to_notification_channel() -> None:
