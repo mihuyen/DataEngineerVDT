@@ -31,6 +31,7 @@ GOLD_TABLES = [
     "fact_daily_price",
     "fact_market_index",
     "fact_news_sentiment_daily",
+    "fact_intraday_ohlcv",
     "fact_realtime_vwap",
     "fact_alert_event",
 ]
@@ -40,6 +41,7 @@ FACT_PARTITIONS: dict[str, tuple[str, Literal["month", "day"]]] = {
     "fact_daily_price": ("trading_date", "month"),
     "fact_market_index": ("trading_date", "month"),
     "fact_news_sentiment_daily": ("news_date", "month"),
+    "fact_intraday_ohlcv": ("trading_date", "day"),
     "fact_realtime_vwap": ("trading_date", "day"),
     "fact_alert_event": ("triggered_at", "month"),
 }

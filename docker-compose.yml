@@ -225,9 +225,47 @@ services:
       DNSE_WS_BOARD_ID: ${DNSE_WS_BOARD_ID:-}
       DNSE_WS_SYMBOLS: ${DNSE_WS_SYMBOLS:-ALL}
     working_dir: /app
+    volumes:
+      - ./data:/app/data
     command: >
       python scripts/run_dnse_realtime_ingest.py
       --produce-to-kafka
+      --no-ohlcv
+      --max-messages 100000
+      --timeout-seconds 3600
+
+  dnse-ohlc-consumer:
+    build:
+      context: .
+      dockerfile: docker/dnse-producer.Dockerfile
+    image: stock-dnse-producer:local
+    container_name: stock-dnse-ohlc-consumer
+    # Same per-run-then-restart pattern as dnse-producer; this subscribes to
+    # DNSE's ohlc_closed.1 channel and inserts finalized one-minute candles
+    # straight into fact_intraday_ohlcv (no Kafka hop -- there is no other
+    # consumer for this stream).
+    restart: unless-stopped
+    depends_on:
+      clickhouse:
+        condition: service_healthy
+    environment:
+      PYTHONIOENCODING: utf-8
+      CLICKHOUSE_HOST: clickhouse
+      CLICKHOUSE_PORT: 8123
+      CLICKHOUSE_USER: default
+      CLICKHOUSE_PASSWORD: clickhouse
+      CLICKHOUSE_DATABASE: stock_lakehouse
+      DNSE_API_KEY: ${DNSE_API_KEY:-}
+      DNSE_API_SECRET: ${DNSE_API_SECRET:-}
+      DNSE_WS_URL: ${DNSE_WS_URL:-}
+      DNSE_WS_ENCODING: ${DNSE_WS_ENCODING:-}
+      DNSE_WS_BOARD_ID: ${DNSE_WS_BOARD_ID:-}
+      DNSE_WS_SYMBOLS: ${DNSE_WS_SYMBOLS:-ALL}
+    working_dir: /app
+    volumes:
+      - ./data:/app/data
+    command: >
+      python scripts/run_dnse_ohlc_ingest.py
       --max-messages 100000
       --timeout-seconds 3600
 

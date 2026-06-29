@@ -1,10 +1,13 @@
 import { useEffect, useState, useMemo } from "react";
-import {
-  ComposedChart, Line, Bar, XAxis, YAxis, Tooltip,
-  ResponsiveContainer, ReferenceLine, Legend,
-} from "recharts";
 import { dataSnapshotMeta, newsSentiment as mockNewsSentiment, stockList } from "./mockData";
-import { Candle, NewsSentimentRow, StockOption, fetchCandles, fetchNewsSentiment, fetchStocks } from "./api";
+import {
+  Candle, DailyCandlesPayload, IntradayCandle, IntradayPayload, IntradayResolution, NewsSentimentRow, StockOption,
+  fetchCandles, fetchIntraday, fetchNewsSentiment, fetchStocks,
+} from "./api";
+import { CandlestickChart } from "./CandlestickChart";
+import { RsiPane, MacdPane } from "./IndicatorPaneChart";
+
+const INTRADAY_RESOLUTIONS: IntradayResolution[] = ["1m", "5m", "15m", "30m", "1h"];
 
 const CARD: React.CSSProperties = {
   background: "#111827", border: "1px solid rgba(255,255,255,0.07)", borderRadius: 8, padding: 16,
@@ -22,31 +25,21 @@ function KPICard({ label, value, sub, color }: { label: string; value: string; s
   );
 }
 
-const CustomTooltip = ({ active, payload, label }: any) => {
-  if (active && payload?.length) {
-    return (
-      <div style={{ background: "#1e2535", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 6, padding: "10px 14px", fontSize: 12, ...MONO }}>
-        <div style={{ color: "#6b7fa3", marginBottom: 6 }}>{label}</div>
-        {payload.map((p: any) => (
-          <div key={p.dataKey} style={{ color: p.color, marginBottom: 2 }}>
-            {p.name}: {typeof p.value === "number" ? p.value.toLocaleString("vi-VN") : p.value}
-          </div>
-        ))}
-      </div>
-    );
-  }
-  return null;
-};
+interface StockDetailProps { initialTicker?: string; onNavigate?: (page: string, ticker?: string) => void; }
 
-interface StockDetailProps { initialTicker?: string; }
-
-export function StockDetail({ initialTicker = "VCB" }: StockDetailProps) {
+export function StockDetail({ initialTicker = "VCB", onNavigate }: StockDetailProps) {
   const [ticker, setTicker] = useState(initialTicker);
   const [period, setPeriod] = useState("3M");
+  const [viewMode, setViewMode] = useState<"daily" | "intraday">("daily");
+  const [intradayResolution, setIntradayResolution] = useState<IntradayResolution>("5m");
+  const [intradayData, setIntradayData] = useState<IntradayCandle[] | null>(null);
+  const [intradayMeta, setIntradayMeta] = useState<IntradayPayload | null>(null);
+  const [intradayError, setIntradayError] = useState(false);
   const [indicators, setIndicators] = useState({ sma20: true, ema12: false, bb: true, rsi: true, macd: false });
   const [stockOptions, setStockOptions] = useState<StockOption[]>(stockList);
   const [apiData, setApiData] = useState<Candle[] | null>(null);
-  const [fallbackCandles, setFallbackCandles] = useState<Candle[]>([]);
+  const [dailyMeta, setDailyMeta] = useState<DailyCandlesPayload | null>(null);
+  const [candleError, setCandleError] = useState(false);
   const [apiStatus, setApiStatus] = useState("Đang đọc API...");
   const [searchText, setSearchText] = useState("");
   const [searchOpen, setSearchOpen] = useState(false);
@@ -86,29 +79,61 @@ export function StockDetail({ initialTicker = "VCB" }: StockDetailProps) {
   useEffect(() => {
     let cancelled = false;
     setApiData(null);
+    setCandleError(false);
     fetchCandles(ticker)
-      .then((candles) => {
-        if (!cancelled) setApiData(candles);
+      .then((payload) => {
+        if (!cancelled) {
+          setApiData(payload.data);
+          setDailyMeta(payload);
+        }
       })
       .catch(() => {
         if (cancelled) return;
-        setApiData(null);
-        // ~200 tickers of simulated OHLCV history live in mockCandlesticks.ts
-        // (extracted out of mockData.ts because it alone was ~99k lines /
-        // most of the production bundle). Loading it via a dynamic import
-        // only on a genuine API failure means that chunk is never fetched
-        // at all in the common case where the real API call succeeds.
-        import("./mockCandlesticks").then(({ generateCandlestickData }) => {
-          if (!cancelled) setFallbackCandles(generateCandlestickData(ticker));
-        });
+        setApiData([]);
+        setCandleError(true);
       });
     return () => {
       cancelled = true;
     };
   }, [ticker]);
 
-  const data = useMemo(() => apiData ?? fallbackCandles, [apiData, fallbackCandles]);
-  const sliced = period === "1M" ? data.slice(-21) : period === "3M" ? data.slice(-63) : period === "6M" ? data.slice(-126) : data;
+  useEffect(() => {
+    if (viewMode !== "intraday") return;
+    let cancelled = false;
+    setIntradayData(null);
+    setIntradayMeta(null);
+    setIntradayError(false);
+    fetchIntraday(ticker, intradayResolution)
+      .then((payload) => {
+        if (!cancelled) {
+          setIntradayData(payload.data);
+          setIntradayMeta(payload);
+        }
+      })
+      .catch(() => {
+        if (cancelled) return;
+        setIntradayData([]);
+        setIntradayError(true);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [ticker, viewMode, intradayResolution]);
+
+  const data = useMemo(() => apiData ?? [], [apiData]);
+  const intradayPoints = useMemo(
+    () => (intradayData ?? []).map((d) => ({ date: d.time, open: d.open, high: d.high, low: d.low, close: d.close, volume: d.volume })),
+    [intradayData]
+  );
+  // Memoized: this array is passed straight into chart components whose
+  // data-update effects key off it by reference, so a fresh array every
+  // render (the previous behavior here) made every unrelated re-render of
+  // this page -- typing in the ticker search, hovering a button -- redraw
+  // the candlestick/RSI/MACD charts from scratch.
+  const sliced = useMemo(
+    () => (period === "1M" ? data.slice(-21) : period === "3M" ? data.slice(-63) : period === "6M" ? data.slice(-126) : data),
+    [data, period]
+  );
   const stock = stockOptions.find((s) => s.ticker === ticker) || stockList.find((s) => s.ticker === ticker) || stockOptions[0] || stockList[0];
   const filteredStocks = useMemo(() => {
     const keyword = searchText.trim().toLowerCase();
@@ -124,12 +149,32 @@ export function StockDetail({ initialTicker = "VCB" }: StockDetailProps) {
   const stockNews = newsSentiment.filter((n) => n.ticker === ticker);
   const last = sliced[sliced.length - 1];
   const prev = sliced[sliced.length - 2];
-  if (!last || !prev || !stock) {
+  if (apiData === null) {
     return <div style={CARD}>Đang tải dữ liệu cổ phiếu...</div>;
   }
+  if (candleError || !last || !prev || !stock) {
+    return <div style={CARD}>Không có dữ liệu cho mã {ticker}.</div>;
+  }
   const latestDate = last.date?.length === 10 ? last.date : dataSnapshotMeta.latestPriceDate;
-  const pct = ((last.close - prev.close) / prev.close * 100).toFixed(2);
-  const up = last.close >= prev.close;
+  const intradayLast = intradayData?.[intradayData.length - 1];
+  const intradaySameAsLatestDaily = intradayMeta?.tradingDate === latestDate;
+  const referenceClose = intradaySameAsLatestDaily ? prev.close : last.close;
+  const displayedClose = viewMode === "intraday" && intradayLast ? intradayLast.close : last.close;
+  const displayedPct = ((displayedClose - (viewMode === "intraday" ? referenceClose : prev.close))
+    / (viewMode === "intraday" ? referenceClose : prev.close) * 100).toFixed(2);
+  const up = displayedClose >= (viewMode === "intraday" ? referenceClose : prev.close);
+  const intradayVolume = intradayData?.reduce((total, candle) => total + candle.volume, 0) ?? 0;
+  const displayedVolume = viewMode === "intraday" && intradayData?.length ? intradayVolume : last.volume;
+  const displayedHigh = viewMode === "intraday" && intradayData?.length
+    ? Math.max(...intradayData.map((candle) => candle.high))
+    : last.high;
+  const displayedLow = viewMode === "intraday" && intradayData?.length
+    ? Math.min(...intradayData.map((candle) => candle.low))
+    : last.low;
+  const displayedValue = viewMode === "intraday" && intradayData?.length
+    ? intradayData.reduce((total, candle) => total + candle.close * candle.volume * 1_000, 0)
+    : last.value * 1_000;
+  const sourceLabel = intradayMeta?.sources?.length ? intradayMeta.sources.join(" + ") : "DNSE / Vnstock";
 
   const toggleIndicator = (key: keyof typeof indicators) => {
     setIndicators((prev) => ({ ...prev, [key]: !prev[key] }));
@@ -154,7 +199,9 @@ export function StockDetail({ initialTicker = "VCB" }: StockDetailProps) {
             </div>
             <div style={{ ...INTER, color: "#6b7fa3", fontSize: 12, marginTop: 2 }}>{stock.name}</div>
             <div style={{ ...INTER, color: "#6b7fa3", fontSize: 11, marginTop: 2 }}>
-              {apiStatus} · Giá đến {latestDate}
+              {viewMode === "intraday" && intradayMeta
+                ? `Trong phiên ${intradayMeta.tradingDate} · ${sourceLabel} · ${intradayMeta.statusLabel} · cập nhật ${intradayMeta.latestMinute || "chưa có"}`
+                : `Dữ liệu EOD · phiên gần nhất ${dailyMeta?.latestPriceDate || latestDate} · ${dailyMeta?.statusLabel || apiStatus}`}
             </div>
           </div>
         </div>
@@ -248,28 +295,59 @@ export function StockDetail({ initialTicker = "VCB" }: StockDetailProps) {
             )}
           </div>
 
-          {/* Period buttons */}
-          {["1M", "3M", "6M", "1Y"].map((p) => (
-            <button key={p} onClick={() => setPeriod(p)} style={{
+          {/* Daily / intraday toggle */}
+          {([["daily", "Theo ngày"], ["intraday", "Trong phiên"]] as const).map(([mode, label]) => (
+            <button key={mode} onClick={() => setViewMode(mode)} style={{
               padding: "5px 12px", borderRadius: 5, border: "1px solid rgba(255,255,255,0.1)",
-              background: period === p ? "#8b5cf6" : "transparent",
-              color: period === p ? "#0b0f1a" : "#6b7fa3", fontSize: 12, ...INTER, cursor: "pointer", fontWeight: period === p ? 600 : 400,
-            }}>{p}</button>
+              background: viewMode === mode ? "#3b82f6" : "transparent",
+              color: viewMode === mode ? "#0b0f1a" : "#6b7fa3", fontSize: 12, ...INTER, cursor: "pointer", fontWeight: viewMode === mode ? 600 : 400,
+            }}>{label}</button>
           ))}
+
+          {/* Period buttons (daily) / resolution buttons (intraday) */}
+          {viewMode === "daily"
+            ? ["1M", "3M", "6M", "1Y"].map((p) => (
+              <button key={p} onClick={() => setPeriod(p)} style={{
+                padding: "5px 12px", borderRadius: 5, border: "1px solid rgba(255,255,255,0.1)",
+                background: period === p ? "#8b5cf6" : "transparent",
+                color: period === p ? "#0b0f1a" : "#6b7fa3", fontSize: 12, ...INTER, cursor: "pointer", fontWeight: period === p ? 600 : 400,
+              }}>{p}</button>
+            ))
+            : INTRADAY_RESOLUTIONS.map((r) => (
+              <button key={r} onClick={() => setIntradayResolution(r)} style={{
+                padding: "5px 12px", borderRadius: 5, border: "1px solid rgba(255,255,255,0.1)",
+                background: intradayResolution === r ? "#8b5cf6" : "transparent",
+                color: intradayResolution === r ? "#0b0f1a" : "#6b7fa3", fontSize: 12, ...INTER, cursor: "pointer", fontWeight: intradayResolution === r ? 600 : 400,
+              }}>{r}</button>
+            ))}
+
+          {onNavigate && (
+            <button
+              onClick={() => onNavigate("alerts", ticker)}
+              style={{
+                padding: "5px 12px", borderRadius: 5, border: "1px solid rgba(139,92,246,0.4)",
+                background: "rgba(139,92,246,0.1)", color: "#8b5cf6", fontSize: 12, ...INTER,
+                cursor: "pointer", fontWeight: 600,
+              }}
+            >
+              + Tạo cảnh báo
+            </button>
+          )}
         </div>
       </div>
 
       {/* KPI Row */}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(6, 1fr)", gap: 12 }}>
-        <KPICard label="Giá đóng cửa" value={last.close.toLocaleString("vi-VN")} sub="VNĐ" color={up ? "#00d97e" : "#ff4d6d"} />
-        <KPICard label="Thay đổi %" value={(up ? "+" : "") + pct + "%"} color={up ? "#00d97e" : "#ff4d6d"} />
-        <KPICard label="Khối lượng" value={(last.volume / 1_000_000).toFixed(2) + "M"} sub="cổ phiếu" />
-        <KPICard label="RSI (14)" value={last.rsi.toFixed(1)} color={last.rsi > 70 ? "#ff4d6d" : last.rsi < 30 ? "#00d97e" : "#e2e8f0"} sub={last.rsi > 70 ? "Quá mua" : last.rsi < 30 ? "Quá bán" : "Bình thường"} />
-        <KPICard label="MACD" value={last.macd.toFixed(0)} color={last.macd > 0 ? "#00d97e" : "#ff4d6d"} />
-        <KPICard label="Vốn hóa" value={(last.close * 2_800_000_000 / 1_000_000_000_000).toFixed(2) + " nghìn tỷ"} />
+        <KPICard label={viewMode === "intraday" ? "Giá gần nhất" : "Giá đóng cửa"} value={displayedClose.toLocaleString("vi-VN")} sub="nghìn đồng" color={up ? "#00d97e" : "#ff4d6d"} />
+        <KPICard label="Thay đổi %" value={(up ? "+" : "") + displayedPct + "%"} color={up ? "#00d97e" : "#ff4d6d"} />
+        <KPICard label="Khối lượng" value={(displayedVolume / 1_000_000).toFixed(2) + "M"} sub="cổ phiếu" />
+        <KPICard label="Giá trị ước tính" value={(displayedValue / 1_000_000_000).toFixed(1) + " tỷ"} sub="VNĐ" />
+        <KPICard label="Cao / Thấp" value={displayedHigh.toLocaleString("vi-VN") + " / " + displayedLow.toLocaleString("vi-VN")} sub="nghìn đồng" />
+        <KPICard label="Vốn hóa" value={last.marketCap ? (last.marketCap / 1_000_000_000).toFixed(2) + " nghìn tỷ" : "—"} />
       </div>
 
       {/* Indicators toggles */}
+      {viewMode === "daily" && (
       <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
         <span style={{ ...INTER, color: "#6b7fa3", fontSize: 11, textTransform: "uppercase", letterSpacing: "0.06em" }}>Chỉ báo:</span>
         {(Object.entries(indicators) as [keyof typeof indicators, boolean][]).map(([key, active]) => {
@@ -286,62 +364,44 @@ export function StockDetail({ initialTicker = "VCB" }: StockDetailProps) {
           );
         })}
       </div>
+      )}
 
       {/* Main price chart */}
       <div style={CARD}>
-        <div style={{ ...INTER, color: "#e2e8f0", fontSize: 13, fontWeight: 600, marginBottom: 12 }}>Biểu đồ giá & Khối lượng</div>
-        <ResponsiveContainer width="100%" height={280}>
-          <ComposedChart data={sliced} margin={{ left: 10, right: 20 }}>
-            <XAxis dataKey="date" tick={{ fill: "#6b7fa3", fontSize: 10, ...MONO }} axisLine={false} tickLine={false} interval={Math.floor(sliced.length / 8)} tickFormatter={(v) => String(v).slice(5)} />
-            <YAxis yAxisId="price" domain={["auto", "auto"]} tick={{ fill: "#6b7fa3", fontSize: 10, ...MONO }} axisLine={false} tickLine={false} width={70} tickFormatter={(v) => v.toLocaleString("vi-VN")} />
-            <YAxis yAxisId="vol" orientation="right" tick={{ fill: "#6b7fa3", fontSize: 10, ...MONO }} axisLine={false} tickLine={false} width={60} tickFormatter={(v) => (v / 1_000_000).toFixed(1) + "M"} />
-            <Tooltip content={<CustomTooltip />} />
-            <Bar yAxisId="vol" dataKey="volume" fill="rgba(59,130,246,0.25)" name="Volume" radius={[1, 1, 0, 0]} />
-            <Line yAxisId="price" type="monotone" dataKey="close" stroke={up ? "#00d97e" : "#ff4d6d"} strokeWidth={2} dot={false} name="Giá đóng cửa" />
-            {indicators.sma20 && <Line yAxisId="price" type="monotone" dataKey="sma20" stroke="#8b5cf6" strokeWidth={1.5} dot={false} strokeDasharray="4 2" name="SMA20" />}
-            {indicators.ema12 && <Line yAxisId="price" type="monotone" dataKey="ema12" stroke="#a855f7" strokeWidth={1.5} dot={false} strokeDasharray="4 2" name="EMA12" />}
-            {indicators.bb && <>
-              <Line yAxisId="price" type="monotone" dataKey="bbUpper" stroke="#6b7fa3" strokeWidth={1} dot={false} strokeDasharray="2 2" name="BB Upper" />
-              <Line yAxisId="price" type="monotone" dataKey="bbLower" stroke="#6b7fa3" strokeWidth={1} dot={false} strokeDasharray="2 2" name="BB Lower" />
-            </>}
-          </ComposedChart>
-        </ResponsiveContainer>
+        <div style={{ ...INTER, color: "#e2e8f0", fontSize: 13, fontWeight: 600, marginBottom: 12 }}>
+          {viewMode === "daily" ? "Biểu đồ nến & Khối lượng" : `Biểu đồ trong phiên (${intradayResolution})`}
+        </div>
+        {viewMode === "daily" ? (
+          <CandlestickChart data={sliced} indicators={indicators} />
+        ) : intradayData === null ? (
+          <div style={{ color: "#6b7fa3", fontSize: 12, ...INTER, padding: "40px 0", textAlign: "center" }}>Đang tải dữ liệu trong phiên...</div>
+        ) : intradayError || intradayPoints.length === 0 ? (
+          <div style={{ color: "#6b7fa3", fontSize: 12, ...INTER, padding: "40px 0", textAlign: "center" }}>
+            Chưa có dữ liệu trong phiên cho mã {ticker} (cần backfill hoặc DNSE realtime).
+          </div>
+        ) : (
+          <CandlestickChart data={intradayPoints} indicators={{ sma20: false, ema12: false, bb: false }} timeVisible />
+        )}
       </div>
 
       {/* RSI & MACD row */}
+      {viewMode === "daily" && (
       <div style={{ display: "grid", gridTemplateColumns: indicators.rsi && indicators.macd ? "1fr 1fr" : "1fr", gap: 12 }}>
         {indicators.rsi && (
           <div style={CARD}>
             <div style={{ ...INTER, color: "#e2e8f0", fontSize: 13, fontWeight: 600, marginBottom: 12 }}>RSI (14)</div>
-            <ResponsiveContainer width="100%" height={120}>
-              <ComposedChart data={sliced} margin={{ left: 10, right: 20 }}>
-                <XAxis dataKey="date" tick={false} axisLine={false} tickLine={false} tickFormatter={(v) => String(v).slice(5)} />
-                <YAxis domain={[0, 100]} tick={{ fill: "#6b7fa3", fontSize: 10, ...MONO }} axisLine={false} tickLine={false} width={30} />
-                <Tooltip contentStyle={{ background: "#1e2535", border: "1px solid rgba(255,255,255,0.1)", fontSize: 12, ...MONO }} formatter={(v: any) => [v.toFixed(1), "RSI"]} />
-                <ReferenceLine y={70} stroke="#ff4d6d" strokeDasharray="3 3" strokeWidth={1} label={{ value: "70", fill: "#ff4d6d", fontSize: 10 }} />
-                <ReferenceLine y={30} stroke="#00d97e" strokeDasharray="3 3" strokeWidth={1} label={{ value: "30", fill: "#00d97e", fontSize: 10 }} />
-                <Line type="monotone" dataKey="rsi" stroke="#3b82f6" strokeWidth={2} dot={false} name="RSI" />
-              </ComposedChart>
-            </ResponsiveContainer>
+            <RsiPane data={sliced} />
           </div>
         )}
 
         {indicators.macd && (
           <div style={CARD}>
             <div style={{ ...INTER, color: "#e2e8f0", fontSize: 13, fontWeight: 600, marginBottom: 12 }}>MACD</div>
-            <ResponsiveContainer width="100%" height={120}>
-              <ComposedChart data={sliced} margin={{ left: 10, right: 20 }}>
-                <XAxis dataKey="date" tick={false} axisLine={false} tickLine={false} tickFormatter={(v) => String(v).slice(5)} />
-                <YAxis tick={{ fill: "#6b7fa3", fontSize: 10, ...MONO }} axisLine={false} tickLine={false} width={40} />
-                <Tooltip contentStyle={{ background: "#1e2535", border: "1px solid rgba(255,255,255,0.1)", fontSize: 12, ...MONO }} />
-                <ReferenceLine y={0} stroke="rgba(255,255,255,0.2)" strokeWidth={1} />
-                <Bar dataKey="macd" fill="#00d97e" opacity={0.6} name="MACD" />
-                <Line type="monotone" dataKey="macdSignal" stroke="#8b5cf6" strokeWidth={1.5} dot={false} name="Signal" />
-              </ComposedChart>
-            </ResponsiveContainer>
+            <MacdPane data={sliced} />
           </div>
         )}
       </div>
+      )}
 
       {/* News table */}
       <div style={CARD}>

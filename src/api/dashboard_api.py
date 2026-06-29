@@ -2,15 +2,18 @@ from __future__ import annotations
 
 from datetime import date, datetime, time
 import json
+import logging
 import os
 from pathlib import Path
 import socket
 from typing import Any
+import uuid
 from zoneinfo import ZoneInfo
 
 from fastapi import FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
 import polars as pl
+from pydantic import BaseModel
 import requests
 
 from src.common.clickhouse_client import create_client
@@ -29,6 +32,11 @@ AIRFLOW_BASE_URL = os.getenv("AIRFLOW_BASE_URL", "http://localhost:8080")
 AIRFLOW_DAG_ID = os.getenv("AIRFLOW_DAG_ID", "stock_lakehouse_daily")
 AIRFLOW_AUTH = (os.getenv("AIRFLOW_USER", "admin"), os.getenv("AIRFLOW_PASSWORD", "admin"))
 
+# Single-user app (same convention as scripts/init_user_alerts.py's demo_user) --
+# there is no login/session system, so every watchlist/alert-rule row
+# belongs to this one user.
+DEFAULT_USER_ID = "demo_user"
+
 ALERT_CONDITION_COLORS = {
     "RSI_ABOVE": "#ff4d6d",
     "RSI_BELOW": "#00d97e",
@@ -42,6 +50,7 @@ PIPELINE_TABLES = [
     ("fact_daily_price", "trading_date"),
     ("fact_market_index", "trading_date"),
     ("fact_news_sentiment_daily", "news_date"),
+    ("fact_intraday_ohlcv", "minute_ts"),
     ("fact_realtime_vwap", "minute_ts"),
     ("fact_alert_event", "triggered_at"),
 ]
@@ -56,6 +65,22 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+
+@app.on_event("startup")
+def ensure_watchlist_table() -> None:
+    """Create watchlist if missing.
+
+    Unlike user_alerts (created by the alert-engine container on startup),
+    nothing else in the stack owns this table, so the API creates it itself
+    the first time it boots.
+    """
+    ddl_dir = PROJECT_ROOT / "sql" / "ddl_postgres"
+    try:
+        with create_connection() as conn, conn.cursor() as cur:
+            cur.execute((ddl_dir / "watchlist.sql").read_text(encoding="utf-8"))
+    except Exception:
+        logging.getLogger(__name__).exception("Could not ensure watchlist table")
 
 
 def clean(value: Any) -> Any:
@@ -99,20 +124,51 @@ def fmt_signed(value: float | int | None, digits: int = 2) -> str:
 
 
 def build_stock_query(order_by: str, limit: int) -> str:
+    """Per-ticker table with the latest EOD bar as reference price, live-overlaid.
+
+    f.close (yesterday's close, since fact_daily_price only refreshes once a
+    day after the close) is exactly the "giá tham chiếu" Vietnamese price
+    boards use as the day's baseline. When fact_realtime_vwap has a row for
+    this ticker today, price/change/pct/volume/value are overridden with the
+    live close and today's cumulative session volume/value -- mirroring how
+    DNSE/SSI/VNDirect show live intraday prices against yesterday's
+    reference rather than a static EOD snapshot during market hours. Falls
+    back to the EOD value automatically (via ifNull) for any ticker with no
+    intraday rows yet (pre-open, or DNSE/Kafka not running).
+    """
     return f"""
+        WITH live AS (
+            SELECT
+              ticker,
+              -- toNullable() matters: fact_realtime_vwap's columns are not
+              -- Nullable, so a plain LEFT JOIN against a non-matching ticker
+              -- fills these with the column's zero default (0.0), not NULL --
+              -- isNotNull(l.live_price) would then wrongly read as "live" for
+              -- every ticker DNSE has no quote for today, reporting price=0.
+              toNullable(argMax(close_price, minute_ts)) AS live_price,
+              toNullable(argMax(session_volume, minute_ts)) AS live_volume,
+              toNullable(argMax(session_value, minute_ts)) AS live_value,
+              toNullable(max(minute_ts)) AS live_minute_ts
+            FROM fact_realtime_vwap
+            WHERE toDate(minute_ts) = today()
+            GROUP BY ticker
+        )
         SELECT
           f.ticker AS ticker,
           ifNull(nullIf(s.company_name, ''), f.ticker) AS name,
           ifNull(nullIf(sec.sector_name, ''), ifNull(nullIf(s.sector_id, ''), 'Khác')) AS sector,
           ifNull(nullIf(s.exchange, ''), 'NA') AS exchange,
-          f.close AS price,
-          f.price_change AS change,
-          f.pct_change AS pct,
-          f.volume AS volume,
-          f.value AS value
+          ifNull(l.live_price, f.close) AS price,
+          if(isNotNull(l.live_price) AND f.close != 0, l.live_price - f.close, f.price_change) AS change,
+          if(isNotNull(l.live_price) AND f.close != 0, (l.live_price - f.close) / f.close * 100, f.pct_change) AS pct,
+          ifNull(l.live_volume, f.volume) AS volume,
+          ifNull(l.live_value, f.value) AS value,
+          isNotNull(l.live_price) AS isLive,
+          l.live_minute_ts AS liveAsOf
         FROM fact_daily_price f
         LEFT JOIN dim_stock s ON f.ticker = s.ticker
         LEFT JOIN dim_sector sec ON s.sector_id = sec.sector_id
+        LEFT JOIN live l ON f.ticker = l.ticker
         WHERE f.trading_date = (SELECT max(trading_date) FROM fact_daily_price)
           AND s.exchange = 'HOSE'
         ORDER BY {order_by}
@@ -132,6 +188,8 @@ def stock_table(order_by: str, limit: int) -> list[dict[str, Any]]:
             "pct": row["pct"],
             "volume": row["volume"],
             "sector": row["sector"],
+            "isLive": row["isLive"],
+            "liveAsOf": row["liveAsOf"],
             **({"value": row["value"]} if "value DESC" in order_by else {}),
         }
         for row in data
@@ -459,8 +517,10 @@ def get_stock_candles(
           ifNull(macd, 0) AS macd,
           ifNull(macd_signal, 0) AS macdSignal,
           ifNull(bb_upper, high) AS bbUpper,
-          ifNull(bb_lower, low) AS bbLower
-        FROM fact_daily_price
+          ifNull(bb_lower, low) AS bbLower,
+          market_cap AS marketCap,
+          value
+        FROM fact_daily_price_indicators
         WHERE ticker = {quote(symbol)}
           AND ticker IN (SELECT ticker FROM dim_stock WHERE exchange = 'HOSE')
         ORDER BY trading_date DESC
@@ -469,7 +529,108 @@ def get_stock_candles(
     )[::-1]
     if not data:
         raise HTTPException(status_code=404, detail=f"No price data for ticker {symbol}")
-    return {"ticker": symbol, "count": len(data), "data": data}
+    latest_price_date = data[-1]["date"]
+    return {
+        "ticker": symbol,
+        "count": len(data),
+        "latestPriceDate": latest_price_date,
+        "dataMode": "EOD",
+        "isRealtime": False,
+        **market_session_status(),
+        "data": data,
+    }
+
+
+INTRADAY_RESOLUTION_MINUTES = {"1m": 1, "5m": 5, "15m": 15, "30m": 30, "1h": 60}
+
+
+@app.get("/api/stocks/{ticker}/intraday")
+def get_stock_intraday(
+    ticker: str,
+    resolution: str = Query("5m", pattern="^(1m|5m|15m|30m|1h)$"),
+    trading_date: str | None = Query(
+        None, description="YYYY-MM-DD, defaults to the latest session ingested"
+    ),
+) -> dict[str, Any]:
+    """Intraday OHLCV at a chosen timeframe, aggregated on read from the 1-minute candles.
+
+    fact_intraday_ohlcv only ever stores the 1m grain (from DNSE's ohlc_closed.1
+    channel and the Vnstock backfill) -- 5m/15m/30m/1h are computed here with
+    toStartOfInterval rather than materialized as separate tables, since this
+    is read-time aggregation over a single day's candles, not a heavy job.
+    """
+    symbol = ticker.upper()
+    minutes = INTRADAY_RESOLUTION_MINUTES[resolution]
+
+    try:
+        resolved_date = trading_date or scalar(
+            "SELECT max(trading_date) FROM fact_intraday_ohlcv "
+            f"WHERE ticker = {quote(symbol)} AND is_final = 1"
+        )
+        if resolved_date is None:
+            raise HTTPException(status_code=404, detail=f"No intraday data for ticker {symbol}")
+
+        data = rows(
+            f"""
+            SELECT
+              formatDateTime(bucket, '%Y-%m-%d %H:%i') AS time,
+              argMin(open, minute_ts) AS open,
+              max(high) AS high,
+              min(low) AS low,
+              argMax(close, minute_ts) AS close,
+              sum(volume) AS volume
+            FROM
+            (
+              SELECT
+                minute_ts,
+                toStartOfInterval(minute_ts, INTERVAL {minutes} MINUTE) AS bucket,
+                argMax(open, (data_source = 'DNSE', ingested_at)) AS open,
+                argMax(high, (data_source = 'DNSE', ingested_at)) AS high,
+                argMax(low, (data_source = 'DNSE', ingested_at)) AS low,
+                argMax(close, (data_source = 'DNSE', ingested_at)) AS close,
+                argMax(volume, (data_source = 'DNSE', ingested_at)) AS volume
+              FROM fact_intraday_ohlcv
+              WHERE ticker = {quote(symbol)}
+                AND trading_date = toDate({quote(str(resolved_date))})
+                AND resolution = '1m'
+                AND is_final = 1
+              GROUP BY minute_ts
+            )
+            GROUP BY bucket
+            ORDER BY bucket
+            """
+        )
+        latest_minute = data[-1]["time"] if data else None
+        source_rows = rows(
+            f"""
+            SELECT groupUniqArray(data_source) AS sources
+            FROM fact_intraday_ohlcv
+            WHERE ticker = {quote(symbol)}
+              AND trading_date = toDate({quote(str(resolved_date))})
+              AND resolution = '1m'
+            """
+        )
+    except HTTPException:
+        raise
+    except Exception as exc:
+        raise HTTPException(
+            status_code=503, detail="Intraday candle storage is unavailable"
+        ) from exc
+
+    if not data:
+        raise HTTPException(status_code=404, detail=f"No intraday data for ticker {symbol}")
+    sources = source_rows[0].get("sources", []) if source_rows else []
+    return {
+        "ticker": symbol,
+        "resolution": resolution,
+        "tradingDate": str(resolved_date),
+        "latestMinute": latest_minute,
+        "sources": sources,
+        "dataMode": "INTRADAY",
+        **market_session_status(),
+        "count": len(data),
+        "data": data,
+    }
 
 
 @app.get("/api/market/overview")
@@ -479,8 +640,17 @@ def get_market_overview() -> dict[str, Any]:
 
     latest_price_date = scalar("SELECT max(trading_date) FROM fact_daily_price")
     generated_at = datetime.now().replace(microsecond=0).isoformat()
-    top_gainers = stock_table("f.pct_change DESC", 100)
-    top_losers = stock_table("f.pct_change ASC", 100)
+    live_overlay = rows(
+        "SELECT count(DISTINCT ticker) AS live_tickers, max(minute_ts) AS live_as_of "
+        "FROM fact_realtime_vwap WHERE toDate(minute_ts) = today()"
+    )
+    live_ticker_count = live_overlay[0]["live_tickers"] if live_overlay else 0
+    live_as_of = live_overlay[0]["live_as_of"] if live_overlay else None
+    # Rank by the live-overlaid pct/value (the SELECT aliases), not the
+    # EOD-only f.pct_change/f.value, so the ranking matches what the live
+    # price column on screen actually shows during market hours.
+    top_gainers = stock_table("pct DESC", 100)
+    top_losers = stock_table("pct ASC", 100)
     top_liquidity = [
         {
             "ticker": row["ticker"],
@@ -489,8 +659,10 @@ def get_market_overview() -> dict[str, Any]:
             "volume": row["volume"],
             "value": row["value"],
             "price": row["price"],
+            "isLive": row["isLive"],
+            "liveAsOf": row["liveAsOf"],
         }
-        for row in rows(build_stock_query("f.value DESC", 100))
+        for row in rows(build_stock_query("value DESC", 100))
     ]
 
     sector_performance = rows(
@@ -639,9 +811,20 @@ def get_market_overview() -> dict[str, Any]:
 
     return {
         "source": "clickhouse",
+        # marketIndicesAll/sector aggregates are still EOD-only (a live
+        # VN-Index/sector-average needs index-weighted methodology, not
+        # implemented here) -- but the per-ticker tables below (top
+        # gainers/losers/liquidity) are live-overlaid whenever
+        # fact_realtime_vwap has a row for that ticker today.
+        "dataMode": "EOD+LIVE" if live_ticker_count > 0 else "EOD",
+        "isRealtime": live_ticker_count > 0,
+        "liveTickerCount": live_ticker_count,
+        "liveAsOf": clean(live_as_of) if live_as_of else None,
+        **market_session_status(),
         "dataSnapshotMeta": {
             "generatedAt": generated_at,
             "latestPriceDate": latest_price_date,
+            "label": "Phiên gần nhất đã hoàn tất",
         },
         "marketIndicesAll": market_indices_all,
         "marketOverviewStats": market_overview_stats,
@@ -878,7 +1061,9 @@ def alert_cooldown_lookup() -> dict[tuple[str, str, str], dict[str, int]]:
     """
     try:
         with create_connection() as conn, conn.cursor() as cur:
-            cur.execute("SELECT user_id, ticker, condition_type, channel, cooldown_minutes FROM user_alerts")
+            cur.execute(
+                "SELECT user_id, ticker, condition_type, channel, cooldown_minutes FROM user_alerts"
+            )
             db_rows = cur.fetchall()
     except Exception:
         return {}
@@ -923,8 +1108,13 @@ def get_alerts(limit: int = Query(200, ge=1, le=2000)) -> dict[str, Any]:
             "status": "sent" if row["deliveryStatus"] == "sent" else "failed",
             "deliveryStatus": row["deliveryStatus"],
             "sentAt": row["sentAtFormatted"] if row["sentAt"] else None,
-            "cooldown": cooldown_lookup.get((row["user"], row["condition"], row["channel"]), {}).get(
-                row["ticker"], cooldown_lookup.get((row["user"], row["condition"], row["channel"]), {}).get("ALL", 0)
+            "cooldown": cooldown_lookup.get(
+                (row["user"], row["condition"], row["channel"]), {}
+            ).get(
+                row["ticker"],
+                cooldown_lookup.get((row["user"], row["condition"], row["channel"]), {}).get(
+                    "ALL", 0
+                ),
             ),
         }
         for row in raw
@@ -1129,3 +1319,196 @@ def get_pipeline_status() -> dict[str, Any]:
         "ingestHistory": ingest_history,
         "kafkaLag": kafka_lag,
     }
+
+
+def latest_price_rows(tickers: list[str]) -> dict[str, dict[str, Any]]:
+    """Latest fact_daily_price snapshot for a specific set of tickers, keyed by ticker."""
+    if not tickers:
+        return {}
+    tickers_sql = ", ".join(quote(t) for t in tickers)
+    data = rows(
+        f"""
+        SELECT
+          f.ticker AS ticker,
+          ifNull(nullIf(s.company_name, ''), f.ticker) AS name,
+          ifNull(nullIf(sec.sector_name, ''), ifNull(nullIf(s.sector_id, ''), 'Khác')) AS sector,
+          ifNull(nullIf(s.exchange, ''), 'NA') AS exchange,
+          f.close AS price,
+          f.price_change AS change,
+          f.pct_change AS pct,
+          f.volume AS volume,
+          f.value AS value
+        FROM fact_daily_price f
+        LEFT JOIN dim_stock s ON f.ticker = s.ticker
+        LEFT JOIN dim_sector sec ON s.sector_id = sec.sector_id
+        WHERE f.trading_date = (SELECT max(trading_date) FROM fact_daily_price)
+          AND f.ticker IN ({tickers_sql})
+        """
+    )
+    return {row["ticker"]: row for row in data}
+
+
+class WatchlistAddRequest(BaseModel):
+    ticker: str
+
+
+@app.get("/api/watchlist")
+def get_watchlist() -> dict[str, Any]:
+    with create_connection() as conn, conn.cursor() as cur:
+        cur.execute(
+            "SELECT ticker FROM watchlist WHERE user_id = %s ORDER BY created_at DESC",
+            (DEFAULT_USER_ID,),
+        )
+        tickers = [row[0] for row in cur.fetchall()]
+
+    price_by_ticker = latest_price_rows(tickers)
+    data = [
+        {**price_by_ticker[ticker], "inWatchlist": True}
+        for ticker in tickers
+        if ticker in price_by_ticker
+    ]
+    return {"count": len(data), "data": data}
+
+
+@app.post("/api/watchlist")
+def add_to_watchlist(payload: WatchlistAddRequest) -> dict[str, Any]:
+    ticker = payload.ticker.strip().upper()
+    if not ticker:
+        raise HTTPException(status_code=400, detail="ticker is required")
+    with create_connection() as conn, conn.cursor() as cur:
+        cur.execute(
+            """
+            INSERT INTO watchlist (watchlist_id, user_id, ticker)
+            VALUES (%s, %s, %s)
+            ON CONFLICT (user_id, ticker) DO NOTHING
+            """,
+            (str(uuid.uuid4()), DEFAULT_USER_ID, ticker),
+        )
+    return {"ticker": ticker, "added": True}
+
+
+@app.delete("/api/watchlist/{ticker}")
+def remove_from_watchlist(ticker: str) -> dict[str, Any]:
+    with create_connection() as conn, conn.cursor() as cur:
+        cur.execute(
+            "DELETE FROM watchlist WHERE user_id = %s AND ticker = %s",
+            (DEFAULT_USER_ID, ticker.strip().upper()),
+        )
+    return {"ticker": ticker.upper(), "removed": True}
+
+
+# Must match src/alert_engine/rules.py's CONDITION_TYPES -- the engine raises
+# ValueError on anything else, so a rule created here with an unsupported
+# condition_type would silently crash that ticker's evaluation every cycle.
+VALID_CONDITION_TYPES = {
+    "PRICE_ABOVE",
+    "PRICE_BELOW",
+    "RSI_ABOVE",
+    "RSI_BELOW",
+    "BB_BREAK",
+    "VWAP_DEVIATION",
+}
+VALID_CHANNELS = {"TELEGRAM", "EMAIL"}
+
+
+class AlertRuleRequest(BaseModel):
+    ticker: str
+    conditionType: str
+    thresholdValue: float
+    channel: str
+    cooldownMinutes: int = 60
+
+
+@app.get("/api/alert-rules")
+def get_alert_rules() -> dict[str, Any]:
+    with create_connection() as conn, conn.cursor() as cur:
+        cur.execute(
+            """
+            SELECT alert_id, ticker, condition_type, threshold_value, channel,
+                   cooldown_minutes, is_active, created_at
+            FROM user_alerts
+            WHERE user_id = %s
+            ORDER BY created_at DESC
+            """,
+            (DEFAULT_USER_ID,),
+        )
+        data = [
+            {
+                "id": str(alert_id),
+                "ticker": ticker,
+                "conditionType": condition_type,
+                "thresholdValue": threshold_value,
+                "channel": channel,
+                "cooldownMinutes": cooldown_minutes,
+                "isActive": is_active,
+                "createdAt": created_at.isoformat(),
+            }
+            for alert_id, ticker, condition_type, threshold_value, channel, cooldown_minutes, is_active, created_at in cur.fetchall()
+        ]
+    return {"count": len(data), "data": data}
+
+
+@app.post("/api/alert-rules")
+def create_alert_rule(payload: AlertRuleRequest) -> dict[str, Any]:
+    ticker = payload.ticker.strip().upper()
+    condition_type = payload.conditionType.strip().upper()
+    channel = payload.channel.strip().upper()
+    if not ticker:
+        raise HTTPException(status_code=400, detail="ticker is required")
+    if condition_type not in VALID_CONDITION_TYPES:
+        raise HTTPException(
+            status_code=400, detail=f"conditionType must be one of {sorted(VALID_CONDITION_TYPES)}"
+        )
+    if channel not in VALID_CHANNELS:
+        raise HTTPException(
+            status_code=400, detail=f"channel must be one of {sorted(VALID_CHANNELS)}"
+        )
+    if payload.cooldownMinutes <= 0:
+        raise HTTPException(status_code=400, detail="cooldownMinutes must be positive")
+
+    alert_id = str(uuid.uuid4())
+    with create_connection() as conn, conn.cursor() as cur:
+        cur.execute(
+            """
+            INSERT INTO user_alerts (alert_id, user_id, ticker, condition_type, threshold_value, channel, cooldown_minutes)
+            VALUES (%s, %s, %s, %s, %s, %s, %s)
+            """,
+            (
+                alert_id,
+                DEFAULT_USER_ID,
+                ticker,
+                condition_type,
+                payload.thresholdValue,
+                channel,
+                payload.cooldownMinutes,
+            ),
+        )
+    return {"id": alert_id, "created": True}
+
+
+class AlertRuleActiveRequest(BaseModel):
+    isActive: bool
+
+
+@app.put("/api/alert-rules/{alert_id}")
+def update_alert_rule(alert_id: str, payload: AlertRuleActiveRequest) -> dict[str, Any]:
+    with create_connection() as conn, conn.cursor() as cur:
+        cur.execute(
+            "UPDATE user_alerts SET is_active = %s, updated_at = now() WHERE alert_id = %s AND user_id = %s",
+            (payload.isActive, alert_id, DEFAULT_USER_ID),
+        )
+        if cur.rowcount == 0:
+            raise HTTPException(status_code=404, detail="Alert rule not found")
+    return {"id": alert_id, "isActive": payload.isActive}
+
+
+@app.delete("/api/alert-rules/{alert_id}")
+def delete_alert_rule(alert_id: str) -> dict[str, Any]:
+    with create_connection() as conn, conn.cursor() as cur:
+        cur.execute(
+            "DELETE FROM user_alerts WHERE alert_id = %s AND user_id = %s",
+            (alert_id, DEFAULT_USER_ID),
+        )
+        if cur.rowcount == 0:
+            raise HTTPException(status_code=404, detail="Alert rule not found")
+    return {"id": alert_id, "removed": True}

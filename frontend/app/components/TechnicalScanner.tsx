@@ -73,7 +73,7 @@ export function TechnicalScanner({ onNavigate }: TechnicalScannerProps) {
       {/* Header */}
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
         <div>
-          <h1 style={{ color: "#e2e8f0", margin: 0, fontSize: 18, fontWeight: 700, ...INTER }}>Technical Signal Scanner</h1>
+          <h1 style={{ color: "#e2e8f0", margin: 0, fontSize: 18, fontWeight: 700, ...INTER }}>Bộ lọc tín hiệu kỹ thuật</h1>
           <p style={{ color: "#6b7fa3", margin: 0, fontSize: 12, ...INTER }}>
             Quét {trackedTickerCount} mã có dữ liệu phiên mới nhất · Hiển thị {technicalSignals.length} tín hiệu nổi bật · {apiStatus}
           </p>

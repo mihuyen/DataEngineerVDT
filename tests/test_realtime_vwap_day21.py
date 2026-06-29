@@ -73,3 +73,5 @@ def test_day21_streaming_sql_contains_kafka_engine_and_materialized_view() -> No
     # (scripts/run_realtime_vwap_kafka_consumer.py) computes the correct
     # cumulative session VWAP and loads fact_realtime_vwap from there.
     assert "TO realtime_trade_ticks_raw" in sql
+    assert "dnse-ohlcv-1m" in sql
+    assert "TO fact_intraday_ohlcv" in sql

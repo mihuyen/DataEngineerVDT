@@ -70,7 +70,7 @@ export function NewsSentiment({ onNavigate }: NewsSentimentProps) {
       {/* Header */}
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
         <div>
-          <h1 style={{ color: "#e2e8f0", margin: 0, fontSize: 18, fontWeight: 700, ...INTER }}>News & Sentiment</h1>
+          <h1 style={{ color: "#e2e8f0", margin: 0, fontSize: 18, fontWeight: 700, ...INTER }}>Tin tức & cảm xúc thị trường</h1>
           <p style={{ color: "#6b7fa3", margin: 0, fontSize: 12, ...INTER }}>Tin tức & cảm xúc thị trường · {apiStatus}</p>
         </div>
         <div style={{ display: "flex", gap: 8, alignItems: "center" }}>

@@ -2,14 +2,14 @@ import { Suspense, lazy, useState } from "react";
 import { Layout, Page } from "./components/Layout";
 
 const MarketOverview = lazy(() => import("./components/MarketOverview").then((m) => ({ default: m.MarketOverview })));
+const Watchlist = lazy(() => import("./components/Watchlist").then((m) => ({ default: m.Watchlist })));
 const StockDetail = lazy(() => import("./components/StockDetail").then((m) => ({ default: m.StockDetail })));
-const TechnicalScanner = lazy(() =>
-  import("./components/TechnicalScanner").then((m) => ({ default: m.TechnicalScanner }))
+const StockScreener = lazy(() =>
+  import("./components/StockScreener").then((m) => ({ default: m.StockScreener }))
 );
 const PipelineMonitor = lazy(() =>
   import("./components/PipelineMonitor").then((m) => ({ default: m.PipelineMonitor }))
 );
-const RealtimeVWAP = lazy(() => import("./components/RealtimeVWAP").then((m) => ({ default: m.RealtimeVWAP })));
 const NewsSentiment = lazy(() => import("./components/NewsSentiment").then((m) => ({ default: m.NewsSentiment })));
 const AlertHistory = lazy(() => import("./components/AlertHistory").then((m) => ({ default: m.AlertHistory })));
 
@@ -30,18 +30,18 @@ export default function App() {
     switch (currentPage) {
       case "market":
         return <MarketOverview onNavigate={handleNavigate} />;
+      case "watchlist":
+        return <Watchlist onNavigate={handleNavigate} />;
       case "stock":
-        return <StockDetail initialTicker={selectedTicker || "VCB"} />;
-      case "scanner":
-        return <TechnicalScanner onNavigate={handleNavigate} />;
+        return <StockDetail initialTicker={selectedTicker || "VCB"} onNavigate={handleNavigate} />;
+      case "screener":
+        return <StockScreener onNavigate={handleNavigate} />;
       case "pipeline":
         return <PipelineMonitor />;
-      case "vwap":
-        return <RealtimeVWAP onNavigate={handleNavigate} />;
       case "news":
         return <NewsSentiment onNavigate={handleNavigate} />;
       case "alerts":
-        return <AlertHistory onNavigate={handleNavigate} />;
+        return <AlertHistory onNavigate={handleNavigate} initialTicker={selectedTicker} />;
       default:
         return <MarketOverview onNavigate={handleNavigate} />;
     }

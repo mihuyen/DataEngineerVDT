@@ -14,6 +14,7 @@ def test_gold_ddl_files_exist() -> None:
         "fact_daily_price.sql",
         "fact_market_index.sql",
         "fact_realtime_vwap.sql",
+        "fact_intraday_ohlcv.sql",
         "fact_news_sentiment_daily.sql",
         "fact_alert_event.sql",
     ]
@@ -44,6 +45,14 @@ def test_scheme_fact_realtime_vwap_ddl_has_daily_partition() -> None:
     assert "ENGINE = MergeTree" in ddl
     assert "PARTITION BY toYYYYMMDD(trading_date)" in ddl
     assert "ORDER BY (ticker, minute_ts)" in ddl
+
+
+def test_fact_intraday_ohlcv_ddl_has_daily_partition() -> None:
+    ddl = (DDL_DIR / "fact_intraday_ohlcv.sql").read_text(encoding="utf-8")
+
+    assert "ENGINE = ReplacingMergeTree(ingested_at)" in ddl
+    assert "PARTITION BY toYYYYMMDD(trading_date)" in ddl
+    assert "ORDER BY (ticker, resolution, minute_ts)" in ddl
 
 
 def test_scheme_news_and_alert_fact_tables_exist() -> None:

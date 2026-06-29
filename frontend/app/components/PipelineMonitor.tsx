@@ -89,7 +89,7 @@ export function PipelineMonitor() {
     <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
       {/* Header */}
       <div>
-        <h1 style={{ color: "#e2e8f0", margin: 0, fontSize: 18, fontWeight: 700, ...INTER }}>Data Pipeline Monitor</h1>
+        <h1 style={{ color: "#e2e8f0", margin: 0, fontSize: 18, fontWeight: 700, ...INTER }}>Giám sát pipeline dữ liệu</h1>
         <p style={{ color: "#6b7fa3", margin: 0, fontSize: 12, ...INTER }}>Giám sát pipeline & chất lượng dữ liệu · {apiStatus}</p>
       </div>
 

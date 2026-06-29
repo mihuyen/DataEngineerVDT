@@ -16,14 +16,17 @@ sys.path.append(str(Path(__file__).resolve().parents[1]))
 from src.common.clickhouse_client import create_client, execute, query_dataframe
 from src.loaders.load_fact_realtime_vwap import build_fact_realtime_vwap
 from src.streaming.dnse_websocket import (
+    DNSEOhlcCandle,
+    DNSETradeTick,
     DNSEWebSocketConfig,
     collect_trade_ticks,
-    stream_trade_ticks,
+    stream_market_events,
 )
-from src.streaming.kafka_producer import create_producer, publish_trade_tick
+from src.streaming.kafka_producer import create_producer, publish_ohlcv_candle, publish_trade_tick
 
 
 DEFAULT_OUTPUT_DIR = Path("data/bronze_local/dnse/trades")
+DEFAULT_OHLCV_OUTPUT_DIR = Path("data/bronze_local/dnse/ohlcv_1m")
 DEFAULT_TICKER_FILE = Path("configs/tickers.csv")
 DEFAULT_DNSE_SYMBOLS = [
     "ACB",
@@ -96,6 +99,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--max-messages", type=int, default=100)
     parser.add_argument("--timeout-seconds", type=float, default=300)
     parser.add_argument("--output-dir", type=Path, default=DEFAULT_OUTPUT_DIR)
+    parser.add_argument("--ohlcv-output-dir", type=Path, default=DEFAULT_OHLCV_OUTPUT_DIR)
     parser.add_argument(
         "--load-vwap", action="store_true", help="Aggregate ticks and load fact_realtime_vwap."
     )
@@ -108,6 +112,12 @@ def parse_args() -> argparse.Namespace:
         help="Publish each tick to the dnse-trades-raw Kafka topic as it arrives.",
     )
     parser.add_argument("--kafka-topic", default="dnse-trades-raw")
+    parser.add_argument("--ohlcv-kafka-topic", default="dnse-ohlcv-1m")
+    parser.add_argument(
+        "--no-ohlcv",
+        action="store_true",
+        help="Disable the finalized one-minute OHLCV subscription.",
+    )
     return parser.parse_args()
 
 
@@ -122,18 +132,15 @@ def parse_symbols(value: str | None) -> list[str] | None:
 
 def load_all_symbols() -> list[str]:
     """Load the stock universe from ClickHouse dim_stock for DNSE subscriptions."""
-    frame = query_dataframe(
-        create_client(),
+    result = create_client().query(
         """
         SELECT upper(ticker) AS ticker
         FROM dim_stock
-        WHERE notEmpty(ticker)
+        WHERE notEmpty(ticker) AND exchange = 'HOSE'
         ORDER BY ticker
         """,
     )
-    symbols = [
-        str(ticker).strip().upper() for ticker in frame["ticker"].to_list() if str(ticker).strip()
-    ]
+    symbols = [str(row[0]).strip().upper() for row in result.result_rows if str(row[0]).strip()]
     if not symbols:
         raise ValueError("No symbols found in dim_stock. Run the dimension loader first.")
     return symbols
@@ -221,10 +228,13 @@ def save_ticks_to_bronze(ticks: pl.DataFrame, output_path: Path) -> None:
     output_path.parent.mkdir(parents=True, exist_ok=True)
     if output_path.exists():
         existing = pl.read_parquet(output_path)
-        ticks = pl.concat([existing, ticks], how="diagonal_relaxed").unique(
-            subset=["ticker", "trade_ts", "price", "volume"],
-            keep="last",
+        ticks = pl.concat([existing, ticks], how="diagonal_relaxed")
+        unique_key = (
+            ["ticker", "minute_ts", "resolution"]
+            if "minute_ts" in ticks.columns
+            else ["ticker", "trade_ts", "price", "volume"]
         )
+        ticks = ticks.unique(subset=unique_key, keep="last")
     ticks.write_parquet(output_path)
 
 
@@ -251,22 +261,39 @@ async def main_async() -> None:
 
     if args.produce_to_kafka:
         producer = create_producer()
-        rows = []
-        async for tick in stream_trade_ticks(
+        rows: list[dict] = []
+        candle_rows: list[dict] = []
+        async for event in stream_market_events(
             config,
             max_messages=args.max_messages,
             timeout_seconds=args.timeout_seconds,
+            include_ohlc=not args.no_ohlcv,
         ):
-            publish_trade_tick(
-                producer,
-                ticker=tick.ticker,
-                trade_ts=tick.trade_ts,
-                price=tick.price,
-                volume=tick.volume,
-                topic=args.kafka_topic,
-                data_source="DNSE",
-            )
-            rows.append(tick.to_dict())
+            if isinstance(event, DNSETradeTick):
+                publish_trade_tick(
+                    producer,
+                    ticker=event.ticker,
+                    trade_ts=event.trade_ts,
+                    price=event.price,
+                    volume=event.volume,
+                    topic=args.kafka_topic,
+                    data_source="DNSE",
+                )
+                rows.append(event.to_dict())
+            elif isinstance(event, DNSEOhlcCandle):
+                publish_ohlcv_candle(
+                    producer,
+                    ticker=event.ticker,
+                    minute_ts=event.minute_ts,
+                    open_price=event.open,
+                    high_price=event.high,
+                    low_price=event.low,
+                    close_price=event.close,
+                    volume=event.volume,
+                    topic=args.ohlcv_kafka_topic,
+                    data_source="DNSE",
+                )
+                candle_rows.append(event.to_dict())
         producer.flush()
         ticks = (
             pl.DataFrame(rows)
@@ -283,25 +310,57 @@ async def main_async() -> None:
             )
         )
         print(f"- published_to_kafka: {len(rows)} ticks -> topic '{args.kafka_topic}'")
+        print(
+            f"- published_ohlcv_to_kafka: {len(candle_rows)} candles "
+            f"-> topic '{args.ohlcv_kafka_topic}'"
+        )
     else:
         ticks = await collect_trade_ticks(
             config,
             max_messages=args.max_messages,
             timeout_seconds=args.timeout_seconds,
         )
+        candle_rows = []
 
     output_path = bronze_output_path(args.output_dir)
     save_ticks_to_bronze(ticks, output_path)
     save_subscription_metadata(config.symbols, output_path)
+    candle_frame = (
+        pl.DataFrame(candle_rows)
+        if candle_rows
+        else pl.DataFrame(
+            schema={
+                "ticker": pl.String,
+                "minute_ts": pl.Datetime,
+                "resolution": pl.String,
+                "open": pl.Float64,
+                "high": pl.Float64,
+                "low": pl.Float64,
+                "close": pl.Float64,
+                "volume": pl.Int64,
+                "is_final": pl.Int8,
+                "data_source": pl.String,
+                "raw_json": pl.String,
+            }
+        )
+    )
+    ohlcv_output_path = bronze_output_path(args.ohlcv_output_dir)
+    if not args.no_ohlcv:
+        save_ticks_to_bronze(candle_frame, ohlcv_output_path)
 
     print("DNSE realtime ingest completed")
     print(f"- stream_url: {config.stream_url}")
     print(f"- channel: {config.trade_channel}")
+    if not args.no_ohlcv:
+        print(f"- ohlcv_channel: {config.ohlc_closed_channel}")
     preview_symbols = ",".join(config.symbols[:10])
     suffix = "..." if len(config.symbols) > 10 else ""
     print(f"- symbols: {len(config.symbols)} ({preview_symbols}{suffix})")
     print(f"- ticks: {ticks.height}")
     print(f"- bronze_file: {output_path}")
+    if not args.no_ohlcv:
+        print(f"- ohlcv_candles: {candle_frame.height}")
+        print(f"- ohlcv_bronze_file: {ohlcv_output_path}")
 
     if args.load_vwap and not ticks.is_empty():
         client = create_client()

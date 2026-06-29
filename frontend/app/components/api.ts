@@ -22,6 +22,8 @@ export type Candle = {
   macdSignal: number;
   bbUpper: number;
   bbLower: number;
+  marketCap: number;
+  value: number;
 };
 
 export type VwapTicker = {
@@ -70,9 +72,17 @@ export type RealtimeVwapPayload = {
 
 export type MarketOverviewPayload = {
   source: string;
+  dataMode: "EOD" | "EOD+LIVE";
+  isRealtime: boolean;
+  liveTickerCount?: number;
+  liveAsOf?: string | null;
+  marketStatus: "live" | "lunch_break" | "pre_open" | "closed";
+  statusLabel: string;
+  marketNow?: string;
   dataSnapshotMeta: {
     generatedAt?: string;
     latestPriceDate?: string | null;
+    label?: string;
   };
   marketIndicesAll: any[];
   marketOverviewStats: any;
@@ -98,14 +108,64 @@ async function getJson<T>(url: string): Promise<T> {
   return response.json();
 }
 
+async function sendJson<T>(url: string, method: "POST" | "DELETE", body?: unknown): Promise<T> {
+  const response = await fetch(url, {
+    method,
+    headers: body ? { "Content-Type": "application/json" } : undefined,
+    body: body ? JSON.stringify(body) : undefined,
+  });
+  if (!response.ok) {
+    throw new Error(`${response.status} ${response.statusText}`);
+  }
+  return response.json();
+}
+
 export async function fetchStocks(): Promise<StockOption[]> {
   const payload = await getJson<{ data: StockOption[] }>("/api/stocks?limit=2000");
   return payload.data;
 }
 
-export async function fetchCandles(ticker: string): Promise<Candle[]> {
-  const payload = await getJson<{ data: Candle[] }>(`/api/stocks/${ticker}/candles?limit=260`);
-  return payload.data;
+export type DailyCandlesPayload = {
+  ticker: string;
+  count: number;
+  latestPriceDate: string;
+  dataMode: "EOD";
+  isRealtime: boolean;
+  marketStatus: "live" | "lunch_break" | "pre_open" | "closed";
+  statusLabel: string;
+  data: Candle[];
+};
+
+export async function fetchCandles(ticker: string): Promise<DailyCandlesPayload> {
+  return getJson<DailyCandlesPayload>(`/api/stocks/${ticker}/candles?limit=260`);
+}
+
+export type IntradayResolution = "1m" | "5m" | "15m" | "30m" | "1h";
+
+export type IntradayCandle = {
+  time: string;
+  open: number;
+  high: number;
+  low: number;
+  close: number;
+  volume: number;
+};
+
+export type IntradayPayload = {
+  ticker: string;
+  resolution: IntradayResolution;
+  tradingDate: string;
+  latestMinute?: string;
+  sources?: string[];
+  dataMode: "INTRADAY";
+  marketStatus: "live" | "lunch_break" | "pre_open" | "closed";
+  statusLabel: string;
+  count: number;
+  data: IntradayCandle[];
+};
+
+export async function fetchIntraday(ticker: string, resolution: IntradayResolution): Promise<IntradayPayload> {
+  return getJson<IntradayPayload>(`/api/stocks/${ticker}/intraday?resolution=${resolution}`);
 }
 
 export async function fetchRealtimeVwap(): Promise<RealtimeVwapPayload> {
@@ -204,6 +264,47 @@ export async function fetchAlerts(): Promise<AlertsPayload> {
   return getJson<AlertsPayload>("/api/alerts");
 }
 
+export type AlertRule = {
+  id: string;
+  ticker: string;
+  conditionType: string;
+  thresholdValue: number;
+  channel: string;
+  cooldownMinutes: number;
+  isActive: boolean;
+  createdAt: string;
+};
+
+export type AlertRulesPayload = { count: number; data: AlertRule[] };
+
+export async function fetchAlertRules(): Promise<AlertRulesPayload> {
+  return getJson<AlertRulesPayload>("/api/alert-rules");
+}
+
+export async function createAlertRule(rule: {
+  ticker: string;
+  conditionType: string;
+  thresholdValue: number;
+  channel: string;
+  cooldownMinutes: number;
+}): Promise<{ id: string; created: boolean }> {
+  return sendJson("/api/alert-rules", "POST", rule);
+}
+
+export async function setAlertRuleActive(id: string, isActive: boolean): Promise<{ id: string; isActive: boolean }> {
+  const response = await fetch(`/api/alert-rules/${id}`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ isActive }),
+  });
+  if (!response.ok) throw new Error(`${response.status} ${response.statusText}`);
+  return response.json();
+}
+
+export async function deleteAlertRule(id: string): Promise<{ id: string; removed: boolean }> {
+  return sendJson(`/api/alert-rules/${id}`, "DELETE");
+}
+
 export type DagStatusRow = {
   dag: string;
   status: string;
@@ -228,4 +329,31 @@ export type PipelineStatusPayload = {
 
 export async function fetchPipelineStatus(): Promise<PipelineStatusPayload> {
   return getJson<PipelineStatusPayload>("/api/pipeline/status");
+}
+
+export type WatchlistRow = {
+  ticker: string;
+  name: string;
+  sector: string;
+  exchange: string;
+  price: number;
+  change: number;
+  pct: number;
+  volume: number;
+  value: number;
+  inWatchlist: boolean;
+};
+
+export type WatchlistPayload = { count: number; data: WatchlistRow[] };
+
+export async function fetchWatchlist(): Promise<WatchlistPayload> {
+  return getJson<WatchlistPayload>("/api/watchlist");
+}
+
+export async function addToWatchlist(ticker: string): Promise<{ ticker: string; added: boolean }> {
+  return sendJson("/api/watchlist", "POST", { ticker });
+}
+
+export async function removeFromWatchlist(ticker: string): Promise<{ ticker: string; removed: boolean }> {
+  return sendJson(`/api/watchlist/${ticker}`, "DELETE");
 }

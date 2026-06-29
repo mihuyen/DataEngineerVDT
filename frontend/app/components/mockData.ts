@@ -1,6 +1,6 @@
 // Generated from ClickHouse by scripts/export_frontend_data.py.
 export const dataSnapshotMeta = {
-  "generatedAt": "2026-06-28T15:05:45",
+  "generatedAt": "2026-06-28T15:07:28",
   "latestPriceDate": "2026-06-26",
   "latestNewsDate": "2026-06-26"
 };
@@ -104570,7 +104570,7 @@ export const ingestHistory = [
 
 export const kafkaLag = [
   {
-    "time": "15:05",
+    "time": "15:07",
     "lag": 0
   }
 ];
@@ -105580,8 +105580,8 @@ export const alertHistory = [
     "channel": "EMAIL",
     "status": "sent",
     "deliveryStatus": "sent",
-    "sentAt": "12:June:13",
-    "triggeredAt": "12:June:13",
+    "sentAt": "12:34:13",
+    "triggeredAt": "12:34:13",
     "cooldown": 1440
   },
   {
@@ -105594,8 +105594,8 @@ export const alertHistory = [
     "channel": "EMAIL",
     "status": "sent",
     "deliveryStatus": "sent",
-    "sentAt": "12:June:13",
-    "triggeredAt": "12:June:13",
+    "sentAt": "12:34:13",
+    "triggeredAt": "12:34:13",
     "cooldown": 1440
   },
   {
@@ -105608,8 +105608,8 @@ export const alertHistory = [
     "channel": "EMAIL",
     "status": "sent",
     "deliveryStatus": "sent",
-    "sentAt": "12:June:13",
-    "triggeredAt": "12:June:13",
+    "sentAt": "12:34:13",
+    "triggeredAt": "12:34:13",
     "cooldown": 1440
   },
   {
@@ -105622,8 +105622,8 @@ export const alertHistory = [
     "channel": "EMAIL",
     "status": "sent",
     "deliveryStatus": "sent",
-    "sentAt": "12:June:13",
-    "triggeredAt": "12:June:13",
+    "sentAt": "12:34:13",
+    "triggeredAt": "12:34:13",
     "cooldown": 1440
   },
   {
@@ -105636,8 +105636,8 @@ export const alertHistory = [
     "channel": "EMAIL",
     "status": "sent",
     "deliveryStatus": "sent",
-    "sentAt": "12:June:12",
-    "triggeredAt": "12:June:12",
+    "sentAt": "12:34:12",
+    "triggeredAt": "12:34:12",
     "cooldown": 1440
   },
   {
@@ -105650,8 +105650,8 @@ export const alertHistory = [
     "channel": "EMAIL",
     "status": "sent",
     "deliveryStatus": "sent",
-    "sentAt": "12:June:12",
-    "triggeredAt": "12:June:12",
+    "sentAt": "12:34:12",
+    "triggeredAt": "12:34:12",
     "cooldown": 1440
   },
   {
@@ -105664,8 +105664,8 @@ export const alertHistory = [
     "channel": "EMAIL",
     "status": "sent",
     "deliveryStatus": "sent",
-    "sentAt": "12:June:12",
-    "triggeredAt": "12:June:12",
+    "sentAt": "12:34:12",
+    "triggeredAt": "12:34:12",
     "cooldown": 1440
   },
   {
@@ -105678,8 +105678,8 @@ export const alertHistory = [
     "channel": "EMAIL",
     "status": "sent",
     "deliveryStatus": "sent",
-    "sentAt": "12:June:12",
-    "triggeredAt": "12:June:12",
+    "sentAt": "12:34:12",
+    "triggeredAt": "12:34:12",
     "cooldown": 1440
   },
   {
@@ -105692,8 +105692,8 @@ export const alertHistory = [
     "channel": "EMAIL",
     "status": "sent",
     "deliveryStatus": "sent",
-    "sentAt": "12:June:12",
-    "triggeredAt": "12:June:12",
+    "sentAt": "12:34:12",
+    "triggeredAt": "12:34:12",
     "cooldown": 1440
   },
   {
@@ -105706,8 +105706,8 @@ export const alertHistory = [
     "channel": "EMAIL",
     "status": "sent",
     "deliveryStatus": "sent",
-    "sentAt": "12:June:12",
-    "triggeredAt": "12:June:12",
+    "sentAt": "12:34:12",
+    "triggeredAt": "12:34:12",
     "cooldown": 1440
   },
   {
@@ -105720,8 +105720,8 @@ export const alertHistory = [
     "channel": "EMAIL",
     "status": "sent",
     "deliveryStatus": "sent",
-    "sentAt": "12:June:12",
-    "triggeredAt": "12:June:12",
+    "sentAt": "12:34:12",
+    "triggeredAt": "12:34:12",
     "cooldown": 1440
   },
   {
@@ -105734,8 +105734,8 @@ export const alertHistory = [
     "channel": "EMAIL",
     "status": "sent",
     "deliveryStatus": "sent",
-    "sentAt": "12:June:12",
-    "triggeredAt": "12:June:12",
+    "sentAt": "12:34:12",
+    "triggeredAt": "12:34:12",
     "cooldown": 1440
   },
   {
@@ -105748,8 +105748,8 @@ export const alertHistory = [
     "channel": "EMAIL",
     "status": "sent",
     "deliveryStatus": "sent",
-    "sentAt": "12:June:12",
-    "triggeredAt": "12:June:12",
+    "sentAt": "12:34:12",
+    "triggeredAt": "12:34:12",
     "cooldown": 1440
   },
   {
@@ -105762,8 +105762,8 @@ export const alertHistory = [
     "channel": "EMAIL",
     "status": "sent",
     "deliveryStatus": "sent",
-    "sentAt": "12:June:12",
-    "triggeredAt": "12:June:12",
+    "sentAt": "12:34:12",
+    "triggeredAt": "12:34:12",
     "cooldown": 1440
   },
   {
@@ -105776,8 +105776,8 @@ export const alertHistory = [
     "channel": "EMAIL",
     "status": "sent",
     "deliveryStatus": "sent",
-    "sentAt": "12:June:12",
-    "triggeredAt": "12:June:12",
+    "sentAt": "12:34:12",
+    "triggeredAt": "12:34:12",
     "cooldown": 1440
   },
   {
@@ -105790,8 +105790,8 @@ export const alertHistory = [
     "channel": "EMAIL",
     "status": "sent",
     "deliveryStatus": "sent",
-    "sentAt": "12:June:12",
-    "triggeredAt": "12:June:12",
+    "sentAt": "12:34:12",
+    "triggeredAt": "12:34:12",
     "cooldown": 1440
   },
   {
@@ -105804,8 +105804,8 @@ export const alertHistory = [
     "channel": "EMAIL",
     "status": "sent",
     "deliveryStatus": "sent",
-    "sentAt": "12:June:12",
-    "triggeredAt": "12:June:12",
+    "sentAt": "12:34:12",
+    "triggeredAt": "12:34:12",
     "cooldown": 1440
   },
   {
@@ -105818,8 +105818,8 @@ export const alertHistory = [
     "channel": "EMAIL",
     "status": "sent",
     "deliveryStatus": "sent",
-    "sentAt": "12:June:12",
-    "triggeredAt": "12:June:12",
+    "sentAt": "12:34:12",
+    "triggeredAt": "12:34:12",
     "cooldown": 1440
   },
   {
@@ -105832,8 +105832,8 @@ export const alertHistory = [
     "channel": "EMAIL",
     "status": "sent",
     "deliveryStatus": "sent",
-    "sentAt": "12:June:12",
-    "triggeredAt": "12:June:12",
+    "sentAt": "12:34:12",
+    "triggeredAt": "12:34:12",
     "cooldown": 1440
   },
   {
@@ -105846,8 +105846,8 @@ export const alertHistory = [
     "channel": "EMAIL",
     "status": "sent",
     "deliveryStatus": "sent",
-    "sentAt": "12:June:11",
-    "triggeredAt": "12:June:11",
+    "sentAt": "12:34:11",
+    "triggeredAt": "12:34:11",
     "cooldown": 1440
   },
   {
@@ -105860,8 +105860,8 @@ export const alertHistory = [
     "channel": "EMAIL",
     "status": "sent",
     "deliveryStatus": "sent",
-    "sentAt": "12:June:11",
-    "triggeredAt": "12:June:11",
+    "sentAt": "12:34:11",
+    "triggeredAt": "12:34:11",
     "cooldown": 1440
   },
   {
@@ -105874,8 +105874,8 @@ export const alertHistory = [
     "channel": "EMAIL",
     "status": "sent",
     "deliveryStatus": "sent",
-    "sentAt": "12:June:11",
-    "triggeredAt": "12:June:11",
+    "sentAt": "12:34:11",
+    "triggeredAt": "12:34:11",
     "cooldown": 1440
   },
   {
@@ -105888,8 +105888,8 @@ export const alertHistory = [
     "channel": "EMAIL",
     "status": "sent",
     "deliveryStatus": "sent",
-    "sentAt": "12:June:11",
-    "triggeredAt": "12:June:11",
+    "sentAt": "12:34:11",
+    "triggeredAt": "12:34:11",
     "cooldown": 1440
   },
   {
@@ -105902,8 +105902,8 @@ export const alertHistory = [
     "channel": "EMAIL",
     "status": "sent",
     "deliveryStatus": "sent",
-    "sentAt": "12:June:11",
-    "triggeredAt": "12:June:11",
+    "sentAt": "12:34:11",
+    "triggeredAt": "12:34:11",
     "cooldown": 1440
   },
   {
@@ -105916,8 +105916,8 @@ export const alertHistory = [
     "channel": "EMAIL",
     "status": "sent",
     "deliveryStatus": "sent",
-    "sentAt": "12:June:11",
-    "triggeredAt": "12:June:11",
+    "sentAt": "12:34:11",
+    "triggeredAt": "12:34:11",
     "cooldown": 1440
   },
   {
@@ -105930,8 +105930,8 @@ export const alertHistory = [
     "channel": "EMAIL",
     "status": "sent",
     "deliveryStatus": "sent",
-    "sentAt": "12:June:11",
-    "triggeredAt": "12:June:11",
+    "sentAt": "12:34:11",
+    "triggeredAt": "12:34:11",
     "cooldown": 1440
   },
   {
@@ -105944,8 +105944,8 @@ export const alertHistory = [
     "channel": "EMAIL",
     "status": "sent",
     "deliveryStatus": "sent",
-    "sentAt": "12:June:11",
-    "triggeredAt": "12:June:11",
+    "sentAt": "12:34:11",
+    "triggeredAt": "12:34:11",
     "cooldown": 1440
   },
   {
@@ -105958,8 +105958,8 @@ export const alertHistory = [
     "channel": "EMAIL",
     "status": "sent",
     "deliveryStatus": "sent",
-    "sentAt": "12:June:10",
-    "triggeredAt": "12:June:10",
+    "sentAt": "12:34:10",
+    "triggeredAt": "12:34:10",
     "cooldown": 1440
   },
   {
@@ -105972,8 +105972,8 @@ export const alertHistory = [
     "channel": "EMAIL",
     "status": "sent",
     "deliveryStatus": "sent",
-    "sentAt": "12:June:10",
-    "triggeredAt": "12:June:10",
+    "sentAt": "12:34:10",
+    "triggeredAt": "12:34:10",
     "cooldown": 1440
   },
   {
@@ -105986,8 +105986,8 @@ export const alertHistory = [
     "channel": "EMAIL",
     "status": "sent",
     "deliveryStatus": "sent",
-    "sentAt": "12:June:10",
-    "triggeredAt": "12:June:10",
+    "sentAt": "12:34:10",
+    "triggeredAt": "12:34:10",
     "cooldown": 1440
   },
   {
@@ -106000,8 +106000,8 @@ export const alertHistory = [
     "channel": "EMAIL",
     "status": "sent",
     "deliveryStatus": "sent",
-    "sentAt": "12:June:09",
-    "triggeredAt": "12:June:09",
+    "sentAt": "12:34:09",
+    "triggeredAt": "12:34:09",
     "cooldown": 1440
   },
   {
@@ -106014,8 +106014,8 @@ export const alertHistory = [
     "channel": "EMAIL",
     "status": "sent",
     "deliveryStatus": "sent",
-    "sentAt": "12:June:09",
-    "triggeredAt": "12:June:09",
+    "sentAt": "12:34:09",
+    "triggeredAt": "12:34:09",
     "cooldown": 1440
   },
   {
@@ -106028,8 +106028,8 @@ export const alertHistory = [
     "channel": "EMAIL",
     "status": "sent",
     "deliveryStatus": "sent",
-    "sentAt": "12:June:09",
-    "triggeredAt": "12:June:09",
+    "sentAt": "12:34:09",
+    "triggeredAt": "12:34:09",
     "cooldown": 1440
   },
   {
@@ -106042,8 +106042,8 @@ export const alertHistory = [
     "channel": "EMAIL",
     "status": "sent",
     "deliveryStatus": "sent",
-    "sentAt": "12:June:09",
-    "triggeredAt": "12:June:09",
+    "sentAt": "12:34:09",
+    "triggeredAt": "12:34:09",
     "cooldown": 1440
   },
   {
@@ -106056,8 +106056,8 @@ export const alertHistory = [
     "channel": "EMAIL",
     "status": "sent",
     "deliveryStatus": "sent",
-    "sentAt": "12:June:09",
-    "triggeredAt": "12:June:09",
+    "sentAt": "12:34:09",
+    "triggeredAt": "12:34:09",
     "cooldown": 1440
   },
   {
@@ -106070,8 +106070,8 @@ export const alertHistory = [
     "channel": "EMAIL",
     "status": "sent",
     "deliveryStatus": "sent",
-    "sentAt": "12:June:08",
-    "triggeredAt": "12:June:08",
+    "sentAt": "12:34:08",
+    "triggeredAt": "12:34:08",
     "cooldown": 1440
   },
   {
@@ -106084,8 +106084,8 @@ export const alertHistory = [
     "channel": "EMAIL",
     "status": "sent",
     "deliveryStatus": "sent",
-    "sentAt": "12:June:08",
-    "triggeredAt": "12:June:08",
+    "sentAt": "12:34:08",
+    "triggeredAt": "12:34:08",
     "cooldown": 1440
   },
   {
@@ -106098,8 +106098,8 @@ export const alertHistory = [
     "channel": "EMAIL",
     "status": "sent",
     "deliveryStatus": "sent",
-    "sentAt": "12:June:08",
-    "triggeredAt": "12:June:08",
+    "sentAt": "12:34:08",
+    "triggeredAt": "12:34:08",
     "cooldown": 1440
   },
   {
@@ -106112,8 +106112,8 @@ export const alertHistory = [
     "channel": "EMAIL",
     "status": "sent",
     "deliveryStatus": "sent",
-    "sentAt": "12:June:08",
-    "triggeredAt": "12:June:08",
+    "sentAt": "12:34:08",
+    "triggeredAt": "12:34:08",
     "cooldown": 1440
   },
   {
@@ -106126,8 +106126,8 @@ export const alertHistory = [
     "channel": "EMAIL",
     "status": "sent",
     "deliveryStatus": "sent",
-    "sentAt": "12:June:08",
-    "triggeredAt": "12:June:08",
+    "sentAt": "12:34:08",
+    "triggeredAt": "12:34:08",
     "cooldown": 1440
   },
   {
@@ -106140,8 +106140,8 @@ export const alertHistory = [
     "channel": "EMAIL",
     "status": "sent",
     "deliveryStatus": "sent",
-    "sentAt": "12:June:08",
-    "triggeredAt": "12:June:08",
+    "sentAt": "12:34:08",
+    "triggeredAt": "12:34:08",
     "cooldown": 1440
   },
   {
@@ -106154,8 +106154,8 @@ export const alertHistory = [
     "channel": "EMAIL",
     "status": "sent",
     "deliveryStatus": "sent",
-    "sentAt": "12:June:08",
-    "triggeredAt": "12:June:08",
+    "sentAt": "12:34:08",
+    "triggeredAt": "12:34:08",
     "cooldown": 1440
   },
   {
@@ -106168,8 +106168,8 @@ export const alertHistory = [
     "channel": "EMAIL",
     "status": "sent",
     "deliveryStatus": "sent",
-    "sentAt": "12:June:08",
-    "triggeredAt": "12:June:08",
+    "sentAt": "12:34:08",
+    "triggeredAt": "12:34:08",
     "cooldown": 1440
   },
   {
@@ -106182,8 +106182,8 @@ export const alertHistory = [
     "channel": "EMAIL",
     "status": "sent",
     "deliveryStatus": "sent",
-    "sentAt": "12:June:08",
-    "triggeredAt": "12:June:08",
+    "sentAt": "12:34:08",
+    "triggeredAt": "12:34:08",
     "cooldown": 1440
   },
   {
@@ -106196,8 +106196,8 @@ export const alertHistory = [
     "channel": "EMAIL",
     "status": "sent",
     "deliveryStatus": "sent",
-    "sentAt": "12:June:08",
-    "triggeredAt": "12:June:08",
+    "sentAt": "12:34:08",
+    "triggeredAt": "12:34:08",
     "cooldown": 1440
   },
   {
@@ -106210,8 +106210,8 @@ export const alertHistory = [
     "channel": "EMAIL",
     "status": "sent",
     "deliveryStatus": "sent",
-    "sentAt": "12:June:08",
-    "triggeredAt": "12:June:08",
+    "sentAt": "12:34:08",
+    "triggeredAt": "12:34:08",
     "cooldown": 1440
   },
   {
@@ -106224,8 +106224,8 @@ export const alertHistory = [
     "channel": "EMAIL",
     "status": "sent",
     "deliveryStatus": "sent",
-    "sentAt": "12:June:08",
-    "triggeredAt": "12:June:08",
+    "sentAt": "12:34:08",
+    "triggeredAt": "12:34:08",
     "cooldown": 1440
   },
   {
@@ -106238,8 +106238,8 @@ export const alertHistory = [
     "channel": "EMAIL",
     "status": "sent",
     "deliveryStatus": "sent",
-    "sentAt": "12:June:08",
-    "triggeredAt": "12:June:08",
+    "sentAt": "12:34:08",
+    "triggeredAt": "12:34:08",
     "cooldown": 1440
   },
   {
@@ -106252,8 +106252,8 @@ export const alertHistory = [
     "channel": "EMAIL",
     "status": "sent",
     "deliveryStatus": "sent",
-    "sentAt": "12:June:08",
-    "triggeredAt": "12:June:08",
+    "sentAt": "12:34:08",
+    "triggeredAt": "12:34:08",
     "cooldown": 1440
   },
   {
@@ -106266,8 +106266,8 @@ export const alertHistory = [
     "channel": "EMAIL",
     "status": "sent",
     "deliveryStatus": "sent",
-    "sentAt": "12:June:07",
-    "triggeredAt": "12:June:07",
+    "sentAt": "12:34:07",
+    "triggeredAt": "12:34:07",
     "cooldown": 1440
   },
   {
@@ -106280,8 +106280,8 @@ export const alertHistory = [
     "channel": "EMAIL",
     "status": "sent",
     "deliveryStatus": "sent",
-    "sentAt": "12:June:07",
-    "triggeredAt": "12:June:07",
+    "sentAt": "12:34:07",
+    "triggeredAt": "12:34:07",
     "cooldown": 1440
   },
   {
@@ -106294,8 +106294,8 @@ export const alertHistory = [
     "channel": "EMAIL",
     "status": "sent",
     "deliveryStatus": "sent",
-    "sentAt": "12:June:07",
-    "triggeredAt": "12:June:07",
+    "sentAt": "12:34:07",
+    "triggeredAt": "12:34:07",
     "cooldown": 1440
   },
   {
@@ -106308,8 +106308,8 @@ export const alertHistory = [
     "channel": "EMAIL",
     "status": "sent",
     "deliveryStatus": "sent",
-    "sentAt": "12:June:07",
-    "triggeredAt": "12:June:07",
+    "sentAt": "12:34:07",
+    "triggeredAt": "12:34:07",
     "cooldown": 1440
   },
   {
@@ -106322,8 +106322,8 @@ export const alertHistory = [
     "channel": "EMAIL",
     "status": "sent",
     "deliveryStatus": "sent",
-    "sentAt": "12:June:07",
-    "triggeredAt": "12:June:07",
+    "sentAt": "12:34:07",
+    "triggeredAt": "12:34:07",
     "cooldown": 1440
   },
   {
@@ -106336,8 +106336,8 @@ export const alertHistory = [
     "channel": "EMAIL",
     "status": "sent",
     "deliveryStatus": "sent",
-    "sentAt": "12:June:07",
-    "triggeredAt": "12:June:07",
+    "sentAt": "12:34:07",
+    "triggeredAt": "12:34:07",
     "cooldown": 1440
   },
   {
@@ -106350,8 +106350,8 @@ export const alertHistory = [
     "channel": "EMAIL",
     "status": "sent",
     "deliveryStatus": "sent",
-    "sentAt": "12:June:07",
-    "triggeredAt": "12:June:07",
+    "sentAt": "12:34:07",
+    "triggeredAt": "12:34:07",
     "cooldown": 1440
   },
   {
@@ -106364,8 +106364,8 @@ export const alertHistory = [
     "channel": "EMAIL",
     "status": "sent",
     "deliveryStatus": "sent",
-    "sentAt": "12:June:07",
-    "triggeredAt": "12:June:07",
+    "sentAt": "12:34:07",
+    "triggeredAt": "12:34:07",
     "cooldown": 1440
   },
   {
@@ -106378,8 +106378,8 @@ export const alertHistory = [
     "channel": "EMAIL",
     "status": "sent",
     "deliveryStatus": "sent",
-    "sentAt": "12:June:07",
-    "triggeredAt": "12:June:07",
+    "sentAt": "12:34:07",
+    "triggeredAt": "12:34:07",
     "cooldown": 1440
   },
   {
@@ -106392,8 +106392,8 @@ export const alertHistory = [
     "channel": "EMAIL",
     "status": "sent",
     "deliveryStatus": "sent",
-    "sentAt": "12:June:07",
-    "triggeredAt": "12:June:07",
+    "sentAt": "12:34:07",
+    "triggeredAt": "12:34:07",
     "cooldown": 1440
   },
   {
@@ -106406,8 +106406,8 @@ export const alertHistory = [
     "channel": "EMAIL",
     "status": "sent",
     "deliveryStatus": "sent",
-    "sentAt": "12:June:07",
-    "triggeredAt": "12:June:07",
+    "sentAt": "12:34:07",
+    "triggeredAt": "12:34:07",
     "cooldown": 1440
   },
   {
@@ -106420,8 +106420,8 @@ export const alertHistory = [
     "channel": "EMAIL",
     "status": "sent",
     "deliveryStatus": "sent",
-    "sentAt": "12:June:07",
-    "triggeredAt": "12:June:07",
+    "sentAt": "12:34:07",
+    "triggeredAt": "12:34:07",
     "cooldown": 1440
   },
   {
@@ -106434,8 +106434,8 @@ export const alertHistory = [
     "channel": "EMAIL",
     "status": "sent",
     "deliveryStatus": "sent",
-    "sentAt": "12:June:07",
-    "triggeredAt": "12:June:07",
+    "sentAt": "12:34:07",
+    "triggeredAt": "12:34:07",
     "cooldown": 1440
   },
   {
@@ -106448,8 +106448,8 @@ export const alertHistory = [
     "channel": "EMAIL",
     "status": "sent",
     "deliveryStatus": "sent",
-    "sentAt": "12:June:07",
-    "triggeredAt": "12:June:07",
+    "sentAt": "12:34:07",
+    "triggeredAt": "12:34:07",
     "cooldown": 1440
   },
   {
@@ -106462,8 +106462,8 @@ export const alertHistory = [
     "channel": "EMAIL",
     "status": "sent",
     "deliveryStatus": "sent",
-    "sentAt": "12:June:06",
-    "triggeredAt": "12:June:06",
+    "sentAt": "12:34:06",
+    "triggeredAt": "12:34:06",
     "cooldown": 1440
   },
   {
@@ -106476,8 +106476,8 @@ export const alertHistory = [
     "channel": "EMAIL",
     "status": "sent",
     "deliveryStatus": "sent",
-    "sentAt": "12:June:06",
-    "triggeredAt": "12:June:06",
+    "sentAt": "12:34:06",
+    "triggeredAt": "12:34:06",
     "cooldown": 1440
   },
   {
@@ -106490,8 +106490,8 @@ export const alertHistory = [
     "channel": "EMAIL",
     "status": "sent",
     "deliveryStatus": "sent",
-    "sentAt": "12:June:06",
-    "triggeredAt": "12:June:06",
+    "sentAt": "12:34:06",
+    "triggeredAt": "12:34:06",
     "cooldown": 1440
   },
   {
@@ -106504,8 +106504,8 @@ export const alertHistory = [
     "channel": "EMAIL",
     "status": "sent",
     "deliveryStatus": "sent",
-    "sentAt": "12:June:06",
-    "triggeredAt": "12:June:06",
+    "sentAt": "12:34:06",
+    "triggeredAt": "12:34:06",
     "cooldown": 1440
   },
   {
@@ -106518,8 +106518,8 @@ export const alertHistory = [
     "channel": "EMAIL",
     "status": "sent",
     "deliveryStatus": "sent",
-    "sentAt": "12:June:06",
-    "triggeredAt": "12:June:06",
+    "sentAt": "12:34:06",
+    "triggeredAt": "12:34:06",
     "cooldown": 1440
   },
   {
@@ -106532,8 +106532,8 @@ export const alertHistory = [
     "channel": "EMAIL",
     "status": "sent",
     "deliveryStatus": "sent",
-    "sentAt": "12:June:06",
-    "triggeredAt": "12:June:06",
+    "sentAt": "12:34:06",
+    "triggeredAt": "12:34:06",
     "cooldown": 1440
   },
   {
@@ -106546,8 +106546,8 @@ export const alertHistory = [
     "channel": "EMAIL",
     "status": "sent",
     "deliveryStatus": "sent",
-    "sentAt": "12:June:06",
-    "triggeredAt": "12:June:06",
+    "sentAt": "12:34:06",
+    "triggeredAt": "12:34:06",
     "cooldown": 1440
   },
   {
@@ -106560,8 +106560,8 @@ export const alertHistory = [
     "channel": "EMAIL",
     "status": "sent",
     "deliveryStatus": "sent",
-    "sentAt": "12:June:06",
-    "triggeredAt": "12:June:06",
+    "sentAt": "12:34:06",
+    "triggeredAt": "12:34:06",
     "cooldown": 1440
   },
   {
@@ -106574,8 +106574,8 @@ export const alertHistory = [
     "channel": "EMAIL",
     "status": "sent",
     "deliveryStatus": "sent",
-    "sentAt": "12:June:06",
-    "triggeredAt": "12:June:06",
+    "sentAt": "12:34:06",
+    "triggeredAt": "12:34:06",
     "cooldown": 1440
   },
   {
@@ -106588,8 +106588,8 @@ export const alertHistory = [
     "channel": "EMAIL",
     "status": "sent",
     "deliveryStatus": "sent",
-    "sentAt": "12:June:06",
-    "triggeredAt": "12:June:06",
+    "sentAt": "12:34:06",
+    "triggeredAt": "12:34:06",
     "cooldown": 1440
   },
   {
@@ -106602,8 +106602,8 @@ export const alertHistory = [
     "channel": "EMAIL",
     "status": "sent",
     "deliveryStatus": "sent",
-    "sentAt": "12:June:06",
-    "triggeredAt": "12:June:06",
+    "sentAt": "12:34:06",
+    "triggeredAt": "12:34:06",
     "cooldown": 1440
   },
   {
@@ -106616,8 +106616,8 @@ export const alertHistory = [
     "channel": "EMAIL",
     "status": "sent",
     "deliveryStatus": "sent",
-    "sentAt": "12:June:06",
-    "triggeredAt": "12:June:06",
+    "sentAt": "12:34:06",
+    "triggeredAt": "12:34:06",
     "cooldown": 1440
   },
   {
@@ -106630,8 +106630,8 @@ export const alertHistory = [
     "channel": "EMAIL",
     "status": "sent",
     "deliveryStatus": "sent",
-    "sentAt": "12:June:06",
-    "triggeredAt": "12:June:06",
+    "sentAt": "12:34:06",
+    "triggeredAt": "12:34:06",
     "cooldown": 1440
   },
   {
@@ -106644,8 +106644,8 @@ export const alertHistory = [
     "channel": "EMAIL",
     "status": "sent",
     "deliveryStatus": "sent",
-    "sentAt": "12:June:06",
-    "triggeredAt": "12:June:06",
+    "sentAt": "12:34:06",
+    "triggeredAt": "12:34:06",
     "cooldown": 1440
   },
   {
@@ -106658,8 +106658,8 @@ export const alertHistory = [
     "channel": "EMAIL",
     "status": "sent",
     "deliveryStatus": "sent",
-    "sentAt": "12:June:05",
-    "triggeredAt": "12:June:05",
+    "sentAt": "12:34:05",
+    "triggeredAt": "12:34:05",
     "cooldown": 1440
   },
   {
@@ -106672,8 +106672,8 @@ export const alertHistory = [
     "channel": "EMAIL",
     "status": "sent",
     "deliveryStatus": "sent",
-    "sentAt": "12:June:05",
-    "triggeredAt": "12:June:05",
+    "sentAt": "12:34:05",
+    "triggeredAt": "12:34:05",
     "cooldown": 1440
   },
   {
@@ -106686,8 +106686,8 @@ export const alertHistory = [
     "channel": "EMAIL",
     "status": "sent",
     "deliveryStatus": "sent",
-    "sentAt": "12:June:05",
-    "triggeredAt": "12:June:05",
+    "sentAt": "12:34:05",
+    "triggeredAt": "12:34:05",
     "cooldown": 1440
   },
   {
@@ -106700,8 +106700,8 @@ export const alertHistory = [
     "channel": "EMAIL",
     "status": "sent",
     "deliveryStatus": "sent",
-    "sentAt": "12:June:05",
-    "triggeredAt": "12:June:05",
+    "sentAt": "12:34:05",
+    "triggeredAt": "12:34:05",
     "cooldown": 1440
   },
   {
@@ -106714,8 +106714,8 @@ export const alertHistory = [
     "channel": "EMAIL",
     "status": "sent",
     "deliveryStatus": "sent",
-    "sentAt": "12:June:05",
-    "triggeredAt": "12:June:05",
+    "sentAt": "12:34:05",
+    "triggeredAt": "12:34:05",
     "cooldown": 1440
   },
   {
@@ -106728,8 +106728,8 @@ export const alertHistory = [
     "channel": "EMAIL",
     "status": "sent",
     "deliveryStatus": "sent",
-    "sentAt": "12:June:05",
-    "triggeredAt": "12:June:05",
+    "sentAt": "12:34:05",
+    "triggeredAt": "12:34:05",
     "cooldown": 1440
   },
   {
@@ -106742,8 +106742,8 @@ export const alertHistory = [
     "channel": "EMAIL",
     "status": "sent",
     "deliveryStatus": "sent",
-    "sentAt": "12:June:05",
-    "triggeredAt": "12:June:05",
+    "sentAt": "12:34:05",
+    "triggeredAt": "12:34:05",
     "cooldown": 1440
   },
   {
@@ -106756,8 +106756,8 @@ export const alertHistory = [
     "channel": "EMAIL",
     "status": "sent",
     "deliveryStatus": "sent",
-    "sentAt": "12:June:05",
-    "triggeredAt": "12:June:05",
+    "sentAt": "12:34:05",
+    "triggeredAt": "12:34:05",
     "cooldown": 1440
   },
   {
@@ -106770,8 +106770,8 @@ export const alertHistory = [
     "channel": "EMAIL",
     "status": "sent",
     "deliveryStatus": "sent",
-    "sentAt": "12:June:05",
-    "triggeredAt": "12:June:05",
+    "sentAt": "12:34:05",
+    "triggeredAt": "12:34:05",
     "cooldown": 1440
   },
   {
@@ -106784,8 +106784,8 @@ export const alertHistory = [
     "channel": "EMAIL",
     "status": "sent",
     "deliveryStatus": "sent",
-    "sentAt": "12:June:05",
-    "triggeredAt": "12:June:05",
+    "sentAt": "12:34:05",
+    "triggeredAt": "12:34:05",
     "cooldown": 1440
   },
   {
@@ -106798,8 +106798,8 @@ export const alertHistory = [
     "channel": "EMAIL",
     "status": "sent",
     "deliveryStatus": "sent",
-    "sentAt": "12:June:05",
-    "triggeredAt": "12:June:05",
+    "sentAt": "12:34:05",
+    "triggeredAt": "12:34:05",
     "cooldown": 1440
   },
   {
@@ -106812,8 +106812,8 @@ export const alertHistory = [
     "channel": "EMAIL",
     "status": "sent",
     "deliveryStatus": "sent",
-    "sentAt": "12:June:05",
-    "triggeredAt": "12:June:05",
+    "sentAt": "12:34:05",
+    "triggeredAt": "12:34:05",
     "cooldown": 1440
   },
   {
@@ -106826,8 +106826,8 @@ export const alertHistory = [
     "channel": "EMAIL",
     "status": "sent",
     "deliveryStatus": "sent",
-    "sentAt": "12:June:05",
-    "triggeredAt": "12:June:05",
+    "sentAt": "12:34:05",
+    "triggeredAt": "12:34:05",
     "cooldown": 1440
   },
   {
@@ -106840,8 +106840,8 @@ export const alertHistory = [
     "channel": "EMAIL",
     "status": "sent",
     "deliveryStatus": "sent",
-    "sentAt": "12:June:05",
-    "triggeredAt": "12:June:05",
+    "sentAt": "12:34:05",
+    "triggeredAt": "12:34:05",
     "cooldown": 1440
   },
   {
@@ -106854,8 +106854,8 @@ export const alertHistory = [
     "channel": "EMAIL",
     "status": "sent",
     "deliveryStatus": "sent",
-    "sentAt": "12:June:05",
-    "triggeredAt": "12:June:05",
+    "sentAt": "12:34:05",
+    "triggeredAt": "12:34:05",
     "cooldown": 1440
   },
   {
@@ -106868,8 +106868,8 @@ export const alertHistory = [
     "channel": "EMAIL",
     "status": "sent",
     "deliveryStatus": "sent",
-    "sentAt": "12:June:04",
-    "triggeredAt": "12:June:04",
+    "sentAt": "12:34:04",
+    "triggeredAt": "12:34:04",
     "cooldown": 1440
   },
   {
@@ -106882,8 +106882,8 @@ export const alertHistory = [
     "channel": "EMAIL",
     "status": "sent",
     "deliveryStatus": "sent",
-    "sentAt": "12:June:04",
-    "triggeredAt": "12:June:04",
+    "sentAt": "12:34:04",
+    "triggeredAt": "12:34:04",
     "cooldown": 1440
   },
   {
@@ -106896,8 +106896,8 @@ export const alertHistory = [
     "channel": "EMAIL",
     "status": "sent",
     "deliveryStatus": "sent",
-    "sentAt": "12:June:04",
-    "triggeredAt": "12:June:04",
+    "sentAt": "12:34:04",
+    "triggeredAt": "12:34:04",
     "cooldown": 1440
   },
   {
@@ -106910,8 +106910,8 @@ export const alertHistory = [
     "channel": "EMAIL",
     "status": "sent",
     "deliveryStatus": "sent",
-    "sentAt": "12:June:04",
-    "triggeredAt": "12:June:04",
+    "sentAt": "12:34:04",
+    "triggeredAt": "12:34:04",
     "cooldown": 1440
   },
   {
@@ -106924,8 +106924,8 @@ export const alertHistory = [
     "channel": "EMAIL",
     "status": "sent",
     "deliveryStatus": "sent",
-    "sentAt": "12:June:04",
-    "triggeredAt": "12:June:04",
+    "sentAt": "12:34:04",
+    "triggeredAt": "12:34:04",
     "cooldown": 1440
   },
   {
@@ -106938,8 +106938,8 @@ export const alertHistory = [
     "channel": "EMAIL",
     "status": "sent",
     "deliveryStatus": "sent",
-    "sentAt": "12:June:04",
-    "triggeredAt": "12:June:04",
+    "sentAt": "12:34:04",
+    "triggeredAt": "12:34:04",
     "cooldown": 1440
   },
   {
@@ -106952,8 +106952,8 @@ export const alertHistory = [
     "channel": "EMAIL",
     "status": "sent",
     "deliveryStatus": "sent",
-    "sentAt": "12:June:04",
-    "triggeredAt": "12:June:04",
+    "sentAt": "12:34:04",
+    "triggeredAt": "12:34:04",
     "cooldown": 1440
   },
   {
@@ -106966,8 +106966,8 @@ export const alertHistory = [
     "channel": "EMAIL",
     "status": "sent",
     "deliveryStatus": "sent",
-    "sentAt": "12:June:04",
-    "triggeredAt": "12:June:04",
+    "sentAt": "12:34:04",
+    "triggeredAt": "12:34:04",
     "cooldown": 1440
   }
 ];

@@ -1,22 +1,78 @@
 import { useState } from "react";
 import {
-  BarChart2, TrendingUp, ScanLine, Database, Activity,
+  BarChart2, TrendingUp, ScanLine, Database, Star,
   Newspaper, Bell, ChevronLeft, Menu, Clock, Wifi
 } from "lucide-react";
 
-type Page = "market" | "stock" | "scanner" | "pipeline" | "vwap" | "news" | "alerts";
+type Page = "market" | "watchlist" | "stock" | "screener" | "pipeline" | "news" | "alerts";
 
 interface NavItem { id: Page; label: string; labelShort: string; icon: React.ReactNode; }
 
+// Investor-facing pages: what someone tracking the market actually opens.
 const navItems: NavItem[] = [
   { id: "market", label: "Tổng quan thị trường", labelShort: "Thị trường", icon: <BarChart2 size={18} /> },
+  { id: "watchlist", label: "Bảng giá & Watchlist", labelShort: "Watchlist", icon: <Star size={18} /> },
   { id: "stock", label: "Chi tiết cổ phiếu", labelShort: "Cổ phiếu", icon: <TrendingUp size={18} /> },
-  { id: "scanner", label: "Tín hiệu kỹ thuật", labelShort: "Tín hiệu", icon: <ScanLine size={18} /> },
-  { id: "pipeline", label: "Giám sát pipeline", labelShort: "Pipeline", icon: <Database size={18} /> },
-  { id: "vwap", label: "Theo dõi VWAP", labelShort: "VWAP", icon: <Activity size={18} /> },
+  { id: "screener", label: "Bộ lọc cổ phiếu", labelShort: "Bộ lọc", icon: <ScanLine size={18} /> },
   { id: "news", label: "Tin tức & cảm xúc", labelShort: "Tin tức", icon: <Newspaper size={18} /> },
   { id: "alerts", label: "Lịch sử cảnh báo", labelShort: "Cảnh báo", icon: <Bell size={18} /> },
 ];
+
+// Operational pages: how the data behind the app is doing, not market data
+// itself -- kept visually separate so it doesn't compete with investor
+// workflows above it.
+const adminNavItems: NavItem[] = [
+  { id: "pipeline", label: "Giám sát pipeline", labelShort: "Pipeline", icon: <Database size={18} /> },
+];
+
+const INTER: React.CSSProperties = { fontFamily: "Inter, sans-serif" };
+
+function renderNavButton(
+  item: NavItem,
+  currentPage: Page,
+  collapsed: boolean,
+  onNavigate: (page: Page) => void
+) {
+  const active = currentPage === item.id;
+  return (
+    <button
+      key={item.id}
+      onClick={() => onNavigate(item.id)}
+      title={collapsed ? item.label : undefined}
+      style={{
+        display: "flex",
+        alignItems: "center",
+        gap: 16,
+        padding: collapsed ? "13px 0" : "13px 14px",
+        justifyContent: collapsed ? "center" : "flex-start",
+        borderRadius: 8,
+        border: "none",
+        cursor: "pointer",
+        background: active ? "rgba(245,158,11,0.12)" : "transparent",
+        color: active ? "#8b5cf6" : "#6b7fa3",
+        fontSize: 20,
+        fontWeight: active ? 600 : 400,
+        fontFamily: "Inter, sans-serif",
+        transition: "all 0.15s ease",
+        width: "100%",
+        textAlign: "left",
+        whiteSpace: "nowrap",
+      }}
+      onMouseEnter={(e) => {
+        if (!active) (e.currentTarget as HTMLButtonElement).style.background = "rgba(255,255,255,0.04)";
+      }}
+      onMouseLeave={(e) => {
+        if (!active) (e.currentTarget as HTMLButtonElement).style.background = "transparent";
+      }}
+    >
+      <span style={{ flexShrink: 0 }}>{item.icon}</span>
+      {!collapsed && <span>{item.label}</span>}
+      {active && !collapsed && (
+        <span style={{ marginLeft: "auto", width: 5, height: 5, borderRadius: "50%", background: "#8b5cf6", flexShrink: 0 }} />
+      )}
+    </button>
+  );
+}
 
 interface LayoutProps {
   currentPage: Page;
@@ -96,47 +152,15 @@ export function Layout({ currentPage, onNavigate, children }: LayoutProps) {
             padding: "28px 10px",
           }}
         >
-          {navItems.map((item) => {
-            const active = currentPage === item.id;
-            return (
-              <button
-                key={item.id}
-                onClick={() => onNavigate(item.id)}
-                title={collapsed ? item.label : undefined}
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 16,
-                  padding: collapsed ? "13px 0" : "13px 14px",
-                  justifyContent: collapsed ? "center" : "flex-start",
-                  borderRadius: 8,
-                  border: "none",
-                  cursor: "pointer",
-                  background: active ? "rgba(245,158,11,0.12)" : "transparent",
-                  color: active ? "#8b5cf6" : "#6b7fa3",
-                  fontSize: 20,
-                  fontWeight: active ? 600 : 400,
-                  fontFamily: "Inter, sans-serif",
-                  transition: "all 0.15s ease",
-                  width: "100%",
-                  textAlign: "left",
-                  whiteSpace: "nowrap",
-                }}
-                onMouseEnter={(e) => {
-                  if (!active) (e.currentTarget as HTMLButtonElement).style.background = "rgba(255,255,255,0.04)";
-                }}
-                onMouseLeave={(e) => {
-                  if (!active) (e.currentTarget as HTMLButtonElement).style.background = "transparent";
-                }}
-              >
-                <span style={{ flexShrink: 0 }}>{item.icon}</span>
-                {!collapsed && <span>{item.label}</span>}
-                {active && !collapsed && (
-                  <span style={{ marginLeft: "auto", width: 5, height: 5, borderRadius: "50%", background: "#8b5cf6", flexShrink: 0 }} />
-                )}
-              </button>
-            );
-          })}
+          {navItems.map((item) => renderNavButton(item, currentPage, collapsed, onNavigate))}
+
+          {!collapsed && (
+            <div style={{ ...INTER, color: "#3f4a63", fontSize: 11, textTransform: "uppercase", letterSpacing: "0.06em", padding: "16px 14px 4px" }}>
+              Quản trị dữ liệu
+            </div>
+          )}
+          {collapsed && <div style={{ borderTop: "1px solid rgba(255,255,255,0.07)", margin: "8px 6px" }} />}
+          {adminNavItems.map((item) => renderNavButton(item, currentPage, collapsed, onNavigate))}
         </nav>
 
         {/* Collapse button */}

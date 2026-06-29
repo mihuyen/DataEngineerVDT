@@ -9,7 +9,7 @@ import pandas as pd
 sys.path.append(str(Path(__file__).resolve().parents[1]))
 
 from scripts.run_realtime_vwap_kafka_consumer import run_cycle
-from src.streaming.kafka_producer import trade_tick_to_kafka_message
+from src.streaming.kafka_producer import ohlcv_candle_to_kafka_message, trade_tick_to_kafka_message
 
 
 def test_trade_tick_to_kafka_message_formats_fields() -> None:
@@ -19,6 +19,31 @@ def test_trade_tick_to_kafka_message_formats_fields() -> None:
         "trade_ts": "2026-06-28 09:15:30",
         "price": 50000.5,
         "volume": 100,
+        "data_source": "DNSE",
+    }
+
+
+def test_ohlcv_candle_to_kafka_message_formats_fields() -> None:
+    message = ohlcv_candle_to_kafka_message(
+        "fpt",
+        datetime(2026, 6, 29, 9, 15),
+        70.1,
+        70.4,
+        70.0,
+        70.3,
+        12500,
+    )
+
+    assert message == {
+        "ticker": "FPT",
+        "minute_ts": "2026-06-29 09:15:00",
+        "resolution": "1m",
+        "open": 70.1,
+        "high": 70.4,
+        "low": 70.0,
+        "close": 70.3,
+        "volume": 12500,
+        "is_final": 1,
         "data_source": "DNSE",
     }
 

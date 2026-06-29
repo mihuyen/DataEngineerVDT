@@ -10,6 +10,7 @@ from src.streaming.dnse_websocket import (
     build_subscribe_message,
     create_auth_message,
     parse_dnse_time,
+    parse_ohlc_message,
     parse_trade_message,
 )
 from scripts.run_dnse_realtime_ingest import (
@@ -134,3 +135,28 @@ def test_parse_trade_message_returns_vwap_ready_tick() -> None:
     assert tick.volume == 40
     assert tick.to_dict()["data_source"] == "DNSE"
     assert tick.to_dict()["raw_json"]
+
+
+def test_parse_ohlc_message_returns_finalized_minute_candle() -> None:
+    candle = parse_ohlc_message(
+        {
+            "data": {
+                "symbol": "fpt",
+                "resolution": "1",
+                "open": 70.1,
+                "high": 70.4,
+                "low": 70.0,
+                "close": 70.3,
+                "volume": 12500,
+                "time": 1782436500,
+                "type": "bc",
+            }
+        }
+    )
+
+    assert candle is not None
+    assert candle.ticker == "FPT"
+    assert candle.resolution == "1m"
+    assert candle.close == 70.3
+    assert candle.to_dict()["is_final"] == 1
+    assert candle.to_dict()["data_source"] == "DNSE"

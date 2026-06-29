@@ -43,6 +43,21 @@ function KPICard({ label, value, sub, subUp }: { label: string; value: string; s
 
 type KpiItem = { label: string; value: string; sub?: string; subUp?: boolean | null };
 
+// Not every ticker has a live quote today (DNSE coverage and liquidity vary),
+// so each row needs its own indicator -- a page-level "LIVE" badge alone
+// would wrongly imply every row is live when some are still the EOD price.
+function LiveDot({ isLive }: { isLive?: boolean }) {
+  return (
+    <span
+      title={isLive ? "Giá live trong phiên" : "Giá đóng cửa phiên trước (chưa có giá live)"}
+      style={{
+        display: "inline-block", width: 6, height: 6, borderRadius: "50%", marginRight: 6,
+        background: isLive ? "#00d97e" : "rgba(148,163,184,0.4)",
+      }}
+    />
+  );
+}
+
 const formatSignedPct = (value: number) => `${value > 0 ? "+" : ""}${value.toFixed(2)}%`;
 
 const CustomTooltip = ({ active, payload, label }: any) => {
@@ -63,6 +78,13 @@ export function MarketOverview({ onNavigate }: MarketOverviewProps) {
   const [activeTab, setActiveTab] = useState<"gainers" | "losers" | "liquidity" | "sector">("gainers");
   const [exchange] = useState("HOSE");
   const [apiStatus, setApiStatus] = useState("Snapshot local");
+  const [sessionMeta, setSessionMeta] = useState({
+    marketStatus: "closed",
+    statusLabel: "Dữ liệu phiên gần nhất",
+    isRealtime: false,
+    liveTickerCount: 0,
+    liveAsOf: null as string | null,
+  });
   const [marketData, setMarketData] = useState({
     vnIndexHistory,
     topGainers,
@@ -88,7 +110,14 @@ export function MarketOverview({ onNavigate }: MarketOverviewProps) {
         .then((payload) => {
           if (cancelled) return;
           setMarketData((current) => ({ ...current, ...payload }));
-          setApiStatus("ClickHouse live query");
+          setSessionMeta({
+            marketStatus: payload.marketStatus,
+            statusLabel: payload.statusLabel,
+            isRealtime: payload.isRealtime,
+            liveTickerCount: payload.liveTickerCount ?? 0,
+            liveAsOf: payload.liveAsOf ?? null,
+          });
+          setApiStatus("ClickHouse · EOD");
         })
         .catch(() => {
           if (!cancelled) setApiStatus("Snapshot local");
@@ -153,7 +182,7 @@ export function MarketOverview({ onNavigate }: MarketOverviewProps) {
       { label: "Giá trị GD", value: selectedStats.totalValue, sub: contextLabel, subUp: null },
       { label: "Khối lượng GD", value: selectedStats.totalVolume, sub: "cp toàn thị trường", subUp: null },
       { label: "Độ rộng TT", value: selectedStats.breadth, sub: selectedStats.breadthSub, subUp: null },
-      { label: "Số mã có giá", value: `${liveStockCountsByExchange.ALL ?? 0}`, sub: "fact_daily_price mới nhất", subUp: null },
+      { label: "Số mã có giá", value: `${liveStockCountsByExchange.ALL ?? 0}`, sub: "phiên gần nhất", subUp: null },
       { label: "Top ngành", value: topSector?.sector ?? "N/A", sub: topSector ? formatSignedPct(topSector.pct) : undefined, subUp: topSector ? topSector.pct >= 0 : null },
       { label: "Sàn đang xem", value: "HOSE", sub: "Chỉ dữ liệu HOSE", subUp: null },
     ]
@@ -162,7 +191,7 @@ export function MarketOverview({ onNavigate }: MarketOverviewProps) {
       { label: "Giá trị GD", value: selectedStats.totalValue, sub: contextLabel, subUp: null },
       { label: "Khối lượng GD", value: selectedStats.totalVolume, sub: "cp toàn thị trường", subUp: null },
       { label: "Độ rộng TT", value: selectedStats.breadth, sub: selectedStats.breadthSub, subUp: null },
-      { label: "Số mã có giá", value: `${liveStockCountsByExchange[exchange] ?? 0}`, sub: "fact_daily_price mới nhất", subUp: null },
+      { label: "Số mã có giá", value: `${liveStockCountsByExchange[exchange] ?? 0}`, sub: "phiên gần nhất", subUp: null },
       { label: "Top ngành", value: topSector?.sector ?? "N/A", sub: topSector ? formatSignedPct(topSector.pct) : undefined, subUp: topSector ? topSector.pct >= 0 : null },
     ].slice(0, 6);
 
@@ -171,8 +200,22 @@ export function MarketOverview({ onNavigate }: MarketOverviewProps) {
       {/* Header */}
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
         <div>
-          <h1 style={{ color: "#e2e8f0", margin: 0, fontSize: 18, fontWeight: 700, fontFamily: "Inter, sans-serif" }}>Tổng quan thị trường</h1>
-          <p style={{ color: "#6b7fa3", margin: 0, fontSize: 12, fontFamily: "Inter, sans-serif" }}>{apiStatus} · Phiên {liveDataSnapshotMeta.latestPriceDate}</p>
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <h1 style={{ color: "#e2e8f0", margin: 0, fontSize: 18, fontWeight: 700, fontFamily: "Inter, sans-serif" }}>Tổng quan thị trường</h1>
+            <span style={{
+              display: "inline-flex", alignItems: "center", gap: 4, padding: "3px 7px", borderRadius: 4,
+              background: sessionMeta.isRealtime ? "rgba(0,217,126,0.12)" : "rgba(148,163,184,0.12)",
+              color: sessionMeta.isRealtime ? "#00d97e" : "#94a3b8", fontSize: 10,
+              fontFamily: "Inter, sans-serif",
+            }}>
+              <Activity size={10} /> {sessionMeta.isRealtime ? "LIVE" : "EOD"}
+            </span>
+          </div>
+          <p style={{ color: "#6b7fa3", margin: "3px 0 0", fontSize: 12, fontFamily: "Inter, sans-serif" }}>
+            {sessionMeta.isRealtime
+              ? `${apiStatus} · Giá tham chiếu phiên ${liveDataSnapshotMeta.latestPriceDate} · ${sessionMeta.liveTickerCount} mã đang cập nhật live · cuối ${sessionMeta.liveAsOf?.slice(11, 16) || "—"}`
+              : `${apiStatus} · Phiên gần nhất đã hoàn tất ${liveDataSnapshotMeta.latestPriceDate} · ${sessionMeta.statusLabel}`}
+          </p>
         </div>
         <div style={{ color: "#8b5cf6", fontSize: 12, fontFamily: "Inter, sans-serif", fontWeight: 600 }}>HOSE</div>
       </div>
@@ -227,7 +270,7 @@ export function MarketOverview({ onNavigate }: MarketOverviewProps) {
 
         {/* Indices change bars */}
         <div style={CARD_STYLE}>
-          <div style={{ color: "#e2e8f0", fontSize: 13, fontWeight: 600, fontFamily: "Inter, sans-serif", marginBottom: 8 }}>Chỉ số % hôm nay</div>
+          <div style={{ color: "#e2e8f0", fontSize: 13, fontWeight: 600, fontFamily: "Inter, sans-serif", marginBottom: 8 }}>Biến động phiên gần nhất</div>
           <div style={{ display: "flex", flexDirection: "column", gap: 10, marginTop: 8 }}>
             {selectedIndexBars.map((idx) => (
               <div key={idx.label}>
@@ -301,7 +344,7 @@ export function MarketOverview({ onNavigate }: MarketOverviewProps) {
                     onMouseLeave={(e) => (e.currentTarget as HTMLTableRowElement).style.background = "transparent"}
                   >
                     <td style={{ padding: "8px 10px" }}>
-                      <span style={{ color: "#8b5cf6", fontSize: 13, fontWeight: 700, fontFamily: "JetBrains Mono, monospace" }}>{r.ticker}</span>
+                      <LiveDot isLive={r.isLive} /><span style={{ color: "#8b5cf6", fontSize: 13, fontWeight: 700, fontFamily: "JetBrains Mono, monospace" }}>{r.ticker}</span>
                     </td>
                     <td style={{ padding: "8px 10px", color: "#e2e8f0", fontSize: 12, fontFamily: "Inter, sans-serif" }}>{r.name}</td>
                     <td style={{ padding: "8px 10px" }}>
@@ -336,7 +379,7 @@ export function MarketOverview({ onNavigate }: MarketOverviewProps) {
                     onMouseLeave={(e) => (e.currentTarget as HTMLTableRowElement).style.background = "transparent"}
                   >
                     <td style={{ padding: "8px 10px" }}>
-                      <span style={{ color: "#8b5cf6", fontSize: 13, fontWeight: 700, fontFamily: "JetBrains Mono, monospace" }}>{r.ticker}</span>
+                      <LiveDot isLive={r.isLive} /><span style={{ color: "#8b5cf6", fontSize: 13, fontWeight: 700, fontFamily: "JetBrains Mono, monospace" }}>{r.ticker}</span>
                     </td>
                     <td style={{ padding: "8px 10px", color: "#e2e8f0", fontSize: 12, fontFamily: "Inter, sans-serif" }}>{r.name}</td>
                     <td style={{ padding: "8px 10px" }}>
@@ -379,7 +422,7 @@ export function MarketOverview({ onNavigate }: MarketOverviewProps) {
                       onMouseEnter={(e) => (e.currentTarget as HTMLTableRowElement).style.background = "rgba(255,255,255,0.03)"}
                       onMouseLeave={(e) => (e.currentTarget as HTMLTableRowElement).style.background = "transparent"}
                     >
-                      <td style={{ padding: "8px 10px" }}><span style={{ color: "#8b5cf6", fontSize: 13, fontWeight: 700, fontFamily: "JetBrains Mono, monospace" }}>{r.ticker}</span></td>
+                      <td style={{ padding: "8px 10px" }}><LiveDot isLive={r.isLive} /><span style={{ color: "#8b5cf6", fontSize: 13, fontWeight: 700, fontFamily: "JetBrains Mono, monospace" }}>{r.ticker}</span></td>
                       <td style={{ padding: "8px 10px", color: "#e2e8f0", fontSize: 12, fontFamily: "Inter, sans-serif" }}>{r.name}</td>
                       <td style={{ padding: "8px 10px", color: "#e2e8f0", fontSize: 12, fontFamily: "JetBrains Mono, monospace", textAlign: "right" }}>{r.price.toLocaleString("vi-VN")}</td>
                       <td style={{ padding: "8px 10px", color: "#3b82f6", fontSize: 12, fontFamily: "JetBrains Mono, monospace", textAlign: "right" }}>{(r.volume / 1_000_000).toFixed(2)}M</td>

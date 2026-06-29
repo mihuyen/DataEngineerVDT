@@ -18,6 +18,8 @@ COPY src/loaders/__init__.py ./src/loaders/__init__.py
 COPY src/loaders/load_fact_realtime_vwap.py ./src/loaders/load_fact_realtime_vwap.py
 COPY src/streaming ./src/streaming
 COPY scripts/run_dnse_realtime_ingest.py ./scripts/run_dnse_realtime_ingest.py
+COPY scripts/run_dnse_ohlc_ingest.py ./scripts/run_dnse_ohlc_ingest.py
+COPY sql/ddl/fact_intraday_ohlcv.sql ./sql/ddl/fact_intraday_ohlcv.sql
 
 ENV PATH="/app/.venv/bin:$PATH"
 ENV PYTHONPATH="/app"

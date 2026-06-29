@@ -160,6 +160,18 @@ with DAG(
         bash_command=f"{COMMON_ENV} && uv run python scripts/run_backup.py",
     )
 
+    # Run after the close with the same conservative pacing as daily OHLCV.
+    # Processing the complete HOSE universe is slower, but avoids leaving a
+    # permanently partial intraday session in the investor-facing chart.
+    intraday_ohlcv_backfill = BashOperator(
+        task_id="intraday_ohlcv_backfill",
+        bash_command=(
+            f"{COMMON_ENV} && uv run python scripts/run_intraday_ohlcv_backfill.py "
+            "--request-delay-seconds 3.5"
+        ),
+        execution_timeout=timedelta(hours=2),
+    )
+
     init_minio >> [ingest_market_index, ingest_news, ingest_ohlcv, ingest_company_profile]
     ingest_ohlcv >> silver_ohlcv
     ingest_market_index >> silver_market_index
@@ -167,11 +179,11 @@ with DAG(
     ingest_company_profile >> silver_company_profile
     [silver_ohlcv, silver_company_profile, silver_market_index, silver_news] >> quality_all
     quality_all >> migrate_gold >> load_gold >> reconcile_gold
-    reconcile_gold >> export_gold_to_minio
     reconcile_gold >> init_user_alerts >> check_alerts
     reconcile_gold >> dbt_run >> dbt_test
     # Backup does not gate export_frontend_data: a backup failure should not
     # block the dashboard from getting fresh data, so it runs independently
     # off reconcile_gold rather than joining the export fan-in below.
     reconcile_gold >> backup_lakehouse
-    [export_gold_to_minio, check_alerts, dbt_test] >> export_frontend_data
+    reconcile_gold >> intraday_ohlcv_backfill >> export_gold_to_minio
+    [export_gold_to_minio, check_alerts, dbt_test, intraday_ohlcv_backfill] >> export_frontend_data

@@ -431,7 +431,7 @@ def main() -> None:
     vwap_data = rows(
         client,
         """
-        SELECT formatDateTime(minute_ts, '%H:%M') AS time,
+        SELECT formatDateTime(minute_ts, '%H:%i') AS time,
                close_price AS price,
                vwap_1m AS vwap,
                session_vwap AS sessionVwap,
@@ -520,8 +520,8 @@ def main() -> None:
           channel,
           if(delivery_status = 'sent', 'sent', 'failed') AS status,
           delivery_status AS deliveryStatus,
-          ifNull(formatDateTime(sent_at, '%H:%M:%S'), '') AS sentAt,
-          formatDateTime(triggered_at, '%H:%M:%S') AS triggeredAt
+          ifNull(formatDateTime(sent_at, '%H:%i:%S'), '') AS sentAt,
+          formatDateTime(triggered_at, '%H:%i:%S') AS triggeredAt
         FROM fact_alert_event
         ORDER BY triggered_at DESC
         LIMIT 100

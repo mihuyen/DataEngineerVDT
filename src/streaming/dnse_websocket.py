@@ -47,6 +47,10 @@ class DNSEWebSocketConfig:
     def quote_channel(self) -> str:
         return f"top_price.{self.board_id}.{self.encoding}"
 
+    @property
+    def ohlc_closed_channel(self) -> str:
+        return f"ohlc_closed.1.{self.encoding}"
+
     @classmethod
     def from_env(cls, symbols: list[str] | None = None) -> "DNSEWebSocketConfig":
         api_key = os.getenv("DNSE_API_KEY", "").strip()
@@ -93,6 +97,36 @@ class DNSETradeTick:
         }
 
 
+@dataclass(frozen=True)
+class DNSEOhlcCandle:
+    """Finalized one-minute OHLCV candle received from DNSE."""
+
+    ticker: str
+    minute_ts: datetime
+    resolution: str
+    open: float
+    high: float
+    low: float
+    close: float
+    volume: int
+    raw: dict[str, Any]
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "ticker": self.ticker,
+            "minute_ts": self.minute_ts,
+            "resolution": self.resolution,
+            "open": self.open,
+            "high": self.high,
+            "low": self.low,
+            "close": self.close,
+            "volume": self.volume,
+            "is_final": 1,
+            "data_source": "DNSE",
+            "raw_json": json.dumps(self.raw, ensure_ascii=False, sort_keys=True),
+        }
+
+
 def create_auth_message(
     api_key: str,
     api_secret: str,
@@ -131,6 +165,18 @@ def build_subscribe_message(channel_name: str, symbols: tuple[str, ...]) -> dict
     }
 
 
+def build_subscribe_channels_message(
+    channel_names: tuple[str, ...], symbols: tuple[str, ...]
+) -> dict[str, Any]:
+    """Build one subscription request for multiple DNSE channels."""
+    return {
+        "action": "subscribe",
+        "channels": [
+            {"name": channel_name, "symbols": list(symbols)} for channel_name in channel_names
+        ],
+    }
+
+
 def parse_json_message(raw_message: str | bytes) -> dict[str, Any]:
     """Decode a DNSE JSON WebSocket message."""
     if isinstance(raw_message, bytes):
@@ -154,7 +200,12 @@ def parse_dnse_time(value: Any) -> datetime:
             .replace(tzinfo=None)
         )
     if isinstance(value, int | float):
-        return datetime.fromtimestamp(float(value), UTC).astimezone(VIETNAM_TZ).replace(tzinfo=None)
+        timestamp = float(value)
+        if timestamp >= 1_000_000_000_000_000:
+            timestamp /= 1_000_000
+        elif timestamp >= 1_000_000_000_000:
+            timestamp /= 1_000
+        return datetime.fromtimestamp(timestamp, UTC).astimezone(VIETNAM_TZ).replace(tzinfo=None)
     if isinstance(value, str):
         normalized = value.replace("Z", "+00:00")
         parsed = datetime.fromisoformat(normalized)
@@ -195,12 +246,38 @@ def parse_trade_message(message: dict[str, Any]) -> DNSETradeTick | None:
     )
 
 
-async def stream_trade_ticks(
+def parse_ohlc_message(message: dict[str, Any]) -> DNSEOhlcCandle | None:
+    """Parse a finalized DNSE OHLC payload into the one-minute schema."""
+    payload = unwrap_payload(message)
+    required = ("symbol", "time", "open", "high", "low", "close", "volume")
+    if any(payload.get(field) is None for field in required):
+        return None
+
+    resolution = str(payload.get("resolution", "1"))
+    if resolution not in {"1", "1m"}:
+        return None
+
+    return DNSEOhlcCandle(
+        ticker=str(payload["symbol"]).upper(),
+        minute_ts=parse_dnse_time(payload["time"]),
+        resolution="1m",
+        open=float(payload["open"]),
+        high=float(payload["high"]),
+        low=float(payload["low"]),
+        close=float(payload["close"]),
+        volume=int(float(payload["volume"])),
+        raw=payload,
+    )
+
+
+async def stream_market_events(
     config: DNSEWebSocketConfig,
     max_messages: int | None = None,
     timeout_seconds: float | None = None,
-) -> AsyncIterator[DNSETradeTick]:
-    """Stream normalized trade ticks from DNSE Market Data WebSocket."""
+    include_ohlc: bool = True,
+    include_trades: bool = True,
+) -> AsyncIterator[DNSETradeTick | DNSEOhlcCandle]:
+    """Stream trade ticks and finalized one-minute candles over one connection."""
     ssl_context = ssl.create_default_context(cafile=certifi.where())
     started_at = time.monotonic()
     yielded = 0
@@ -219,7 +296,12 @@ async def stream_trade_ticks(
         if action not in {"auth_success", "authenticated"}:
             raise RuntimeError(f"DNSE auth failed: {auth_response}")
 
-        subscribe_message = build_subscribe_message(config.trade_channel, config.symbols)
+        channels: tuple[str, ...] = (config.trade_channel,) if include_trades else ()
+        if include_ohlc:
+            channels += (config.ohlc_closed_channel,)
+        if not channels:
+            raise ValueError("At least one DNSE market-data channel must be enabled")
+        subscribe_message = build_subscribe_channels_message(channels, config.symbols)
         await websocket.send(json.dumps(subscribe_message, ensure_ascii=False))
 
         while max_messages is None or yielded < max_messages:
@@ -241,12 +323,31 @@ async def stream_trade_ticks(
             if message_action in {"subscribed", "subscribe_success", "pong"}:
                 continue
 
-            tick = parse_trade_message(message)
-            if tick is None:
+            event = parse_ohlc_message(message) if include_ohlc else None
+            if event is None and include_trades:
+                event = parse_trade_message(message)
+            if event is None:
                 continue
 
             yielded += 1
-            yield tick
+            yield event
+
+
+async def stream_trade_ticks(
+    config: DNSEWebSocketConfig,
+    max_messages: int | None = None,
+    timeout_seconds: float | None = None,
+) -> AsyncIterator[DNSETradeTick]:
+    """Stream normalized trade ticks from DNSE Market Data WebSocket."""
+    async for event in stream_market_events(
+        config,
+        max_messages=max_messages,
+        timeout_seconds=timeout_seconds,
+        include_ohlc=False,
+        include_trades=True,
+    ):
+        if isinstance(event, DNSETradeTick):
+            yield event
 
 
 async def collect_trade_ticks(

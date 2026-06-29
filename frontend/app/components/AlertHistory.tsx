@@ -3,6 +3,7 @@ import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pi
 import { alertHistory as mockAlertHistory, alertsByDay as mockAlertsByDay, alertsByCondition as mockAlertsByCondition } from "./mockData";
 import { Bell, CheckCircle, XCircle, Clock } from "lucide-react";
 import { fetchAlerts, AlertEvent, AlertByDay, AlertByCondition } from "./api";
+import { AlertRules } from "./AlertRules";
 
 const CARD: React.CSSProperties = { background: "#111827", border: "1px solid rgba(255,255,255,0.07)", borderRadius: 8, padding: 16 };
 const MONO: React.CSSProperties = { fontFamily: "JetBrains Mono, monospace" };
@@ -25,9 +26,10 @@ const StatusIcon = ({ status }: { status: string }) => {
   return <Clock size={13} color="#6b7fa3" />;
 };
 
-interface AlertHistoryProps { onNavigate: (page: string, ticker?: string) => void; }
+interface AlertHistoryProps { onNavigate: (page: string, ticker?: string) => void; initialTicker?: string; }
 
-export function AlertHistory({ onNavigate }: AlertHistoryProps) {
+export function AlertHistory({ onNavigate, initialTicker }: AlertHistoryProps) {
+  const [tab, setTab] = useState<"rules" | "history">("rules");
   const [filterCondition, setFilterCondition] = useState("all");
   const [filterStatus, setFilterStatus] = useState("all");
   const [filterChannel, setFilterChannel] = useState("all");
@@ -70,12 +72,32 @@ export function AlertHistory({ onNavigate }: AlertHistoryProps) {
       {/* Header */}
       <div>
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-          <h1 style={{ color: "#e2e8f0", margin: 0, fontSize: 18, fontWeight: 700, ...INTER }}>Alert History</h1>
+          <h1 style={{ color: "#e2e8f0", margin: 0, fontSize: 18, fontWeight: 700, ...INTER }}>Quản lý cảnh báo</h1>
           <Bell size={16} color="#8b5cf6" />
         </div>
-        <p style={{ color: "#6b7fa3", margin: 0, fontSize: 12, ...INTER }}>Lịch sử cảnh báo người dùng · {apiStatus}</p>
+        <p style={{ color: "#6b7fa3", margin: 0, fontSize: 12, ...INTER }}>Tạo quy tắc và xem lịch sử gửi · {apiStatus}</p>
       </div>
 
+      <div style={{ display: "flex", gap: 8 }}>
+        {[{ id: "rules" as const, label: "Quy tắc đang theo dõi" }, { id: "history" as const, label: "Lịch sử gửi" }].map((t) => (
+          <button
+            key={t.id}
+            onClick={() => setTab(t.id)}
+            style={{
+              padding: "6px 16px", borderRadius: 6, border: "1px solid rgba(255,255,255,0.1)",
+              background: tab === t.id ? "#8b5cf6" : "transparent",
+              color: tab === t.id ? "#0b0f1a" : "#6b7fa3", fontSize: 13, ...INTER, cursor: "pointer",
+              fontWeight: tab === t.id ? 600 : 400,
+            }}
+          >
+            {t.label}
+          </button>
+        ))}
+      </div>
+
+      {tab === "rules" && <AlertRules onNavigate={onNavigate} initialTicker={initialTicker} />}
+
+      {tab === "history" && <>
       {alertHistory.length === 0 && apiStatus === "ClickHouse live query" && (
         <div style={{ ...CARD, borderColor: "rgba(245,158,11,0.2)", background: "rgba(245,158,11,0.04)" }}>
           <div style={{ ...INTER, color: "#6b7fa3", fontSize: 12, lineHeight: 1.6 }}>
@@ -264,6 +286,7 @@ export function AlertHistory({ onNavigate }: AlertHistoryProps) {
           </div>
         </div>
       </div>
+      </>}
     </div>
   );
 }
