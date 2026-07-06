@@ -115,6 +115,19 @@ erDiagram
     Float64 price_vs_session_vwap_pct
   }
 
+  FACT_NEWS_SENTIMENT_DETAIL {
+    String article_id PK
+    String ticker FK
+    String url
+    String title
+    String source
+    Date published_at
+    String sentiment_label
+    Float64 sentiment_score
+    Float64 confidence_score
+    DateTime inferred_at
+  }
+
   FACT_NEWS_SENTIMENT_DAILY {
     String ticker PK,FK
     UInt32 date_id PK,FK
@@ -149,6 +162,7 @@ erDiagram
   DIM_DATE ||--o{ FACT_MARKET_INDEX : "date_id"
   DIM_STOCK ||--o{ FACT_INTRADAY_OHLCV : "ticker"
   DIM_STOCK ||--o{ FACT_REALTIME_VWAP : "ticker"
+  DIM_STOCK ||--o{ FACT_NEWS_SENTIMENT_DETAIL : "ticker"
   DIM_STOCK ||--o{ FACT_NEWS_SENTIMENT_DAILY : "ticker"
   DIM_DATE ||--o{ FACT_NEWS_SENTIMENT_DAILY : "date_id"
   DIM_STOCK ||--o{ FACT_ALERT_EVENT : "ticker"

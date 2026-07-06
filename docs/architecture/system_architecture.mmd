@@ -10,52 +10,53 @@ flowchart LR
 
   subgraph SOURCES[NGUỒN DỮ LIỆU]
     direction TB
-    KBS[KBS qua vnstock<br/>OHLCV ngày, listing, profile]:::source
-    VCI[VCI qua vnstock<br/>VNINDEX, VN30]:::source
-    NEWS[VnExpress, Vietstock, CafeF<br/>Tin tức thị trường]:::source
-    DNSE[DNSE WebSocket<br/>Tick khớp lệnh, nến 1 phút]:::source
+    KBS["API Chứng khoán (vnstock)<br/>Dữ liệu Giao dịch & Doanh nghiệp"]:::source
+    VCI["API Chỉ số (vnstock)<br/>VNINDEX, VN30"]:::source
+    NEWS[Tin tức Tài chính<br/>VnExpress, Vietstock, CafeF]:::source
+    DNSE["WebSocket (DNSE)<br/>Dữ liệu thời gian thực (Tick, 1m)"]:::source
   end
 
   subgraph BATCH[LUỒNG BATCH]
     direction TB
-    AIRFLOW[Airflow<br/>DAG 18:00 thứ 2 đến thứ 6]:::ingest
-    CRAWLER[Python crawler + URL registry<br/>Incremental và historical backfill]:::ingest
-    BRONZE[(MinIO Bronze<br/>Parquet dữ liệu gần nguyên trạng)]:::storage
-    SILVER[(MinIO Silver<br/>Parquet chuẩn hóa, deduplicate, HOSE)]:::storage
-    TRANSFORM[Python + Polars<br/>Chuẩn hóa và mô hình hóa]:::process
-    QUALITY[Quality gates<br/>Schema, domain, freshness,<br/>row-count và key reconciliation]:::process
-    DBT[dbt incremental mart<br/>SMA, EMA, RSI, MACD, Bollinger]:::process
-    NLP[NLP service<br/>Entity linking + sentiment 3 lớp]:::process
+    AIRFLOW["Apache Airflow<br/>Điều phối luồng dữ liệu (Orchestration)"]:::ingest
+    CRAWLER[Module Thu thập Dữ liệu<br/>Tự động hóa lấy tin tức]:::ingest
+    BRONZE[("MinIO Bronze Layer<br/>Lưu trữ dữ liệu thô")]:::storage
+    SILVER[("MinIO Silver Layer<br/>Dữ liệu đã làm sạch & chuẩn hóa")]:::storage
+    TRANSFORM["Data Processing (Polars)<br/>Biến đổi và Khử trùng lặp"]:::process
+    QUALITY[Kiểm định Chất lượng<br/>Quality Gate Python tự xây]:::process
+    DBT["Data Transformation (dbt)<br/>Tính toán các chỉ báo kỹ thuật"]:::process
+    NLP[Dịch vụ AI/NLP<br/>Nhận diện thực thể & Cảm xúc]:::process
   end
 
   subgraph STREAM[LUỒNG REALTIME]
     direction TB
-    PRODUCER[DNSE producers<br/>Trade ticks và OHLCV 1m]:::ingest
-    KAFKA[(Kafka<br/>dnse-trades-raw<br/>dnse-ohlcv-1m)]:::storage
-    ZK[Zookeeper<br/>Metadata và coordination]:::observe
-    KENGINE[ClickHouse Kafka Engine<br/>Materialized Views]:::process
-    RAWTICK[(realtime_trade_ticks_raw<br/>TTL 30 ngày)]:::storage
-    VWAPSTATE[(fact_realtime_vwap_1m_state<br/>AggregatingMergeTree, TTL 30 ngày)]:::storage
-    INTRADAY[(fact_intraday_ohlcv<br/>ReplacingMergeTree, TTL 30 ngày)]:::storage
-    VWAPVIEW[fact_realtime_vwap<br/>View: VWAP phút và VWAP phiên]:::serving
+    PRODUCER[Kafka Producer<br/>Tiếp nhận dữ liệu thời gian thực]:::ingest
+    KAFKA[("Apache Kafka<br/>Message Broker")]:::storage
+    ZK[Zookeeper<br/>Quản lý cụm Kafka]:::observe
+    KENGINE[ClickHouse Kafka Engine<br/>Xử lý dòng dữ liệu]:::process
+    RAWTICK[("Bảng dữ liệu Tick thô<br/>realtime_trade_ticks_raw")]:::storage
+    VWAPSTATE[("Bảng trạng thái VWAP<br/>fact_realtime_vwap_1m_state")]:::storage
+    INTRADAY[("Bảng Nến giao dịch<br/>fact_intraday_ohlcv")]:::storage
+    VWAPVIEW[Khung nhìn VWAP<br/>Chỉ số trung bình giá theo KL]:::serving
   end
 
   subgraph LAKE_SERVE[LAKEHOUSE VÀ SERVING]
     direction TB
-    CLICKHOUSE[(ClickHouse<br/>Gold analytical serving)]:::serving
-    GOLD[(MinIO Gold<br/>Parquet dimension, fact, snapshot)]:::storage
-    BACKUP[(MinIO backup<br/>Bản sao dữ liệu và metadata)]:::storage
-    POSTGRES[(PostgreSQL<br/>Watchlist và alert rules)]:::ops
+    CLICKHOUSE[("ClickHouse - Gold Layer<br/>Kho dữ liệu phân tích tốc độ cao")]:::serving
+    GOLD[("MinIO Gold Layer<br/>Lưu trữ Parquet định kỳ")]:::storage
+    BACKUP[("MinIO Backup<br/>Bản sao dự phòng hệ thống")]:::storage
+    POSTGRES[("PostgreSQL<br/>Cấu hình Cảnh báo & Danh mục")]:::ops
   end
 
   subgraph CONSUME[PHỤC VỤ VÀ CẢNH BÁO]
     direction TB
-    API[FastAPI<br/>Market, stock, VWAP, signals,<br/>watchlist, alert, pipeline]:::serving
-    REACT[React dashboard<br/>7 màn hình nghiệp vụ]:::serving
-    SUPERSET[Superset<br/>Phân tích BI]:::observe
-    GRAFANA[Grafana<br/>Giám sát vận hành]:::observe
-    ALERT[Alert Engine<br/>Rule, crossing, cooldown]:::ops
-    CHANNEL[Telegram và Email]:::ops
+    API["RESTful API (FastAPI)<br/>Cung cấp dữ liệu hệ thống"]:::serving
+    REACT["Giao diện Người dùng (React)<br/>Bảng điều khiển Thị trường"]:::serving
+    SUPERSET[Apache Superset<br/>Báo cáo & Phân tích BI]:::observe
+    GRAFANA[Grafana<br/>Giám sát sức khỏe Hệ thống]:::observe
+    ALERT[Hệ thống Cảnh báo tự động<br/>Alert Engine]:::ops
+    CHANNEL[Kênh Thông báo<br/>Telegram & Email]:::ops
+    SLACK[Thông báo vận hành<br/>Slack Webhook]:::ops
   end
 
   KBS --> AIRFLOW
@@ -82,6 +83,8 @@ flowchart LR
   CLICKHOUSE --> ALERT
   POSTGRES --> ALERT --> CHANNEL
   AIRFLOW -. Trạng thái DAG .-> API
+  AIRFLOW -. DAG thành công hoặc lỗi .-> SLACK
+  PRODUCER -. Backup Parquet tick và nến .-> BACKUP
   KAFKA -. Lag .-> GRAFANA
 
   style SOURCES fill:#F8FAFC,stroke:#94A3B8,color:#172033

@@ -8,40 +8,41 @@ flowchart LR
 
   subgraph SRC[NGUỒN]
     direction TB
-    S1[KBS qua vnstock<br/>Giá ngày, listing, profile]:::source
-    S2[VCI qua vnstock<br/>VNINDEX, VN30]:::source
-    S3[VnExpress, Vietstock, CafeF<br/>Bài viết và metadata]:::source
-    S4[DNSE và KBS<br/>Tick, nến 1 phút]:::source
+    S1[API Chứng khoán<br/>Giao dịch, danh mục, doanh nghiệp]:::source
+    S2[API Chỉ số<br/>Chỉ số thị trường chung]:::source
+    S3[Trang tin Tài chính<br/>Tin tức thị trường]:::source
+    S4[WebSocket<br/>Dữ liệu giao dịch thời gian thực]:::source
   end
 
   subgraph B[BRONZE - PARQUET TRÊN MINIO]
     direction TB
-    B1[ohlcv<br/>ticker, time, open, high, low,<br/>close, volume, source, ingested_at<br/>Partition: year/month/day]:::bronze
-    B2[company_profile<br/>symbol, company_name, exchange,<br/>industry, shares, ratios, raw fields<br/>Partition: dataset/year/month/day]:::bronze
-    B3[market_index<br/>index_code, time, OHLC,<br/>volume, value, ingested_at<br/>Partition: index_code/year/month/day]:::bronze
-    B4[news<br/>url, title, content, publisher,<br/>published_at, crawled_at<br/>Partition: source/year/month/day]:::bronze
-    B5[intraday and DNSE raw<br/>symbol, timestamp, OHLC,<br/>price, volume, resolution, source<br/>Partition: source/year/month/day]:::bronze
+    B1[Dữ liệu OHLCV Thô<br/>Partition: year/month/day]:::bronze
+    B2[Hồ sơ Doanh nghiệp Thô<br/>Partition: dataset/year/month/day]:::bronze
+    B3[Chỉ số Thị trường Thô<br/>Partition: index_code/year/month/day]:::bronze
+    B4[Tin tức Thô<br/>Partition: source/year/month/day]:::bronze
+    B5["Dữ liệu Giao dịch Thô (Intraday)<br/>Partition: source/year/month/day"]:::bronze
   end
 
   subgraph S[SILVER - PARQUET TRÊN MINIO]
     direction TB
-    S1V[ohlcv chuẩn hóa HOSE<br/>ticker, trading_date, open, high,<br/>low, close, volume, value<br/>Grain: ticker + trading_date<br/>Partition: year/month]:::silver
-    S2V[company_profile chuẩn hóa<br/>ticker, company_name, exchange,<br/>sector, listed_date, shares, ratios<br/>Grain: ticker + snapshot]:::silver
-    S3V[market_index chuẩn hóa<br/>index_id in VNINDEX, VN30,<br/>trading_date, OHLC, volume, value<br/>Grain: index_id + trading_date]:::silver
-    S4V[news chuẩn hóa và khử trùng<br/>url, title, content, publisher,<br/>published_at, mentioned_tickers<br/>Grain: một URL bài viết]:::silver
-    S5V[intraday OHLCV 1m<br/>ticker, minute_ts, trading_date,<br/>OHLC, volume, is_final, source<br/>Grain: ticker + minute_ts + source]:::silver
+    S1V[Dữ liệu OHLCV Chuẩn hóa<br/>Grain: ticker + trading_date]:::silver
+    S2V[Hồ sơ Doanh nghiệp Chuẩn hóa<br/>Grain: ticker + snapshot]:::silver
+    S3V[Chỉ số Thị trường Chuẩn hóa<br/>Grain: index_id + trading_date]:::silver
+    S4V[Tin tức Chuẩn hóa & Khử trùng<br/>Grain: một URL bài viết]:::silver
+    S5V[Nến Intraday Chuẩn hóa<br/>Grain: ticker + minute_ts + source]:::silver
   end
 
   subgraph G[GOLD - PARQUET MINIO VÀ CLICKHOUSE]
     direction TB
-    G1[dim_date, dim_stock,<br/>dim_sector, dim_index]:::gold
-    G2[fact_daily_price<br/>Giá ngày, vốn hóa, biến động]:::gold
-    G3[fact_daily_price_indicators<br/>SMA, EMA, RSI, MACD,<br/>Bollinger, breakout, volume spike]:::gold
-    G4[fact_market_index<br/>Điểm số, thanh khoản,<br/>độ rộng thị trường]:::gold
-    G5[fact_intraday_ohlcv<br/>Nến một phút, TTL 30 ngày]:::gold
-    G6[fact_realtime_vwap<br/>VWAP phút, VWAP phiên,<br/>độ lệch giá so với VWAP]:::gold
-    G7[fact_news_sentiment_daily<br/>3 nhãn và điểm cảm xúc<br/>Hướng mở rộng sau]:::future
-    G8[fact_alert_event<br/>Sự kiện và trạng thái gửi cảnh báo]:::gold
+    G1["Các Bảng Chiều (Dimensions)<br/>dim_date, dim_stock, dim_sector..."]:::gold
+    G2[fact_daily_price<br/>Giao dịch cuối ngày & Biến động]:::gold
+    G3[fact_daily_price_indicators<br/>Các Chỉ báo Kỹ thuật]:::gold
+    G4[fact_market_index<br/>Chỉ số chung & Thanh khoản]:::gold
+    G5[fact_intraday_ohlcv<br/>Nến 1 phút Intraday]:::gold
+    G6[fact_realtime_vwap<br/>VWAP Phút & Phiên giao dịch]:::gold
+    G7[fact_news_sentiment_detail<br/>Dữ liệu Điểm Cảm xúc AI]:::gold
+    G8[fact_alert_event<br/>Nhật ký Sự kiện Cảnh báo]:::gold
+    G9[fact_news_sentiment_daily<br/>Tổng hợp Cảm xúc Tin tức]:::gold
   end
 
   S1 --> B1
@@ -62,7 +63,8 @@ flowchart LR
   S2V --> G1
   S3V --> G1
   S3V --> G4
-  S4V -. entity linking và NLP .-> G7
+  S4V -->|Entity Linking & NLP| G7
+  S4V -->|Entity Linking & NLP| G9
   S5V --> G5
   B5 -->|Kafka Engine và MV| G6
   G3 --> G8
