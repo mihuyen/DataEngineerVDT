@@ -1175,11 +1175,36 @@ def get_news_sentiment(days: int = Query(7, ge=1, le=60)) -> dict[str, Any]:
         ORDER BY news_date
         """
     )
+    articles = rows(
+        f"""
+        SELECT
+          d.article_id AS articleId,
+          d.ticker AS ticker,
+          ifNull(nullIf(s.company_name, ''), d.ticker) AS name,
+          d.title AS headline,
+          d.url AS url,
+          d.source AS source,
+          formatDateTime(toDateTime(d.published_at), '%Y-%m-%d') AS publishedAt,
+          d.sentiment_label AS sentimentLabel,
+          d.sentiment_score AS sentimentScore,
+          d.confidence_score AS confidenceScore,
+          d.model_version AS modelVersion,
+          d.match_method AS matchMethod,
+          d.match_score AS matchScore,
+          d.is_low_confidence AS isLowConfidence
+        FROM fact_news_sentiment_detail d
+        LEFT JOIN dim_stock s ON d.ticker = s.ticker
+        WHERE d.published_at >= (SELECT max(news_date) FROM fact_news_sentiment_daily) - {days}
+        ORDER BY d.inferred_at DESC
+        LIMIT 120
+        """
+    )
     model_versions = sorted({row["modelVersion"] for row in by_ticker if row.get("modelVersion")})
     return {
         "count": len(by_ticker),
         "data": by_ticker,
         "byDate": by_date,
+        "articles": articles,
         "modelVersions": model_versions,
     }
 

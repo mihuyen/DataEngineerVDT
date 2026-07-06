@@ -3,11 +3,25 @@ import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell,
   LineChart, Line,
 } from "recharts";
-import { fetchNewsSentiment, NewsSentimentRow, SentimentByDate } from "./api";
+import { fetchNewsSentiment, NewsArticleRow, NewsSentimentRow, SentimentByDate } from "./api";
 
 const CARD: React.CSSProperties = { background: "#111827", border: "1px solid rgba(255,255,255,0.07)", borderRadius: 8, padding: 16 };
 const MONO: React.CSSProperties = { fontFamily: "JetBrains Mono, monospace" };
 const INTER: React.CSSProperties = { fontFamily: "Inter, sans-serif" };
+const NEWS_REFRESH_MS = 60 * 1000;
+
+function sentimentStyle(score: number | null | undefined) {
+  if (score == null) {
+    return { background: "rgba(107,127,163,0.15)", color: "#6b7fa3" };
+  }
+  if (score > 0.3) {
+    return { background: "rgba(0,217,126,0.1)", color: "#00d97e" };
+  }
+  if (score < -0.1) {
+    return { background: "rgba(255,77,109,0.1)", color: "#ff4d6d" };
+  }
+  return { background: "rgba(107,127,163,0.15)", color: "#6b7fa3" };
+}
 
 function SentimentBar({ positive, negative, neutral }: { positive: number; negative: number; neutral: number }) {
   const total = positive + negative + neutral || 1;
@@ -27,24 +41,31 @@ export function NewsSentiment({ onNavigate }: NewsSentimentProps) {
   const [search, setSearch] = useState("");
   const [newsSentiment, setNewsSentiment] = useState<NewsSentimentRow[]>([]);
   const [sentimentByDate, setSentimentByDate] = useState<SentimentByDate[]>([]);
+  const [articles, setArticles] = useState<NewsArticleRow[]>([]);
   const [apiStatus, setApiStatus] = useState<"loading" | "ok" | "error">("loading");
   const [modelVersions, setModelVersions] = useState<string[]>([]);
 
   useEffect(() => {
     let cancelled = false;
-    fetchNewsSentiment()
-      .then((payload) => {
-        if (cancelled) return;
-        setNewsSentiment(payload.data);
-        setSentimentByDate(payload.byDate);
-        setModelVersions(payload.modelVersions || []);
-        setApiStatus("ok");
-      })
-      .catch(() => {
-        if (!cancelled) setApiStatus("error");
-      });
+    const load = () => {
+      fetchNewsSentiment()
+        .then((payload) => {
+          if (cancelled) return;
+          setNewsSentiment(payload.data);
+          setSentimentByDate(payload.byDate);
+          setArticles(payload.articles || []);
+          setModelVersions(payload.modelVersions || []);
+          setApiStatus("ok");
+        })
+        .catch(() => {
+          if (!cancelled) setApiStatus("error");
+        });
+    };
+    load();
+    const timer = window.setInterval(load, NEWS_REFRESH_MS);
     return () => {
       cancelled = true;
+      window.clearInterval(timer);
     };
   }, []);
 
@@ -239,6 +260,70 @@ export function NewsSentiment({ onNavigate }: NewsSentimentProps) {
               ))}
             </tbody>
           </table>
+        </div>
+      </div>
+
+      <div style={CARD}>
+        <div style={{ ...INTER, color: "#e2e8f0", fontSize: 13, fontWeight: 600, marginBottom: 12 }}>
+          Bài báo gần đây · sentiment hiển thị dưới từng bài
+        </div>
+        <div style={{ display: "grid", gap: 10 }}>
+          {articles.slice(0, 18).map((article) => {
+            const tone = sentimentStyle(article.sentimentScore);
+            return (
+              <div
+                key={article.articleId}
+                style={{
+                  border: "1px solid rgba(255,255,255,0.06)",
+                  borderRadius: 8,
+                  padding: 12,
+                  background: "rgba(255,255,255,0.02)",
+                }}
+              >
+                <div style={{ display: "flex", justifyContent: "space-between", gap: 12, alignItems: "flex-start" }}>
+                  <div style={{ minWidth: 0 }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
+                      <span style={{ color: "#8b5cf6", fontSize: 12, fontWeight: 700, ...MONO }}>{article.ticker}</span>
+                      <span style={{ color: "#6b7fa3", fontSize: 11, ...INTER }}>{article.name}</span>
+                      {article.source && <span style={{ color: "#6b7fa3", fontSize: 11, ...INTER }}>{article.source}</span>}
+                    </div>
+                    {article.url ? (
+                      <a href={article.url} target="_blank" rel="noreferrer" style={{ color: "#e2e8f0", textDecoration: "none" }}>
+                        <div style={{ fontSize: 13, fontWeight: 600, ...INTER }}>{article.headline}</div>
+                      </a>
+                    ) : (
+                      <div style={{ fontSize: 13, fontWeight: 600, color: "#e2e8f0", ...INTER }}>{article.headline}</div>
+                    )}
+                    <div style={{ display: "flex", gap: 8, marginTop: 6, alignItems: "center", flexWrap: "wrap" }}>
+                      <span style={{ color: "#6b7fa3", fontSize: 11, ...MONO }}>{article.publishedAt || ""}</span>
+                      {article.sentimentLabel && (
+                        <span
+                          style={{
+                            ...tone,
+                            fontSize: 11,
+                            padding: "2px 8px",
+                            borderRadius: 3,
+                            ...MONO,
+                            fontWeight: 700,
+                          }}
+                        >
+                          {article.sentimentLabel} · {(article.sentimentScore ?? 0) > 0 ? "+" : ""}{(article.sentimentScore ?? 0).toFixed(2)}
+                        </span>
+                      )}
+                      {article.confidenceScore != null && (
+                        <span style={{ color: "#6b7fa3", fontSize: 11, ...MONO }}>
+                          confidence {(article.confidenceScore * 100).toFixed(0)}%
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+          {articles.length === 0 && (
+            <div style={{ color: "#6b7fa3", fontSize: 12, ...INTER }}>Chưa có bài báo sentiment gần đây.</div>
+          )}
         </div>
       </div>
     </div>

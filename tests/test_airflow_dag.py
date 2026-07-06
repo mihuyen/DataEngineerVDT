@@ -57,3 +57,12 @@ def test_stock_lakehouse_daily_dag_uses_vietnam_timezone_and_weekday_schedule() 
 
     assert "Asia/Ho_Chi_Minh" in content
     assert 'schedule="0 18 * * 1-5"' in content
+
+
+def test_news_crawl_5m_dag_runs_every_five_minutes() -> None:
+    content = Path("dags/news_crawl_5m.py").read_text(encoding="utf-8")
+
+    assert "news_crawl_5m" in content
+    assert 'schedule="*/5 * * * *"' in content
+    assert "scripts/run_news_crawl_loop.py" in content
+    assert "--run-once --load-gold" in content

@@ -18,8 +18,8 @@ flowchart TB
 
   subgraph BATCH[LUỒNG BATCH]
     direction LR
-    AIRFLOW["Apache Airflow<br/>Điều phối luồng dữ liệu (Orchestration)"]:::ingest
-    CRAWLER[Module Thu thập Dữ liệu<br/>Tự động hóa lấy tin tức]:::ingest
+    AIRFLOW["Apache Airflow<br/>DAG batch 18:00 (giá, chỉ số, tin tức)<br/>+ DAG news_crawl_5m mỗi 5 phút"]:::ingest
+    CRAWLER[Module Thu thập Dữ liệu<br/>Crawl, Entity Linking, NLP, nạp Gold]:::ingest
     BRONZE[("MinIO Bronze Layer<br/>Lưu trữ dữ liệu thô")]:::storage
     SILVER[("MinIO Silver Layer<br/>Dữ liệu đã làm sạch & chuẩn hóa")]:::storage
     TRANSFORM["Data Processing (Polars)<br/>Biến đổi và Khử trùng lặp"]:::process
@@ -63,6 +63,8 @@ flowchart TB
   KBS --> AIRFLOW
   VCI --> AIRFLOW
   NEWS --> CRAWLER --> BRONZE
+  AIRFLOW -. Điều phối 2 lịch chạy .-> CRAWLER
+  CRAWLER -.->|Nạp trực tiếp mỗi 5 phút| CLICKHOUSE
   AIRFLOW --> BRONZE
   BRONZE --> TRANSFORM --> SILVER --> QUALITY
   QUALITY --> CLICKHOUSE

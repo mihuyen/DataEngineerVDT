@@ -254,10 +254,28 @@ export type NewsSentimentRow = {
 
 export type SentimentByDate = { date: string; positive: number; negative: number; neutral: number };
 
+export type NewsArticleRow = {
+  articleId: string;
+  ticker: string;
+  name: string;
+  headline: string;
+  url?: string | null;
+  source?: string | null;
+  publishedAt?: string;
+  sentimentLabel?: string | null;
+  sentimentScore?: number | null;
+  confidenceScore?: number | null;
+  modelVersion?: string | null;
+  matchMethod?: string | null;
+  matchScore?: number | null;
+  isLowConfidence?: number | null;
+};
+
 export type NewsSentimentPayload = {
   count: number;
   data: NewsSentimentRow[];
   byDate: SentimentByDate[];
+  articles: NewsArticleRow[];
   modelVersions: string[];
 };
 

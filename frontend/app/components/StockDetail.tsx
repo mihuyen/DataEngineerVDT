@@ -1,7 +1,7 @@
 import { useEffect, useState, useMemo } from "react";
 import { dataSnapshotMeta, newsSentiment as mockNewsSentiment, stockList } from "./mockData";
 import {
-  Candle, DailyCandlesPayload, IntradayCandle, IntradayPayload, IntradayResolution, NewsSentimentRow, StockOption,
+  Candle, DailyCandlesPayload, IntradayCandle, IntradayPayload, IntradayResolution, NewsArticleRow, NewsSentimentRow, StockOption,
   fetchCandles, fetchIntraday, fetchNewsSentiment, fetchStocks,
 } from "./api";
 import { CandlestickChart } from "./CandlestickChart";
@@ -14,6 +14,20 @@ const CARD: React.CSSProperties = {
 };
 const MONO: React.CSSProperties = { fontFamily: "JetBrains Mono, monospace" };
 const INTER: React.CSSProperties = { fontFamily: "Inter, sans-serif" };
+const NEWS_REFRESH_MS = 5 * 60 * 1000;
+
+function sentimentStyle(score: number | null | undefined) {
+  if (score == null) {
+    return { background: "rgba(107,127,163,0.15)", color: "#6b7fa3" };
+  }
+  if (score > 0.3) {
+    return { background: "rgba(0,217,126,0.1)", color: "#00d97e" };
+  }
+  if (score < -0.1) {
+    return { background: "rgba(255,77,109,0.1)", color: "#ff4d6d" };
+  }
+  return { background: "rgba(107,127,163,0.15)", color: "#6b7fa3" };
+}
 
 function KPICard({ label, value, sub, color }: { label: string; value: string; sub?: string; color?: string }) {
   return (
@@ -44,18 +58,27 @@ export function StockDetail({ initialTicker = "VCB", onNavigate }: StockDetailPr
   const [searchText, setSearchText] = useState("");
   const [searchOpen, setSearchOpen] = useState(false);
   const [newsSentiment, setNewsSentiment] = useState<NewsSentimentRow[]>(mockNewsSentiment);
+  const [newsArticles, setNewsArticles] = useState<NewsArticleRow[]>([]);
 
   useEffect(() => {
     let cancelled = false;
-    fetchNewsSentiment()
-      .then((payload) => {
-        if (!cancelled) setNewsSentiment(payload.data);
-      })
-      .catch(() => {
-        if (!cancelled) setNewsSentiment(mockNewsSentiment);
-      });
+    const load = () => {
+      fetchNewsSentiment()
+        .then((payload) => {
+          if (!cancelled) {
+            setNewsSentiment(payload.data);
+            setNewsArticles(payload.articles || []);
+          }
+        })
+        .catch(() => {
+          if (!cancelled) setNewsSentiment(mockNewsSentiment);
+        });
+    };
+    load();
+    const timer = window.setInterval(load, NEWS_REFRESH_MS);
     return () => {
       cancelled = true;
+      window.clearInterval(timer);
     };
   }, []);
 
@@ -147,6 +170,7 @@ export function StockDetail({ initialTicker = "VCB", onNavigate }: StockDetailPr
     return candidates.slice(0, 80);
   }, [searchText, stockOptions]);
   const stockNews = newsSentiment.filter((n) => n.ticker === ticker);
+  const stockArticles = newsArticles.filter((article) => article.ticker === ticker);
   const last = sliced[sliced.length - 1];
   const prev = sliced[sliced.length - 2];
   if (apiData === null) {
@@ -456,6 +480,64 @@ export function StockDetail({ initialTicker = "VCB", onNavigate }: StockDetailPr
             )}
           </tbody>
         </table>
+      </div>
+
+      <div style={CARD}>
+        <div style={{ ...INTER, color: "#e2e8f0", fontSize: 13, fontWeight: 600, marginBottom: 12 }}>
+          Bài báo gần đây của {stock.ticker}
+        </div>
+        <div style={{ display: "grid", gap: 10 }}>
+          {stockArticles.slice(0, 10).map((article) => {
+            const tone = sentimentStyle(article.sentimentScore);
+            return (
+              <div
+                key={article.articleId}
+                style={{
+                  border: "1px solid rgba(255,255,255,0.06)",
+                  borderRadius: 8,
+                  padding: 12,
+                  background: "rgba(255,255,255,0.02)",
+                }}
+              >
+                <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                  {article.url ? (
+                    <a href={article.url} target="_blank" rel="noreferrer" style={{ color: "#e2e8f0", textDecoration: "none" }}>
+                      <div style={{ ...INTER, color: "#e2e8f0", fontSize: 13, fontWeight: 600 }}>{article.headline}</div>
+                    </a>
+                  ) : (
+                    <div style={{ ...INTER, color: "#e2e8f0", fontSize: 13, fontWeight: 600 }}>{article.headline}</div>
+                  )}
+                  <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
+                    <span style={{ color: "#6b7fa3", fontSize: 11, ...MONO }}>{article.publishedAt || dataSnapshotMeta.latestNewsDate}</span>
+                    {article.source && <span style={{ color: "#6b7fa3", fontSize: 11, ...INTER }}>{article.source}</span>}
+                    <span
+                      style={{
+                        ...tone,
+                        fontSize: 11,
+                        padding: "2px 8px",
+                        borderRadius: 3,
+                        ...MONO,
+                        fontWeight: 700,
+                      }}
+                    >
+                      {article.sentimentLabel || "unknown"} · {(article.sentimentScore ?? 0) > 0 ? "+" : ""}{(article.sentimentScore ?? 0).toFixed(2)}
+                    </span>
+                    {article.confidenceScore != null && (
+                      <span style={{ color: "#6b7fa3", fontSize: 11, ...MONO }}>
+                        confidence {(article.confidenceScore * 100).toFixed(0)}%
+                      </span>
+                    )}
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+          {stockArticles.length === 0 && (
+            <div style={{ color: "#6b7fa3", fontSize: 12, ...INTER }}>
+              Chưa có bài báo sentiment chi tiết cho {stock.ticker} trong 7 ngày gần đây.
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );
