@@ -133,6 +133,15 @@ with DAG(
     news_sentiment_quality = BashOperator(
         task_id="news_sentiment_quality",
         bash_command=f"{COMMON_ENV} && uv run python scripts/run_news_sentiment_quality.py",
+        # news_nlp_inference calls an external NLP service that can fail for
+        # reasons unrelated to price/index Gold data (timeout, cold start,
+        # port not ready yet). This check must still run and report on
+        # whatever sentiment data already exists, and -- critically -- must
+        # not gate load_gold (see the dependency edges below): a batch run
+        # that failed once for this exact reason emptied dim_stock,
+        # fact_daily_price and friends for hours because load_gold never got
+        # the chance to run at all.
+        trigger_rule=TriggerRule.ALL_DONE,
     )
 
     migrate_gold = BashOperator(
@@ -229,7 +238,12 @@ with DAG(
     [silver_ohlcv, silver_company_profile, silver_market_index, silver_news] >> quality_all
     quality_all >> [migrate_gold, news_nlp_inference]
     news_nlp_inference >> news_sentiment_quality
-    [migrate_gold, news_sentiment_quality] >> load_gold >> reconcile_gold
+    # load_gold depends only on the schema being ready, not on the news NLP
+    # side branch: load_gold.py already reads whatever news sentiment data
+    # exists on disk (falling back to the lexicon scorer if the NLP output
+    # isn't there yet) and never blocks on news_nlp_inference internally --
+    # the DAG must not impose a dependency the script itself doesn't have.
+    migrate_gold >> load_gold >> reconcile_gold
     reconcile_gold >> init_user_alerts >> check_alerts
     reconcile_gold >> dbt_run >> dbt_test
     # Backup and the intraday backfill do not gate export_gold_to_minio or

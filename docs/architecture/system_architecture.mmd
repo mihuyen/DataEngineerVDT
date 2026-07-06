@@ -1,5 +1,5 @@
-%%{init: {"theme":"base","htmlLabels":false,"flowchart":{"htmlLabels":false},"themeVariables":{"background":"#ffffff","primaryTextColor":"#172033","lineColor":"#526070","clusterBkg":"#f8fafc","clusterBorder":"#cbd5e1","edgeLabelBackground":"#ffffff","titleColor":"#172033","fontFamily":"Arial"}}}%%
-flowchart LR
+%%{init: {"theme":"base","htmlLabels":false,"flowchart":{"htmlLabels":false,"curve":"basis","nodeSpacing":18,"rankSpacing":28,"diagramPadding":6},"themeVariables":{"background":"#ffffff","primaryTextColor":"#172033","lineColor":"#526070","clusterBkg":"#f8fafc","clusterBorder":"#cbd5e1","edgeLabelBackground":"#ffffff","titleColor":"#172033","fontFamily":"Arial"}}}%%
+flowchart TB
   classDef source fill:#E8F1FF,stroke:#2563EB,color:#10213B,stroke-width:1.5px;
   classDef ingest fill:#FFF4D6,stroke:#D97706,color:#3B2600,stroke-width:1.5px;
   classDef storage fill:#E8F7EE,stroke:#16803C,color:#12351F,stroke-width:1.5px;
@@ -9,7 +9,7 @@ flowchart LR
   classDef observe fill:#F2F4F7,stroke:#64748B,color:#263244,stroke-width:1.5px;
 
   subgraph SOURCES[NGUỒN DỮ LIỆU]
-    direction TB
+    direction LR
     KBS["API Chứng khoán (vnstock)<br/>Dữ liệu Giao dịch & Doanh nghiệp"]:::source
     VCI["API Chỉ số (vnstock)<br/>VNINDEX, VN30"]:::source
     NEWS[Tin tức Tài chính<br/>VnExpress, Vietstock, CafeF]:::source
@@ -17,7 +17,7 @@ flowchart LR
   end
 
   subgraph BATCH[LUỒNG BATCH]
-    direction TB
+    direction LR
     AIRFLOW["Apache Airflow<br/>Điều phối luồng dữ liệu (Orchestration)"]:::ingest
     CRAWLER[Module Thu thập Dữ liệu<br/>Tự động hóa lấy tin tức]:::ingest
     BRONZE[("MinIO Bronze Layer<br/>Lưu trữ dữ liệu thô")]:::storage
@@ -26,10 +26,11 @@ flowchart LR
     QUALITY[Kiểm định Chất lượng<br/>Quality Gate Python tự xây]:::process
     DBT["Data Transformation (dbt)<br/>Tính toán các chỉ báo kỹ thuật"]:::process
     NLP[Dịch vụ AI/NLP<br/>Nhận diện thực thể & Cảm xúc]:::process
+    NLPQ[Quality Gate NLP<br/>Nhãn, score, confidence, model version]:::process
   end
 
   subgraph STREAM[LUỒNG REALTIME]
-    direction TB
+    direction LR
     PRODUCER[Kafka Producer<br/>Tiếp nhận dữ liệu thời gian thực]:::ingest
     KAFKA[("Apache Kafka<br/>Message Broker")]:::storage
     ZK[Zookeeper<br/>Quản lý cụm Kafka]:::observe
@@ -41,7 +42,7 @@ flowchart LR
   end
 
   subgraph LAKE_SERVE[LAKEHOUSE VÀ SERVING]
-    direction TB
+    direction LR
     CLICKHOUSE[("ClickHouse - Gold Layer<br/>Kho dữ liệu phân tích tốc độ cao")]:::serving
     GOLD[("MinIO Gold Layer<br/>Lưu trữ Parquet định kỳ")]:::storage
     BACKUP[("MinIO Backup<br/>Bản sao dự phòng hệ thống")]:::storage
@@ -49,7 +50,7 @@ flowchart LR
   end
 
   subgraph CONSUME[PHỤC VỤ VÀ CẢNH BÁO]
-    direction TB
+    direction LR
     API["RESTful API (FastAPI)<br/>Cung cấp dữ liệu hệ thống"]:::serving
     REACT["Giao diện Người dùng (React)<br/>Bảng điều khiển Thị trường"]:::serving
     SUPERSET[Apache Superset<br/>Báo cáo & Phân tích BI]:::observe
@@ -66,8 +67,10 @@ flowchart LR
   BRONZE --> TRANSFORM --> SILVER --> QUALITY
   QUALITY --> CLICKHOUSE
   CLICKHOUSE --> DBT --> CLICKHOUSE
-  SILVER -. Tin đã liên kết .-> NLP -. Sentiment Gold .-> CLICKHOUSE
-  CLICKHOUSE -->|Xuất Parquet| GOLD --> BACKUP
+  SILVER -->|Tin đã chuẩn hóa| NLP --> NLPQ --> CLICKHOUSE
+  CLICKHOUSE -->|Xuất Parquet| GOLD
+  CLICKHOUSE --> BACKUP
+  POSTGRES --> BACKUP
 
   DNSE --> PRODUCER --> KAFKA --> KENGINE
   ZK -. Điều phối broker .-> KAFKA
@@ -84,7 +87,6 @@ flowchart LR
   POSTGRES --> ALERT --> CHANNEL
   AIRFLOW -. Trạng thái DAG .-> API
   AIRFLOW -. DAG thành công hoặc lỗi .-> SLACK
-  PRODUCER -. Backup Parquet tick và nến .-> BACKUP
   KAFKA -. Lag .-> GRAFANA
 
   style SOURCES fill:#F8FAFC,stroke:#94A3B8,color:#172033

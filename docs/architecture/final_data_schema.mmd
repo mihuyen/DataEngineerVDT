@@ -1,5 +1,5 @@
-%%{init: {"theme":"base","htmlLabels":false,"flowchart":{"htmlLabels":false,"curve":"basis"},"themeVariables":{"background":"#ffffff","primaryTextColor":"#172033","lineColor":"#64748b","clusterBkg":"#f8fafc","clusterBorder":"#94a3b8","edgeLabelBackground":"#ffffff","fontFamily":"Arial"}}}%%
-flowchart LR
+%%{init: {"theme":"base","htmlLabels":false,"flowchart":{"htmlLabels":false,"curve":"basis","nodeSpacing":16,"rankSpacing":24,"diagramPadding":6},"themeVariables":{"background":"#ffffff","primaryTextColor":"#172033","lineColor":"#64748b","clusterBkg":"#f8fafc","clusterBorder":"#94a3b8","edgeLabelBackground":"#ffffff","fontFamily":"Arial"}}}%%
+flowchart TB
   classDef kafka fill:#FFF4D6,stroke:#D97706,color:#3B2600,stroke-width:1.5px;
   classDef batch fill:#E8F7EE,stroke:#16803C,color:#12351F,stroke-width:1.5px;
   classDef stream fill:#E8F1FF,stroke:#2563EB,color:#10213B,stroke-width:1.5px;
@@ -9,7 +9,7 @@ flowchart LR
   classDef future fill:#FFFFFF,stroke:#7C3AED,color:#3B1D70,stroke-width:1.5px,stroke-dasharray:5 4;
 
   subgraph BUS[KAFKA]
-    direction TB
+    direction LR
     T1[Chủ đề: dnse-trades-raw<br/>Định dạng JSON]:::kafka
     T2[Chủ đề: dnse-ohlcv-1m<br/>Định dạng JSON]:::kafka
   end
@@ -18,38 +18,38 @@ flowchart LR
     direction TB
 
     subgraph CHDIM[DIMENSION TABLES]
-      direction TB
-      D1[dim_date<br/>Chiều Thời gian]:::batch
-      D2[dim_stock<br/>Chiều Cổ phiếu]:::batch
-      D3[dim_sector<br/>Chiều Nhóm ngành]:::batch
-      D4[dim_index<br/>Chiều Chỉ số]:::batch
+      direction LR
+      D1[dim_date<br/>MergeTree; ORDER date_id]:::batch
+      D2[dim_stock<br/>MergeTree; ORDER ticker]:::batch
+      D3[dim_sector<br/>MergeTree; ORDER sector_id]:::batch
+      D4[dim_index<br/>MergeTree; ORDER index_id]:::batch
     end
 
     subgraph CHBATCH[BATCH FACT TABLES]
-      direction TB
-      F1[fact_daily_price<br/>Dữ liệu Giao dịch Cuối ngày]:::batch
-      F2[fact_market_index<br/>Dữ liệu Chỉ số Thị trường]:::batch
-      F5[fact_news_sentiment_detail<br/>Dữ liệu Cảm xúc Tin tức]:::batch
-      F6["fact_news_sentiment_daily<br/>Tổng hợp Cảm xúc Tin tức (Ngày)"]:::batch
+      direction LR
+      F1[fact_daily_price<br/>MergeTree; partition tháng<br/>ORDER ticker, trading_date]:::batch
+      F2[fact_market_index<br/>MergeTree; partition tháng<br/>ORDER index_id, trading_date]:::batch
+      F5[fact_news_sentiment_detail<br/>ReplacingMergeTree; partition tháng<br/>ORDER ticker, published_at, article_id]:::batch
+      F6[fact_news_sentiment_daily<br/>MergeTree; partition tháng<br/>ORDER ticker, news_date]:::batch
     end
 
     subgraph CHAPP[APP & ALERT TABLES]
-      direction TB
-      F3[fact_alert_event<br/>Nhật ký Cảnh báo]:::batch
-      F4[fact_alert_rule_state<br/>Trạng thái Cảnh báo]:::batch
+      direction LR
+      F3[fact_alert_event<br/>MergeTree; partition tháng<br/>ORDER user_id, triggered_at]:::batch
+      F4[fact_alert_rule_state<br/>ReplacingMergeTree<br/>ORDER alert_id, ticker]:::batch
     end
 
     subgraph CHSTREAM[STREAMING TABLES]
-      direction TB
+      direction LR
       K1["kafka_realtime_trade_ticks<br/>Kafka Engine (Đọc Tick)"]:::kafka
       K2["kafka_dnse_ohlcv_1m<br/>Kafka Engine (Đọc Nến)"]:::kafka
-      R1[realtime_trade_ticks_raw<br/>Dữ liệu Tick Thô]:::stream
-      R2[fact_realtime_vwap_1m_state<br/>Trạng thái VWAP Tích lũy]:::stream
-      R3[fact_intraday_ohlcv<br/>Dữ liệu Nến Intraday]:::stream
+      R1[realtime_trade_ticks_raw<br/>MergeTree; partition ngày<br/>TTL 30 ngày]:::stream
+      R2[fact_realtime_vwap_1m_state<br/>AggregatingMergeTree; partition ngày<br/>TTL 30 ngày]:::stream
+      R3[fact_intraday_ohlcv<br/>ReplacingMergeTree; partition ngày<br/>TTL 30 ngày]:::stream
     end
 
     subgraph CHVIEW[LOGICAL AND MATERIALIZED VIEWS]
-      direction TB
+      direction LR
       MV1[mv_realtime_trade_ticks_raw<br/>Biến đổi dòng Tick]:::view
       MV2[mv_fact_realtime_vwap_1m_state<br/>Tổng hợp dòng VWAP]:::view
       MV3[mv_dnse_ohlcv_1m_fact<br/>Biến đổi dòng Nến]:::view
@@ -59,13 +59,13 @@ flowchart LR
   end
 
   subgraph PG[POSTGRESQL - DỮ LIỆU ỨNG DỤNG]
-    direction TB
-    P1[watchlist<br/>Danh mục Quan tâm]:::pg
-    P2[user_alerts<br/>Cấu hình Cảnh báo Người dùng]:::pg
+    direction LR
+    P1[watchlist<br/>PK watchlist_id<br/>UNIQUE user_id, ticker]:::pg
+    P2[user_alerts<br/>PK alert_id<br/>Rule, channel, cooldown]:::pg
   end
 
   subgraph CONSUMER[LỚP SỬ DỤNG]
-    direction TB
+    direction LR
     A1[FastAPI và React dashboard]:::app
     A2[Alert Engine<br/>Telegram và Email]:::app
     A3[Superset và Grafana]:::app
@@ -85,6 +85,7 @@ flowchart LR
   F1 --> V2
   D2 -. ticker logic .-> R3
   D2 -. ticker logic .-> V1
+  F5 -->|ticker + ngày| F6
   P2 --> A2
   P1 --> A2
   V2 --> A2

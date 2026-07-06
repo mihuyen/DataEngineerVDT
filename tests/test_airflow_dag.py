@@ -40,7 +40,16 @@ def test_stock_lakehouse_daily_dag_has_quality_gate_before_gold() -> None:
     assert "scripts/run_all_quality_checks.py" in content
     assert "quality_all >> [migrate_gold, news_nlp_inference]" in content
     assert "news_nlp_inference >> news_sentiment_quality" in content
-    assert "[migrate_gold, news_sentiment_quality] >> load_gold" in content
+    # load_gold must depend only on the schema being ready (migrate_gold), not
+    # on the news NLP side branch: news_nlp_inference calls an external NLP
+    # service that can fail for reasons unrelated to price/index Gold data,
+    # and load_gold.py already degrades gracefully on its own when news
+    # sentiment output isn't available. Gating load_gold on the news branch
+    # previously emptied dim_stock/fact_daily_price/etc. for hours in
+    # production when news_nlp_inference failed and load_gold never got the
+    # chance to run at all.
+    assert "migrate_gold >> load_gold" in content
+    assert "[migrate_gold, news_sentiment_quality] >> load_gold" not in content
 
 
 def test_stock_lakehouse_daily_dag_uses_vietnam_timezone_and_weekday_schedule() -> None:

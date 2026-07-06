@@ -125,31 +125,54 @@ def parse_args() -> argparse.Namespace:
     return parser.parse_args()
 
 
-def predict_parallel(articles: list[NLPArticle], base_url: str, workers: int) -> list[dict]:
-    """Gọi /predict/sentiment song song bằng thread pool."""
+def predict_parallel(articles: list[NLPArticle], base_url: str, workers: int) -> list[dict | None]:
+    """Gọi /predict/sentiment song song bằng thread pool.
+
+    A single article that fails after retries is logged and skipped (result
+    stays None) rather than raising out of the whole batch -- this script's
+    caller only writes output once, at the very end, so an unretried
+    transient failure (e.g. the NLP service reloading its model right after a
+    restart) used to throw away every successful prediction collected in the
+    same run, sometimes 20+ minutes of work.
+    """
+    import time
+
     import requests
     from concurrent.futures import ThreadPoolExecutor, as_completed
 
     session = requests.Session()
     url = base_url.rstrip("/") + "/predict/sentiment"
+    max_attempts = 3
 
-    def call_one(article: NLPArticle) -> dict:
-        resp = session.post(url, json=article.as_payload(), timeout=60)
-        resp.raise_for_status()
-        result = resp.json()
-        result["article_id"] = article.article_id
-        return result
+    def call_one(article: NLPArticle) -> dict | None:
+        last_exc: Exception | None = None
+        for attempt in range(1, max_attempts + 1):
+            try:
+                resp = session.post(url, json=article.as_payload(), timeout=60)
+                resp.raise_for_status()
+                result = resp.json()
+                result["article_id"] = article.article_id
+                return result
+            except Exception as exc:  # noqa: BLE001 - retry any transient failure
+                last_exc = exc
+                if attempt < max_attempts:
+                    time.sleep(2**attempt)
+        print(f"  inference_failed: article_id={article.article_id} after {max_attempts} attempts ({last_exc})", flush=True)
+        return None
 
-    results = [None] * len(articles)
+    results: list[dict | None] = [None] * len(articles)
     with ThreadPoolExecutor(max_workers=workers) as pool:
         future_to_idx = {pool.submit(call_one, a): i for i, a in enumerate(articles)}
         done = 0
+        failed = 0
         for future in as_completed(future_to_idx):
             idx = future_to_idx[future]
             results[idx] = future.result()
+            if results[idx] is None:
+                failed += 1
             done += 1
             if done % 50 == 0:
-                print(f"  inference: {done}/{len(articles)}", flush=True)
+                print(f"  inference: {done}/{len(articles)} (failed={failed})", flush=True)
     return results
 
 
@@ -175,7 +198,11 @@ def main() -> None:
         print(f"No new linked articles for model_version={model_version}")
         return
     print(f"Running inference on {len(articles)} articles with {args.workers} workers...")
-    predictions = predict_parallel(articles, base_url, workers=args.workers)
+    raw_predictions = predict_parallel(articles, base_url, workers=args.workers)
+    predictions = [item for item in raw_predictions if item is not None]
+    failed_count = len(raw_predictions) - len(predictions)
+    if failed_count:
+        print(f"- failed_after_retries: {failed_count} (will be retried on next run)")
     prediction_frame = flatten_predictions(predictions)
     enriched = links.join(prediction_frame, on="article_id", how="inner")
 

@@ -1,5 +1,5 @@
-%%{init: {"theme":"base","htmlLabels":false,"flowchart":{"htmlLabels":false,"curve":"basis"},"themeVariables":{"background":"#ffffff","primaryTextColor":"#172033","lineColor":"#64748b","clusterBkg":"#f8fafc","clusterBorder":"#94a3b8","edgeLabelBackground":"#ffffff","fontFamily":"Arial"}}}%%
-flowchart LR
+%%{init: {"theme":"base","htmlLabels":false,"flowchart":{"htmlLabels":false,"curve":"basis","nodeSpacing":16,"rankSpacing":24,"diagramPadding":6},"themeVariables":{"background":"#ffffff","primaryTextColor":"#172033","lineColor":"#64748b","clusterBkg":"#f8fafc","clusterBorder":"#94a3b8","edgeLabelBackground":"#ffffff","fontFamily":"Arial"}}}%%
+flowchart TB
   classDef source fill:#E8F1FF,stroke:#2563EB,color:#10213B,stroke-width:1.5px;
   classDef bronze fill:#FFF4D6,stroke:#D97706,color:#3B2600,stroke-width:1.5px;
   classDef silver fill:#F1F5F9,stroke:#64748B,color:#1E293B,stroke-width:1.5px;
@@ -7,7 +7,7 @@ flowchart LR
   classDef future fill:#FFFFFF,stroke:#7C3AED,color:#3B1D70,stroke-width:1.5px,stroke-dasharray:5 4;
 
   subgraph SRC[NGUỒN]
-    direction TB
+    direction LR
     S1[API Chứng khoán<br/>Giao dịch, danh mục, doanh nghiệp]:::source
     S2[API Chỉ số<br/>Chỉ số thị trường chung]:::source
     S3[Trang tin Tài chính<br/>Tin tức thị trường]:::source
@@ -15,7 +15,7 @@ flowchart LR
   end
 
   subgraph B[BRONZE - PARQUET TRÊN MINIO]
-    direction TB
+    direction LR
     B1[Dữ liệu OHLCV Thô<br/>Partition: year/month/day]:::bronze
     B2[Hồ sơ Doanh nghiệp Thô<br/>Partition: dataset/year/month/day]:::bronze
     B3[Chỉ số Thị trường Thô<br/>Partition: index_code/year/month/day]:::bronze
@@ -24,7 +24,7 @@ flowchart LR
   end
 
   subgraph S[SILVER - PARQUET TRÊN MINIO]
-    direction TB
+    direction LR
     S1V[Dữ liệu OHLCV Chuẩn hóa<br/>Grain: ticker + trading_date]:::silver
     S2V[Hồ sơ Doanh nghiệp Chuẩn hóa<br/>Grain: ticker + snapshot]:::silver
     S3V[Chỉ số Thị trường Chuẩn hóa<br/>Grain: index_id + trading_date]:::silver
@@ -33,7 +33,7 @@ flowchart LR
   end
 
   subgraph G[GOLD - PARQUET MINIO VÀ CLICKHOUSE]
-    direction TB
+    direction LR
     G1["Các Bảng Chiều (Dimensions)<br/>dim_date, dim_stock, dim_sector..."]:::gold
     G2[fact_daily_price<br/>Giao dịch cuối ngày & Biến động]:::gold
     G3[fact_daily_price_indicators<br/>Các Chỉ báo Kỹ thuật]:::gold
@@ -63,8 +63,8 @@ flowchart LR
   S2V --> G1
   S3V --> G1
   S3V --> G4
-  S4V -->|Entity Linking & NLP| G7
-  S4V -->|Entity Linking & NLP| G9
+  S4V -->|Entity Linking, NLP<br/>và quality gate| G7
+  G7 -->|Tổng hợp ticker + ngày| G9
   S5V --> G5
   B5 -->|Kafka Engine và MV| G6
   G3 --> G8

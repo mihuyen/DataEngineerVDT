@@ -1,5 +1,6 @@
-%%{init: {"theme":"base","htmlLabels":false,"themeVariables":{"background":"#ffffff","primaryColor":"#ffffff","primaryTextColor":"#172033","primaryBorderColor":"#64748b","lineColor":"#64748b","tertiaryColor":"#ffffff","edgeLabelBackground":"#ffffff","titleColor":"#172033","fontFamily":"Arial"}}}%%
+%%{init: {"theme":"base","htmlLabels":false,"er":{"layoutDirection":"TB","minEntityWidth":110,"minEntityHeight":70,"entityPadding":10,"diagramPadding":6},"themeVariables":{"background":"#ffffff","primaryColor":"#ffffff","primaryTextColor":"#172033","primaryBorderColor":"#64748b","lineColor":"#64748b","tertiaryColor":"#ffffff","edgeLabelBackground":"#ffffff","titleColor":"#172033","fontFamily":"Arial"}}}%%
 erDiagram
+  direction TB
   DIM_DATE {
     UInt32 date_id PK
     Date date UK
@@ -117,7 +118,7 @@ erDiagram
 
   FACT_NEWS_SENTIMENT_DETAIL {
     String article_id PK
-    String ticker FK
+    String ticker PK,FK
     String url
     String title
     String source
@@ -125,6 +126,10 @@ erDiagram
     String sentiment_label
     Float64 sentiment_score
     Float64 confidence_score
+    UInt8 is_low_confidence
+    String model_version
+    String match_method
+    UInt8 match_score
     DateTime inferred_at
   }
 
@@ -165,6 +170,6 @@ erDiagram
   DIM_STOCK ||--o{ FACT_NEWS_SENTIMENT_DETAIL : "ticker"
   DIM_STOCK ||--o{ FACT_NEWS_SENTIMENT_DAILY : "ticker"
   DIM_DATE ||--o{ FACT_NEWS_SENTIMENT_DAILY : "date_id"
+  FACT_NEWS_SENTIMENT_DAILY ||--o{ FACT_NEWS_SENTIMENT_DETAIL : "ticker + news_date"
   DIM_STOCK ||--o{ FACT_ALERT_EVENT : "ticker"
   DIM_DATE ||--o{ FACT_ALERT_EVENT : "date_id"
-
