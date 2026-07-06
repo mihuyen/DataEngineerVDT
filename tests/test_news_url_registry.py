@@ -37,6 +37,16 @@ def test_failed_url_respects_retry_limit_and_delay(tmp_path: Path) -> None:
     assert not registry.should_crawl(url, max_attempts=3, retry_after=timedelta(seconds=0))
 
 
+def test_backfill_can_retry_a_skipped_historical_url(tmp_path: Path) -> None:
+    registry = NewsURLRegistry(tmp_path / "registry.sqlite3")
+    url = "https://example.com/historical"
+    registry.register_discovered(url, "VnExpress", "Chứng khoán")
+    registry.mark_skipped(url, "VnExpress", "Chứng khoán", "article is older than max_age_days")
+
+    assert not registry.should_crawl(url)
+    assert registry.should_crawl(url, retry_skipped=True)
+
+
 def test_seed_success_only_inserts_new_urls(tmp_path: Path) -> None:
     registry = NewsURLRegistry(tmp_path / "registry.sqlite3")
     rows = [

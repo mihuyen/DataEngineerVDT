@@ -58,6 +58,7 @@ PIPELINE_TABLES = [
     ("fact_daily_price", "trading_date"),
     ("fact_market_index", "trading_date"),
     ("fact_news_sentiment_daily", "news_date"),
+    ("fact_news_sentiment_detail", "published_at"),
     ("fact_intraday_ohlcv", "minute_ts"),
     ("fact_realtime_vwap", "minute_ts"),
     ("fact_alert_event", "triggered_at"),
@@ -1124,19 +1125,38 @@ def get_intraday_technical_signals(
 def get_news_sentiment(days: int = Query(7, ge=1, le=60)) -> dict[str, Any]:
     by_ticker = rows(
         f"""
+        WITH latest_detail AS (
+          SELECT
+            ticker,
+            uniqExact(source) AS sourceCount,
+            avg(confidence_score) AS avgConfidence,
+            countIf(is_low_confidence = 1) AS lowConfidenceCount,
+            argMax(url, inferred_at) AS url,
+            argMax(source, inferred_at) AS source,
+            argMax(model_version, inferred_at) AS modelVersion
+          FROM fact_news_sentiment_detail
+          WHERE published_at >= (SELECT max(news_date) FROM fact_news_sentiment_daily) - {days}
+          GROUP BY ticker
+        )
         SELECT
           n.ticker AS ticker,
           ifNull(nullIf(s.company_name, ''), n.ticker) AS name,
           sum(n.news_count) AS newsCount,
-          max(n.source_count) AS sources,
+          ifNull(any(d.sourceCount), 0) AS sources,
           sum(n.positive_count) AS positive,
           sum(n.negative_count) AS negative,
           sum(n.neutral_count) AS neutral,
           avg(n.avg_sentiment_score) AS avgScore,
           argMax(n.top_headline, n.news_date) AS headline,
+          any(d.url) AS url,
+          any(d.source) AS source,
+          any(d.avgConfidence) AS avgConfidence,
+          any(d.lowConfidenceCount) AS lowConfidenceCount,
+          any(d.modelVersion) AS modelVersion,
           formatDateTime(toDateTime(max(n.news_date)), '%Y-%m-%d') AS newsDate
         FROM fact_news_sentiment_daily n
         LEFT JOIN dim_stock s ON n.ticker = s.ticker
+        LEFT JOIN latest_detail d ON n.ticker = d.ticker
         WHERE n.news_date >= (SELECT max(news_date) FROM fact_news_sentiment_daily) - {days}
         GROUP BY ticker, name
         ORDER BY newsCount DESC
@@ -1155,7 +1175,13 @@ def get_news_sentiment(days: int = Query(7, ge=1, le=60)) -> dict[str, Any]:
         ORDER BY news_date
         """
     )
-    return {"count": len(by_ticker), "data": by_ticker, "byDate": by_date}
+    model_versions = sorted({row["modelVersion"] for row in by_ticker if row.get("modelVersion")})
+    return {
+        "count": len(by_ticker),
+        "data": by_ticker,
+        "byDate": by_date,
+        "modelVersions": model_versions,
+    }
 
 
 def alert_cooldown_lookup() -> dict[tuple[str, str, str], dict[str, int]]:

@@ -54,7 +54,14 @@ BATCH_FACT_PARTITIONS = {
     "fact_market_index": "trading_date",
 }
 
-TABLES = [*DIM_TABLES, *BATCH_FACT_PARTITIONS, "fact_news_sentiment_daily", "fact_realtime_vwap", "fact_alert_event"]
+TABLES = [
+    *DIM_TABLES,
+    *BATCH_FACT_PARTITIONS,
+    "fact_news_sentiment_daily",
+    "fact_news_sentiment_detail",
+    "fact_realtime_vwap",
+    "fact_alert_event",
+]
 
 
 def verify_counts(client: object) -> pl.DataFrame:
@@ -72,7 +79,8 @@ def truncate_dim_tables(client: object) -> None:
         execute(client, f"TRUNCATE TABLE IF EXISTS {table_name}")  # type: ignore[arg-type]
 
 
-def truncate_news_sentiment_table(client: object) -> None:
+def truncate_news_sentiment_tables(client: object) -> None:
+    execute(client, "TRUNCATE TABLE IF EXISTS fact_news_sentiment_detail")  # type: ignore[arg-type]
     execute(client, "TRUNCATE TABLE IF EXISTS fact_news_sentiment_daily")  # type: ignore[arg-type]
 
 
@@ -186,7 +194,7 @@ def main() -> None:
         insert_dataframe(client, "fact_market_index", market_index_frame)
 
     try:
-        truncate_news_sentiment_table(client)
+        truncate_news_sentiment_tables(client)
         load_fact_news_sentiment_daily(client)
     except FileNotFoundError as exc:
         print(f"- skipped fact_news_sentiment_daily: {exc}")

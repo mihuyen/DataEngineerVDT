@@ -28,6 +28,7 @@ CLICKHOUSE_TABLES = [
     "fact_daily_price",
     "fact_market_index",
     "fact_news_sentiment_daily",
+    "fact_news_sentiment_detail",
     "fact_alert_event",
     "fact_alert_rule_state",
     "fact_realtime_vwap",

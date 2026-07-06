@@ -11,6 +11,7 @@ from src.loaders.load_fact_news_sentiment import load_fact_news_sentiment_daily
 
 def main() -> None:
     client = create_client()
+    execute(client, "TRUNCATE TABLE IF EXISTS fact_news_sentiment_detail")
     execute(client, "TRUNCATE TABLE IF EXISTS fact_news_sentiment_daily")
     frame = load_fact_news_sentiment_daily(client)
     counts = query_dataframe(

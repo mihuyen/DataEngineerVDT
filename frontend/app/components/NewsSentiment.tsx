@@ -28,6 +28,7 @@ export function NewsSentiment({ onNavigate }: NewsSentimentProps) {
   const [newsSentiment, setNewsSentiment] = useState<NewsSentimentRow[]>([]);
   const [sentimentByDate, setSentimentByDate] = useState<SentimentByDate[]>([]);
   const [apiStatus, setApiStatus] = useState<"loading" | "ok" | "error">("loading");
+  const [modelVersions, setModelVersions] = useState<string[]>([]);
 
   useEffect(() => {
     let cancelled = false;
@@ -36,6 +37,7 @@ export function NewsSentiment({ onNavigate }: NewsSentimentProps) {
         if (cancelled) return;
         setNewsSentiment(payload.data);
         setSentimentByDate(payload.byDate);
+        setModelVersions(payload.modelVersions || []);
         setApiStatus("ok");
       })
       .catch(() => {
@@ -71,7 +73,7 @@ export function NewsSentiment({ onNavigate }: NewsSentimentProps) {
         <div>
           <h1 style={{ color: "#e2e8f0", margin: 0, fontSize: 18, fontWeight: 700, ...INTER }}>Tin tức & cảm xúc thị trường</h1>
           <p style={{ color: apiStatus === "error" ? "#ff4d6d" : "#6b7fa3", margin: 0, fontSize: 12, ...INTER }}>
-            {apiStatus === "loading" ? "Đang tải dữ liệu..." : apiStatus === "error" ? "Không thể tải dữ liệu — kiểm tra API" : `ClickHouse live · ${newsSentiment.length} mã`}
+            {apiStatus === "loading" ? "Đang tải dữ liệu..." : apiStatus === "error" ? "Không thể tải dữ liệu — kiểm tra API" : `ClickHouse live · ${newsSentiment.length} mã · Model ${modelVersions.join(", ") || "không xác định"}`}
           </p>
         </div>
         <div style={{ display: "flex", gap: 8, alignItems: "center" }}>

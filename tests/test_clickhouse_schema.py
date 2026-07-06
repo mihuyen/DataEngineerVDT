@@ -20,6 +20,7 @@ def test_gold_ddl_files_exist() -> None:
         "fact_market_index.sql",
         "fact_intraday_ohlcv.sql",
         "fact_news_sentiment_daily.sql",
+        "fact_news_sentiment_detail.sql",
         "fact_alert_event.sql",
     ]
 
@@ -65,4 +66,7 @@ def test_scheme_news_and_alert_fact_tables_exist() -> None:
     alert_ddl = (DDL_DIR / "fact_alert_event.sql").read_text(encoding="utf-8")
 
     assert "ORDER BY (ticker, news_date)" in news_ddl
+    detail_ddl = (DDL_DIR / "fact_news_sentiment_detail.sql").read_text(encoding="utf-8")
+    assert "ReplacingMergeTree(inferred_at)" in detail_ddl
+    assert "ORDER BY (ticker, published_at, article_id)" in detail_ddl
     assert "ORDER BY (user_id, triggered_at)" in alert_ddl

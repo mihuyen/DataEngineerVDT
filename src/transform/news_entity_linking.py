@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import hashlib
 import re
+from functools import lru_cache
 from datetime import date, datetime, timezone
 from pathlib import Path
 from typing import Any
@@ -69,6 +70,13 @@ def build_company_dictionary(company_profile: pl.DataFrame) -> list[dict[str, st
     if missing:
         raise ValueError(f"Company profile is missing required columns: {', '.join(sorted(missing))}")
 
+    if "exchange" in company_profile.columns:
+        company_profile = company_profile.filter(pl.col("exchange").str.to_uppercase() == "HOSE")
+    if "processed_at" in company_profile.columns:
+        company_profile = company_profile.sort("processed_at").unique(subset=["ticker"], keep="last")
+    else:
+        company_profile = company_profile.unique(subset=["ticker"], keep="last")
+
     optional_name_col = "company_name_en" if "company_name_en" in company_profile.columns else None
     records: list[dict[str, str]] = []
     for row in company_profile.to_dicts():
@@ -101,6 +109,7 @@ def build_company_dictionary(company_profile: pl.DataFrame) -> list[dict[str, st
     return sorted(unique.values(), key=lambda item: (item["ticker"], item["alias"]))
 
 
+@lru_cache(maxsize=4096)
 def alias_pattern(alias: str) -> re.Pattern[str]:
     escaped = re.escape(alias)
     if alias.isascii() and alias.replace(".", "").isalnum() and len(alias) <= 5:
@@ -108,31 +117,71 @@ def alias_pattern(alias: str) -> re.Pattern[str]:
     return re.compile(escaped, flags=re.IGNORECASE)
 
 
+@lru_cache(maxsize=1024)
+def ticker_context_pattern(ticker: str) -> re.Pattern[str]:
+    escaped = re.escape(ticker)
+    return re.compile(
+        rf"(?:cổ phiếu|mã|HOSE|HSX|chứng khoán|sàn)\s{{0,20}}{escaped}"
+        rf"|{escaped}\s{{0,20}}(?:cổ phiếu|HOSE|HSX|chứng khoán)",
+        flags=re.IGNORECASE,
+    )
+
+
 def link_article_to_tickers(
     article: dict[str, Any],
     company_dictionary: list[dict[str, str]],
 ) -> list[dict[str, Any]]:
-    text = " ".join(
+    title = normalize_text(str(article.get("title", "")))
+    body = " ".join(
         normalize_text(str(article.get(column, "")))
-        for column in ["title", "description", "content"]
+        for column in ["description", "content"]
     )
     tags = article.get("tags") or []
-    if isinstance(tags, list):
-        text = f"{text} {' '.join(str(tag) for tag in tags)}"
+    tag_values = {normalize_text(str(tag)).upper() for tag in tags} if isinstance(tags, list) else set()
+    text = f"{title} {body}"
+    text_casefold = text.casefold()
+    ticker_set = {record["ticker"] for record in company_dictionary}
+    title_tickers = {
+        match.group(0)
+        for match in re.finditer(r"(?<![A-Z0-9])[A-Z][A-Z0-9.]{1,4}(?![A-Z0-9])", title)
+        if match.group(0) in ticker_set
+    }
+    context_tickers: set[str] = set()
+    for pattern in [
+        r"(?:cổ phiếu|mã|HOSE|HSX|chứng khoán|sàn)\s{0,20}([A-Z][A-Z0-9.]{1,4})(?![A-Z0-9])",
+        r"(?<![A-Z0-9])([A-Z][A-Z0-9.]{1,4})\s{0,20}(?:cổ phiếu|HOSE|HSX|chứng khoán)",
+    ]:
+        context_tickers.update(
+            match.group(1)
+            for match in re.finditer(pattern, body, flags=re.IGNORECASE)
+            if match.group(1).upper() in ticker_set
+        )
+    context_tickers = {ticker.upper() for ticker in context_tickers}
 
     matches: dict[str, dict[str, Any]] = {}
     for record in company_dictionary:
         alias = record["alias"]
-        if alias_pattern(alias).search(text):
-            ticker = record["ticker"]
+        ticker = record["ticker"]
+        is_ticker = alias == ticker
+        method = ""
+        score = 0
+        if is_ticker and ticker in tag_values:
+            method, score = "tag_exact", 3
+        elif is_ticker and ticker in title_tickers:
+            method, score = "ticker_title_regex", 3
+        elif not is_ticker and alias.casefold() in text_casefold:
+            method, score = "company_alias_regex", 2
+        elif is_ticker and ticker in context_tickers:
+            method, score = "ticker_context_regex", 2
+
+        if score:
             current = matches.get(ticker)
-            score = 2 if alias == ticker else 1
             if current is None or score > current["match_score"]:
                 matches[ticker] = {
                     "ticker": ticker,
                     "matched_alias": alias,
                     "match_score": score,
-                    "match_method": "ticker_regex" if alias == ticker else "company_alias_regex",
+                    "match_method": method,
                 }
 
     article_id = make_article_id(str(article.get("url", "")))

@@ -1,0 +1,91 @@
+%%{init: {"theme":"base","htmlLabels":false,"flowchart":{"htmlLabels":false},"themeVariables":{"background":"#ffffff","primaryTextColor":"#172033","lineColor":"#526070","clusterBkg":"#f8fafc","clusterBorder":"#cbd5e1","edgeLabelBackground":"#ffffff","titleColor":"#172033","fontFamily":"Arial"}}}%%
+flowchart LR
+  classDef source fill:#E8F1FF,stroke:#2563EB,color:#10213B,stroke-width:1.5px;
+  classDef ingest fill:#FFF4D6,stroke:#D97706,color:#3B2600,stroke-width:1.5px;
+  classDef storage fill:#E8F7EE,stroke:#16803C,color:#12351F,stroke-width:1.5px;
+  classDef process fill:#F1ECFF,stroke:#7048C8,color:#27164D,stroke-width:1.5px;
+  classDef serving fill:#E9F7F7,stroke:#087F8C,color:#12383B,stroke-width:1.5px;
+  classDef ops fill:#FCEAEC,stroke:#C43B55,color:#4A1620,stroke-width:1.5px;
+  classDef observe fill:#F2F4F7,stroke:#64748B,color:#263244,stroke-width:1.5px;
+
+  subgraph SOURCES[NGUỒN DỮ LIỆU]
+    direction TB
+    KBS[KBS qua vnstock<br/>OHLCV ngày, listing, profile]:::source
+    VCI[VCI qua vnstock<br/>VNINDEX, VN30]:::source
+    NEWS[VnExpress, Vietstock, CafeF<br/>Tin tức thị trường]:::source
+    DNSE[DNSE WebSocket<br/>Tick khớp lệnh, nến 1 phút]:::source
+  end
+
+  subgraph BATCH[LUỒNG BATCH]
+    direction TB
+    AIRFLOW[Airflow<br/>DAG 18:00 thứ 2 đến thứ 6]:::ingest
+    CRAWLER[Python crawler + URL registry<br/>Incremental và historical backfill]:::ingest
+    BRONZE[(MinIO Bronze<br/>Parquet dữ liệu gần nguyên trạng)]:::storage
+    SILVER[(MinIO Silver<br/>Parquet chuẩn hóa, deduplicate, HOSE)]:::storage
+    TRANSFORM[Python + Polars<br/>Chuẩn hóa và mô hình hóa]:::process
+    QUALITY[Quality gates<br/>Schema, domain, freshness,<br/>row-count và key reconciliation]:::process
+    DBT[dbt incremental mart<br/>SMA, EMA, RSI, MACD, Bollinger]:::process
+    NLP[NLP service<br/>Entity linking + sentiment 3 lớp]:::process
+  end
+
+  subgraph STREAM[LUỒNG REALTIME]
+    direction TB
+    PRODUCER[DNSE producers<br/>Trade ticks và OHLCV 1m]:::ingest
+    KAFKA[(Kafka<br/>dnse-trades-raw<br/>dnse-ohlcv-1m)]:::storage
+    ZK[Zookeeper<br/>Metadata và coordination]:::observe
+    KENGINE[ClickHouse Kafka Engine<br/>Materialized Views]:::process
+    RAWTICK[(realtime_trade_ticks_raw<br/>TTL 30 ngày)]:::storage
+    VWAPSTATE[(fact_realtime_vwap_1m_state<br/>AggregatingMergeTree, TTL 30 ngày)]:::storage
+    INTRADAY[(fact_intraday_ohlcv<br/>ReplacingMergeTree, TTL 30 ngày)]:::storage
+    VWAPVIEW[fact_realtime_vwap<br/>View: VWAP phút và VWAP phiên]:::serving
+  end
+
+  subgraph LAKE_SERVE[LAKEHOUSE VÀ SERVING]
+    direction TB
+    CLICKHOUSE[(ClickHouse<br/>Gold analytical serving)]:::serving
+    GOLD[(MinIO Gold<br/>Parquet dimension, fact, snapshot)]:::storage
+    BACKUP[(MinIO backup<br/>Bản sao dữ liệu và metadata)]:::storage
+    POSTGRES[(PostgreSQL<br/>Watchlist và alert rules)]:::ops
+  end
+
+  subgraph CONSUME[PHỤC VỤ VÀ CẢNH BÁO]
+    direction TB
+    API[FastAPI<br/>Market, stock, VWAP, signals,<br/>watchlist, alert, pipeline]:::serving
+    REACT[React dashboard<br/>7 màn hình nghiệp vụ]:::serving
+    SUPERSET[Superset<br/>Phân tích BI]:::observe
+    GRAFANA[Grafana<br/>Giám sát vận hành]:::observe
+    ALERT[Alert Engine<br/>Rule, crossing, cooldown]:::ops
+    CHANNEL[Telegram và Email]:::ops
+  end
+
+  KBS --> AIRFLOW
+  VCI --> AIRFLOW
+  NEWS --> CRAWLER --> BRONZE
+  AIRFLOW --> BRONZE
+  BRONZE --> TRANSFORM --> SILVER --> QUALITY
+  QUALITY --> CLICKHOUSE
+  CLICKHOUSE --> DBT --> CLICKHOUSE
+  SILVER -. Tin đã liên kết .-> NLP -. Sentiment Gold .-> CLICKHOUSE
+  CLICKHOUSE -->|Xuất Parquet| GOLD --> BACKUP
+
+  DNSE --> PRODUCER --> KAFKA --> KENGINE
+  ZK -. Điều phối broker .-> KAFKA
+  KENGINE --> RAWTICK
+  KENGINE --> VWAPSTATE --> VWAPVIEW --> CLICKHOUSE
+  KENGINE --> INTRADAY --> CLICKHOUSE
+
+  CLICKHOUSE --> API
+  POSTGRES --> API
+  API --> REACT
+  CLICKHOUSE --> SUPERSET
+  CLICKHOUSE --> GRAFANA
+  CLICKHOUSE --> ALERT
+  POSTGRES --> ALERT --> CHANNEL
+  AIRFLOW -. Trạng thái DAG .-> API
+  KAFKA -. Lag .-> GRAFANA
+
+  style SOURCES fill:#F8FAFC,stroke:#94A3B8,color:#172033
+  style BATCH fill:#FFFFFF,stroke:#94A3B8,color:#172033
+  style STREAM fill:#FFFFFF,stroke:#94A3B8,color:#172033
+  style LAKE_SERVE fill:#F8FAFC,stroke:#94A3B8,color:#172033
+  style CONSUME fill:#F8FAFC,stroke:#94A3B8,color:#172033

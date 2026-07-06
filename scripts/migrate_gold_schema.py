@@ -30,6 +30,7 @@ NO_DROP_TABLES = [
 ]
 
 GOLD_TABLES = [
+    "fact_news_sentiment_detail",
     "fact_news_sentiment_daily",
     "fact_market_index",
     "fact_daily_price",

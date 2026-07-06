@@ -1,0 +1,74 @@
+%%{init: {"theme":"base","htmlLabels":false,"flowchart":{"htmlLabels":false,"curve":"basis"},"themeVariables":{"background":"#ffffff","primaryTextColor":"#172033","lineColor":"#64748b","clusterBkg":"#f8fafc","clusterBorder":"#94a3b8","edgeLabelBackground":"#ffffff","fontFamily":"Arial"}}}%%
+flowchart LR
+  classDef source fill:#E8F1FF,stroke:#2563EB,color:#10213B,stroke-width:1.5px;
+  classDef bronze fill:#FFF4D6,stroke:#D97706,color:#3B2600,stroke-width:1.5px;
+  classDef silver fill:#F1F5F9,stroke:#64748B,color:#1E293B,stroke-width:1.5px;
+  classDef gold fill:#E8F7EE,stroke:#16803C,color:#12351F,stroke-width:1.5px;
+  classDef future fill:#FFFFFF,stroke:#7C3AED,color:#3B1D70,stroke-width:1.5px,stroke-dasharray:5 4;
+
+  subgraph SRC[NGUỒN]
+    direction TB
+    S1[KBS qua vnstock<br/>Giá ngày, listing, profile]:::source
+    S2[VCI qua vnstock<br/>VNINDEX, VN30]:::source
+    S3[VnExpress, Vietstock, CafeF<br/>Bài viết và metadata]:::source
+    S4[DNSE và KBS<br/>Tick, nến 1 phút]:::source
+  end
+
+  subgraph B[BRONZE - PARQUET TRÊN MINIO]
+    direction TB
+    B1[ohlcv<br/>ticker, time, open, high, low,<br/>close, volume, source, ingested_at<br/>Partition: year/month/day]:::bronze
+    B2[company_profile<br/>symbol, company_name, exchange,<br/>industry, shares, ratios, raw fields<br/>Partition: dataset/year/month/day]:::bronze
+    B3[market_index<br/>index_code, time, OHLC,<br/>volume, value, ingested_at<br/>Partition: index_code/year/month/day]:::bronze
+    B4[news<br/>url, title, content, publisher,<br/>published_at, crawled_at<br/>Partition: source/year/month/day]:::bronze
+    B5[intraday and DNSE raw<br/>symbol, timestamp, OHLC,<br/>price, volume, resolution, source<br/>Partition: source/year/month/day]:::bronze
+  end
+
+  subgraph S[SILVER - PARQUET TRÊN MINIO]
+    direction TB
+    S1V[ohlcv chuẩn hóa HOSE<br/>ticker, trading_date, open, high,<br/>low, close, volume, value<br/>Grain: ticker + trading_date<br/>Partition: year/month]:::silver
+    S2V[company_profile chuẩn hóa<br/>ticker, company_name, exchange,<br/>sector, listed_date, shares, ratios<br/>Grain: ticker + snapshot]:::silver
+    S3V[market_index chuẩn hóa<br/>index_id in VNINDEX, VN30,<br/>trading_date, OHLC, volume, value<br/>Grain: index_id + trading_date]:::silver
+    S4V[news chuẩn hóa và khử trùng<br/>url, title, content, publisher,<br/>published_at, mentioned_tickers<br/>Grain: một URL bài viết]:::silver
+    S5V[intraday OHLCV 1m<br/>ticker, minute_ts, trading_date,<br/>OHLC, volume, is_final, source<br/>Grain: ticker + minute_ts + source]:::silver
+  end
+
+  subgraph G[GOLD - PARQUET MINIO VÀ CLICKHOUSE]
+    direction TB
+    G1[dim_date, dim_stock,<br/>dim_sector, dim_index]:::gold
+    G2[fact_daily_price<br/>Giá ngày, vốn hóa, biến động]:::gold
+    G3[fact_daily_price_indicators<br/>SMA, EMA, RSI, MACD,<br/>Bollinger, breakout, volume spike]:::gold
+    G4[fact_market_index<br/>Điểm số, thanh khoản,<br/>độ rộng thị trường]:::gold
+    G5[fact_intraday_ohlcv<br/>Nến một phút, TTL 30 ngày]:::gold
+    G6[fact_realtime_vwap<br/>VWAP phút, VWAP phiên,<br/>độ lệch giá so với VWAP]:::gold
+    G7[fact_news_sentiment_daily<br/>3 nhãn và điểm cảm xúc<br/>Hướng mở rộng sau]:::future
+    G8[fact_alert_event<br/>Sự kiện và trạng thái gửi cảnh báo]:::gold
+  end
+
+  S1 --> B1
+  S1 --> B2
+  S2 --> B3
+  S3 --> B4
+  S4 --> B5
+
+  B1 -->|ép kiểu, chuẩn mã, lọc HOSE,<br/>kiểm tra OHLC, khử trùng| S1V
+  B2 -->|chuẩn hóa schema,<br/>lọc HOSE, hợp nhất listing/profile| S2V
+  B3 -->|lọc VNINDEX và VN30,<br/>chuẩn thời gian, kiểm tra miền| S3V
+  B4 -->|làm sạch nội dung,<br/>URL registry, deduplicate| S4V
+  B5 -->|chuẩn timestamp,<br/>kiểm tra nến và khóa| S5V
+
+  S1V --> G2
+  S1V --> G3
+  S1V --> G1
+  S2V --> G1
+  S3V --> G1
+  S3V --> G4
+  S4V -. entity linking và NLP .-> G7
+  S5V --> G5
+  B5 -->|Kafka Engine và MV| G6
+  G3 --> G8
+  G6 --> G8
+
+  style SRC fill:#F8FAFC,stroke:#94A3B8,color:#172033
+  style B fill:#FFFBEB,stroke:#D97706,color:#172033
+  style S fill:#F8FAFC,stroke:#64748B,color:#172033
+  style G fill:#F0FDF4,stroke:#16803C,color:#172033

@@ -247,6 +247,9 @@ export type NewsSentimentRow = {
   source?: string | null;
   publishedAt?: string;
   newsDate?: string;
+  avgConfidence?: number;
+  lowConfidenceCount?: number;
+  modelVersion?: string;
 };
 
 export type SentimentByDate = { date: string; positive: number; negative: number; neutral: number };
@@ -255,6 +258,7 @@ export type NewsSentimentPayload = {
   count: number;
   data: NewsSentimentRow[];
   byDate: SentimentByDate[];
+  modelVersions: string[];
 };
 
 export async function fetchNewsSentiment(): Promise<NewsSentimentPayload> {

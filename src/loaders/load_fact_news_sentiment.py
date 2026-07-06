@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import re
+import os
 from datetime import datetime
 from pathlib import Path
 
@@ -180,8 +181,9 @@ def load_nlp_sentiment_detail(local_gold_dir: Path = DEFAULT_LOCAL_GOLD_DIR) -> 
 def build_fact_news_sentiment_daily_from_nlp(nlp_detail: pl.DataFrame) -> pl.DataFrame:
     """Build fact_news_sentiment_daily from NLP model inference output."""
     now = datetime.now()
+    detail = select_active_model_version(nlp_detail)
     return (
-        nlp_detail
+        detail
         .with_columns(
             pl.col("ticker").str.to_uppercase(),
             pl.col("published_at").cast(pl.Date).alias("news_date"),
@@ -194,7 +196,7 @@ def build_fact_news_sentiment_daily_from_nlp(nlp_detail: pl.DataFrame) -> pl.Dat
         .group_by(["ticker", "news_date"])
         .agg(
             pl.col("article_id").n_unique().cast(pl.UInt32).alias("news_count"),
-            pl.lit(1).cast(pl.UInt8).alias("source_count"),
+            pl.col("source").n_unique().cast(pl.UInt8).alias("source_count"),
             pl.sum("is_positive").cast(pl.UInt32).alias("positive_count"),
             pl.sum("is_negative").cast(pl.UInt32).alias("negative_count"),
             pl.sum("is_neutral").cast(pl.UInt32).alias("neutral_count"),
@@ -214,20 +216,70 @@ def build_fact_news_sentiment_daily_from_nlp(nlp_detail: pl.DataFrame) -> pl.Dat
     )
 
 
+def select_active_model_version(nlp_detail: pl.DataFrame) -> pl.DataFrame:
+    """Keep one reproducible model version and the latest prediction per article/ticker."""
+    configured = os.getenv("MODEL_VERSION")
+    versions = nlp_detail.get_column("model_version").drop_nulls().unique().to_list()
+    if configured and configured in versions:
+        active = configured
+    else:
+        active = (
+            nlp_detail.group_by("model_version")
+            .agg(pl.max("inferred_at").alias("latest"))
+            .sort("latest", descending=True)
+            .item(0, "model_version")
+        )
+    return (
+        nlp_detail.filter(pl.col("model_version") == active)
+        .unique(subset=["article_id", "ticker"], keep="last", maintain_order=True)
+    )
+
+
+def build_fact_news_sentiment_detail(nlp_detail: pl.DataFrame) -> pl.DataFrame:
+    detail = select_active_model_version(nlp_detail)
+    return (
+        detail.with_columns(
+            pl.col("published_at").cast(pl.Date),
+            pl.col("match_score").cast(pl.UInt8),
+            pl.col("is_low_confidence").cast(pl.UInt8),
+            pl.col("inferred_at").dt.replace_time_zone(None),
+        )
+        .select(
+            "article_id",
+            "ticker",
+            "url",
+            "title",
+            "source",
+            "published_at",
+            "sentiment_label",
+            "sentiment_score",
+            "confidence_score",
+            "is_low_confidence",
+            "model_version",
+            "match_method",
+            "match_score",
+            "inferred_at",
+        )
+        .sort(["ticker", "published_at", "article_id"])
+    )
+
+
 def load_fact_news_sentiment_daily(
     client: object,
     linked_news: pl.DataFrame | None = None,
 ) -> pl.DataFrame:
     """Load fact_news_sentiment_daily into ClickHouse.
 
-    Uses NLP model output (news_sentiment_detail) when available,
-    falls back to lexicon scoring from entity links.
+    Requires versioned NLP model output. Lexicon helpers remain available for
+    tests and exploration but are never published as production sentiment.
     """
     nlp_detail = load_nlp_sentiment_detail()
-    if nlp_detail is not None and not nlp_detail.is_empty():
-        frame = build_fact_news_sentiment_daily_from_nlp(nlp_detail)
-    else:
-        source = linked_news if linked_news is not None else load_news_entity_links()
-        frame = build_fact_news_sentiment_daily(source)
+    if nlp_detail is None or nlp_detail.is_empty():
+        raise FileNotFoundError(
+            "No versioned NLP inference output found; refusing to publish lexicon demo sentiment."
+        )
+    detail = build_fact_news_sentiment_detail(nlp_detail)
+    frame = build_fact_news_sentiment_daily_from_nlp(nlp_detail)
+    insert_dataframe(client, "fact_news_sentiment_detail", detail)  # type: ignore[arg-type]
     insert_dataframe(client, "fact_news_sentiment_daily", frame)  # type: ignore[arg-type]
     return frame

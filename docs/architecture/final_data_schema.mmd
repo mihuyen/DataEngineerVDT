@@ -1,0 +1,107 @@
+%%{init: {"theme":"base","htmlLabels":false,"flowchart":{"htmlLabels":false,"curve":"basis"},"themeVariables":{"background":"#ffffff","primaryTextColor":"#172033","lineColor":"#64748b","clusterBkg":"#f8fafc","clusterBorder":"#94a3b8","edgeLabelBackground":"#ffffff","fontFamily":"Arial"}}}%%
+flowchart LR
+  classDef kafka fill:#FFF4D6,stroke:#D97706,color:#3B2600,stroke-width:1.5px;
+  classDef batch fill:#E8F7EE,stroke:#16803C,color:#12351F,stroke-width:1.5px;
+  classDef stream fill:#E8F1FF,stroke:#2563EB,color:#10213B,stroke-width:1.5px;
+  classDef view fill:#F1ECFF,stroke:#7048C8,color:#27164D,stroke-width:1.5px;
+  classDef pg fill:#FCEAEC,stroke:#C43B55,color:#4A1620,stroke-width:1.5px;
+  classDef app fill:#F2F4F7,stroke:#64748B,color:#263244,stroke-width:1.5px;
+  classDef future fill:#FFFFFF,stroke:#7C3AED,color:#3B1D70,stroke-width:1.5px,stroke-dasharray:5 4;
+
+  subgraph BUS[KAFKA]
+    direction TB
+    T1[Topic: dnse-trades-raw<br/>JSONEachRow]:::kafka
+    T2[Topic: dnse-ohlcv-1m<br/>JSONEachRow]:::kafka
+  end
+
+  subgraph CH[CLICKHOUSE - DATABASE stock_lakehouse]
+    direction TB
+
+    subgraph CHDIM[DIMENSION TABLES]
+      direction TB
+      D1[dim_date<br/>MergeTree<br/>ORDER BY date_id]:::batch
+      D2[dim_stock<br/>MergeTree<br/>ORDER BY ticker]:::batch
+      D3[dim_sector<br/>MergeTree<br/>ORDER BY sector_id]:::batch
+      D4[dim_index<br/>MergeTree<br/>ORDER BY index_id]:::batch
+    end
+
+    subgraph CHBATCH[BATCH FACT TABLES]
+      direction TB
+      F1[fact_daily_price<br/>MergeTree<br/>PARTITION toYYYYMM trading_date<br/>ORDER ticker, trading_date]:::batch
+      F2[fact_market_index<br/>MergeTree<br/>PARTITION toYYYYMM trading_date<br/>ORDER index_id, trading_date]:::batch
+      F3[fact_alert_event<br/>MergeTree<br/>PARTITION toYYYYMM triggered_at<br/>ORDER user_id, triggered_at]:::batch
+      F4[fact_alert_rule_state<br/>ReplacingMergeTree updated_at<br/>ORDER alert_id, ticker]:::batch
+      F5[fact_news_sentiment_detail<br/>MergeTree; partition theo tháng<br/>Lưu trữ điểm cảm xúc AI]:::batch
+    end
+
+    subgraph CHSTREAM[STREAMING TABLES]
+      direction TB
+      K1[kafka_realtime_trade_ticks<br/>Kafka Engine<br/>group: clickhouse-realtime-vwap]:::kafka
+      K2[kafka_dnse_ohlcv_1m<br/>Kafka Engine<br/>group: clickhouse-dnse-ohlcv-1m]:::kafka
+      R1[realtime_trade_ticks_raw<br/>MergeTree<br/>PARTITION theo ngày; TTL 30 ngày<br/>ORDER ticker, trade_ts]:::stream
+      R2[fact_realtime_vwap_1m_state<br/>AggregatingMergeTree<br/>PARTITION theo ngày; TTL 30 ngày<br/>ORDER source, ticker, minute_ts]:::stream
+      R3[fact_intraday_ohlcv<br/>ReplacingMergeTree ingested_at<br/>PARTITION theo ngày; TTL 30 ngày<br/>ORDER ticker, resolution, minute_ts]:::stream
+    end
+
+    subgraph CHVIEW[LOGICAL AND MATERIALIZED VIEWS]
+      direction TB
+      MV1[mv_realtime_trade_ticks_raw<br/>Kafka to raw tick]:::view
+      MV2[mv_fact_realtime_vwap_1m_state<br/>Aggregate tick theo phút]:::view
+      MV3[mv_dnse_ohlcv_1m_fact<br/>Kafka to nến một phút]:::view
+      V1[fact_realtime_vwap<br/>VIEW merge aggregate states<br/>Window VWAP lũy kế theo phiên]:::view
+      V2[fact_daily_price_indicators<br/>dbt incremental mart<br/>SMA, EMA, RSI, MACD, Bollinger]:::view
+    end
+  end
+
+  subgraph PG[POSTGRESQL - DỮ LIỆU ỨNG DỤNG]
+    direction TB
+    P1[watchlist<br/>PK watchlist_id<br/>UNIQUE user_id, ticker<br/>INDEX user_id]:::pg
+    P2[user_alerts<br/>PK alert_id<br/>ticker, condition, threshold,<br/>channel, cooldown, is_active<br/>INDEX is_active]:::pg
+  end
+
+  subgraph CONSUMER[LỚP SỬ DỤNG]
+    direction TB
+    A1[FastAPI và React dashboard]:::app
+    A2[Alert Engine<br/>Telegram và Email]:::app
+    A3[Superset và Grafana]:::app
+  end
+
+  T1 --> K1
+  T2 --> K2
+  K1 --> MV1 --> R1
+  K1 --> MV2 --> R2 --> V1
+  K2 --> MV3 --> R3
+
+  D3 -. sector_id logic .-> D2
+  D2 -. ticker logic .-> F1
+  D1 -. date_id logic .-> F1
+  D4 -. index_id logic .-> F2
+  D1 -. date_id logic .-> F2
+  F1 --> V2
+  D2 -. ticker logic .-> R3
+  D2 -. ticker logic .-> V1
+  P2 --> A2
+  V2 --> A2
+  V1 --> A2
+  A2 --> F3
+
+  D1 --> A1
+  D2 --> A1
+  F1 --> A1
+  F2 --> A1
+  R3 --> A1
+  V1 --> A1
+  P1 --> A1
+  P2 --> A1
+  F1 --> A3
+  F2 --> A3
+  F3 --> A3
+
+  style BUS fill:#FFFBEB,stroke:#D97706,color:#172033
+  style CH fill:#F8FAFC,stroke:#2563EB,color:#172033
+  style CHDIM fill:#FFFFFF,stroke:#94A3B8,color:#172033
+  style CHBATCH fill:#FFFFFF,stroke:#94A3B8,color:#172033
+  style CHSTREAM fill:#FFFFFF,stroke:#94A3B8,color:#172033
+  style CHVIEW fill:#FFFFFF,stroke:#94A3B8,color:#172033
+  style PG fill:#FFF7F8,stroke:#C43B55,color:#172033
+  style CONSUMER fill:#F8FAFC,stroke:#64748B,color:#172033

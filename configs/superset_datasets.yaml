@@ -11,13 +11,15 @@ datasets:
   - table_name: dim_stock
     description: Stock dimension with ticker, company metadata, exchange, sector, shares outstanding, and latest financial snapshot.
   - table_name: dim_index
-    description: Market index dimension for VNINDEX, VN30, HNXINDEX, and UPCOMINDEX.
+    description: Market index dimension for the HOSE scope, VNINDEX and VN30.
   - table_name: fact_daily_price
     description: Daily OHLCV fact with market cap, technical indicators, and signal flags.
   - table_name: fact_market_index
     description: Daily market-index fact with index OHLC, liquidity, breadth metrics, SMA, and RSI.
   - table_name: fact_news_sentiment_daily
     description: Daily ticker-level news and sentiment aggregate for News & Sentiment dashboards.
+  - table_name: fact_news_sentiment_detail
+    description: Versioned article-ticker sentiment detail with source, confidence, model provenance, and entity-link evidence.
   - table_name: fact_realtime_vwap
     description: Minute-level VWAP fact for realtime monitoring and intraday analytics demo.
   - table_name: fact_alert_event

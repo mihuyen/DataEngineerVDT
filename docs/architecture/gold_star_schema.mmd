@@ -1,0 +1,156 @@
+%%{init: {"theme":"base","htmlLabels":false,"themeVariables":{"background":"#ffffff","primaryColor":"#ffffff","primaryTextColor":"#172033","primaryBorderColor":"#64748b","lineColor":"#64748b","tertiaryColor":"#ffffff","edgeLabelBackground":"#ffffff","titleColor":"#172033","fontFamily":"Arial"}}}%%
+erDiagram
+  DIM_DATE {
+    UInt32 date_id PK
+    Date date UK
+    UInt16 year
+    UInt8 quarter
+    UInt8 month
+    UInt8 week
+    String day_of_week
+    UInt8 is_trading_day
+  }
+
+  DIM_SECTOR {
+    String sector_id PK
+    String sector_name
+    String industry_group
+  }
+
+  DIM_STOCK {
+    String ticker PK
+    String company_name
+    String exchange
+    String sector_id FK
+    Date listed_date
+    String status
+    UInt64 shares_outstanding
+    Float64 free_float_rate
+    Float64 market_cap_latest
+    Float64 pe_latest
+    Float64 eps_latest
+    Float64 roe_latest
+    Float64 roa_latest
+  }
+
+  DIM_INDEX {
+    String index_id PK
+    String index_name
+    String exchange
+  }
+
+  FACT_DAILY_PRICE {
+    String ticker PK,FK
+    UInt32 date_id PK,FK
+    Date trading_date
+    Float64 open
+    Float64 high
+    Float64 low
+    Float64 close
+    UInt64 volume
+    Float64 value
+    Float64 market_cap
+    Float64 pct_change
+    Float64 sma_20
+    Float64 ema_12
+    Float64 ema_26
+    Float64 macd
+    Float64 macd_signal
+    Float64 rsi_14
+    Float64 bb_upper
+    Float64 bb_middle
+    Float64 bb_lower
+    Float64 volume_sma_20
+    UInt8 overbought_flag
+    UInt8 oversold_flag
+    UInt8 breakout_flag
+    UInt8 breakdown_flag
+  }
+
+  FACT_MARKET_INDEX {
+    String index_id PK,FK
+    UInt32 date_id PK,FK
+    Date trading_date
+    Float64 open_point
+    Float64 high_point
+    Float64 low_point
+    Float64 close_point
+    Float64 pct_change
+    UInt64 total_volume
+    Float64 total_value
+    UInt32 advance_count
+    UInt32 decline_count
+    UInt32 unchanged_count
+    Float64 advance_decline_ratio
+    Float64 sma_20
+    Float64 rsi_14
+  }
+
+  FACT_INTRADAY_OHLCV {
+    String ticker PK,FK
+    DateTime minute_ts PK
+    String resolution PK
+    Date trading_date
+    Float64 open
+    Float64 high
+    Float64 low
+    Float64 close
+    UInt64 volume
+    UInt8 is_final
+    String data_source
+  }
+
+  FACT_REALTIME_VWAP {
+    String ticker PK,FK
+    DateTime minute_ts PK
+    String data_source PK
+    Date trading_date
+    Float64 close_price
+    Float64 vwap_1m
+    Float64 session_vwap
+    UInt64 session_volume
+    Float64 session_value
+    UInt64 trade_count
+    Float64 price_vs_vwap_pct
+    Float64 price_vs_session_vwap_pct
+  }
+
+  FACT_NEWS_SENTIMENT_DAILY {
+    String ticker PK,FK
+    UInt32 date_id PK,FK
+    Date news_date
+    UInt32 news_count
+    UInt8 source_count
+    UInt32 positive_count
+    UInt32 negative_count
+    UInt32 neutral_count
+    Float64 avg_sentiment_score
+    String top_headline
+  }
+
+  FACT_ALERT_EVENT {
+    UUID alert_id PK
+    String user_id
+    String ticker FK
+    UInt32 date_id FK
+    DateTime triggered_at
+    String condition_type
+    Float64 threshold_value
+    Float64 actual_value
+    String channel
+    String delivery_status
+    DateTime sent_at
+  }
+
+  DIM_SECTOR ||--o{ DIM_STOCK : "sector_id"
+  DIM_STOCK ||--o{ FACT_DAILY_PRICE : "ticker"
+  DIM_DATE ||--o{ FACT_DAILY_PRICE : "date_id"
+  DIM_INDEX ||--o{ FACT_MARKET_INDEX : "index_id"
+  DIM_DATE ||--o{ FACT_MARKET_INDEX : "date_id"
+  DIM_STOCK ||--o{ FACT_INTRADAY_OHLCV : "ticker"
+  DIM_STOCK ||--o{ FACT_REALTIME_VWAP : "ticker"
+  DIM_STOCK ||--o{ FACT_NEWS_SENTIMENT_DAILY : "ticker"
+  DIM_DATE ||--o{ FACT_NEWS_SENTIMENT_DAILY : "date_id"
+  DIM_STOCK ||--o{ FACT_ALERT_EVENT : "ticker"
+  DIM_DATE ||--o{ FACT_ALERT_EVENT : "date_id"
+

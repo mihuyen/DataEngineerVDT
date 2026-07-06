@@ -16,6 +16,7 @@ REQUIRED_TABLES = [
     "fact_daily_price",
     "fact_market_index",
     "fact_news_sentiment_daily",
+    "fact_news_sentiment_detail",
     "fact_realtime_vwap",
     "fact_alert_event",
 ]

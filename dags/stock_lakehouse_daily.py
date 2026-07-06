@@ -30,6 +30,7 @@ COMMON_ENV = (
     "export POSTGRES_USER=${POSTGRES_USER:-stock_user} && "
     "export POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-stock_password} && "
     "export POSTGRES_DB=${POSTGRES_DB:-stock_lakehouse} && "
+    "export NLP_SERVICE_URL=${NLP_SERVICE_URL:-http://nlp-service:8000} && "
     "cd " + PROJECT_DIR
 )
 
@@ -118,6 +119,20 @@ with DAG(
     quality_all = BashOperator(
         task_id="quality_all",
         bash_command=f"{COMMON_ENV} && uv run python scripts/run_all_quality_checks.py",
+    )
+
+    news_nlp_inference = BashOperator(
+        task_id="news_nlp_inference",
+        bash_command=(
+            f"{COMMON_ENV} && uv run python scripts/run_news_nlp_inference.py "
+            "--service-url ${NLP_SERVICE_URL} --workers 4"
+        ),
+        execution_timeout=timedelta(hours=2),
+    )
+
+    news_sentiment_quality = BashOperator(
+        task_id="news_sentiment_quality",
+        bash_command=f"{COMMON_ENV} && uv run python scripts/run_news_sentiment_quality.py",
     )
 
     migrate_gold = BashOperator(
@@ -212,7 +227,9 @@ with DAG(
     ingest_news >> silver_news
     ingest_company_profile >> silver_company_profile
     [silver_ohlcv, silver_company_profile, silver_market_index, silver_news] >> quality_all
-    quality_all >> migrate_gold >> load_gold >> reconcile_gold
+    quality_all >> [migrate_gold, news_nlp_inference]
+    news_nlp_inference >> news_sentiment_quality
+    [migrate_gold, news_sentiment_quality] >> load_gold >> reconcile_gold
     reconcile_gold >> init_user_alerts >> check_alerts
     reconcile_gold >> dbt_run >> dbt_test
     # Backup and the intraday backfill do not gate export_gold_to_minio or

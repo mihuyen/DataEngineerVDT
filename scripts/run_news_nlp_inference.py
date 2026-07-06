@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import argparse
-import json
 import sys
 from datetime import date, datetime, timezone
 from pathlib import Path
@@ -12,7 +11,7 @@ import polars as pl
 sys.path.append(str(Path(__file__).resolve().parents[1]))
 
 from src.common.minio_client import create_bucket_if_missing, create_client, upload_file
-from src.integrations.nlp_client import NLPArticle, NLPClient, normalized_sentiment_label
+from src.integrations.nlp_client import NLPArticle, NLPClient
 from src.transform.news_entity_linking import (
     DEFAULT_LOCAL_GOLD_DIR,
     DEFAULT_LOCAL_SILVER_DIR,
@@ -57,25 +56,35 @@ def flatten_predictions(predictions: list[dict[str, Any]]) -> pl.DataFrame:
     inferred_at = datetime.now(timezone.utc)
     rows = []
     for item in predictions:
-        sentiment = item["sentiment"]
-        topic = item["topic"]
-        score = float(sentiment["sentiment_score"])
+        score = float(item["sentiment_score"])
         rows.append(
             {
                 "article_id": item["article_id"],
-                "sentiment_label_raw": sentiment["sentiment_label"],
-                "sentiment_label": normalized_sentiment_label(score),
+                "sentiment_label": item["sentiment_label"],
                 "sentiment_score": score,
-                "confidence_score": float(sentiment["confidence_score"]),
-                "is_low_confidence": bool(sentiment["is_low_confidence"]),
-                "model_version": sentiment["model_version"],
-                "processing_time_ms": float(sentiment["processing_time_ms"]),
-                "topics": topic["topics"],
-                "topic_distribution": json.dumps(topic["topic_distribution"], ensure_ascii=False),
+                "confidence_score": float(item["confidence_score"]),
+                "is_low_confidence": bool(item["is_low_confidence"]),
+                "model_version": item["model_version"],
+                "processing_time_ms": float(item["processing_time_ms"]),
                 "inferred_at": inferred_at,
             }
         )
     return pl.DataFrame(rows)
+
+
+def load_processed_article_ids(base_dir: Path, model_version: str) -> set[str]:
+    files = sorted((base_dir / OUTPUT_PREFIX).glob("year=*/month=*/data.parquet"))
+    if not files:
+        return set()
+    existing = pl.concat(
+        [pl.read_parquet(path, columns=["article_id", "model_version"]) for path in files],
+        how="diagonal_relaxed",
+    )
+    return set(
+        existing.filter(pl.col("model_version") == model_version)
+        .get_column("article_id")
+        .to_list()
+    )
 
 
 def save_results(frame: pl.DataFrame, path: Path) -> pl.DataFrame:
@@ -109,7 +118,9 @@ def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Run FiNTA NLP inference for linked market news.")
     parser.add_argument("--service-url", default=None)
     parser.add_argument("--batch-size", type=int, default=16)
-    parser.add_argument("--workers", type=int, default=8)
+    parser.add_argument("--workers", type=int, default=4)
+    parser.add_argument("--allow-fallback", action="store_true")
+    parser.add_argument("--force", action="store_true", help="Re-run articles already inferred by this model version.")
     parser.add_argument("--no-upload", action="store_true")
     return parser.parse_args()
 
@@ -151,7 +162,18 @@ def main() -> None:
 
     client = NLPClient(base_url=args.service_url)
     health = client.health()
-    base_url = (args.service_url or "http://localhost:8002")
+    if health.get("is_fallback") and not args.allow_fallback:
+        raise RuntimeError("NLP service is using rule-based fallback; refusing to publish model sentiment.")
+
+    model_version = str(health.get("model_version") or "unknown")
+    if not args.force:
+        processed = load_processed_article_ids(DEFAULT_LOCAL_GOLD_DIR, model_version)
+        articles = [article for article in articles if article.article_id not in processed]
+
+    base_url = client.base_url
+    if not articles:
+        print(f"No new linked articles for model_version={model_version}")
+        return
     print(f"Running inference on {len(articles)} articles with {args.workers} workers...")
     predictions = predict_parallel(articles, base_url, workers=args.workers)
     prediction_frame = flatten_predictions(predictions)
