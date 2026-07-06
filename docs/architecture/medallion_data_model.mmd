@@ -8,8 +8,8 @@ flowchart TB
 
   subgraph SRC[NGUỒN]
     direction LR
-    S1[API Chứng khoán<br/>Giao dịch, danh mục, doanh nghiệp]:::source
-    S2[API Chỉ số<br/>Chỉ số thị trường chung]:::source
+    S1[vnstock<br/>VCI: OHLCV; KBS: listing/profile]:::source
+    S2[vnstock VCI<br/>VNINDEX, VN30]:::source
     S3[Trang tin Tài chính<br/>Tin tức thị trường]:::source
     S4[WebSocket<br/>Dữ liệu giao dịch thời gian thực]:::source
   end
@@ -17,10 +17,10 @@ flowchart TB
   subgraph B[BRONZE - PARQUET TRÊN MINIO]
     direction LR
     B1[Dữ liệu OHLCV Thô<br/>Partition: year/month/day]:::bronze
-    B2[Hồ sơ Doanh nghiệp Thô<br/>Partition: dataset/year/month/day]:::bronze
+    B2[Hồ sơ Doanh nghiệp Thô<br/>Listing: dataset/year/month/day<br/>Profile: dataset/ticker/year/month/day]:::bronze
     B3[Chỉ số Thị trường Thô<br/>Partition: index_code/year/month/day]:::bronze
     B4[Tin tức Thô<br/>Partition: source/year/month/day]:::bronze
-    B5["Dữ liệu Giao dịch Thô (Intraday)<br/>Partition: source/year/month/day"]:::bronze
+    B5["Dữ liệu Intraday Thô<br/>DNSE: trades hoặc ohlcv_1m/year/month/day<br/>KBS: source/year/month/day"]:::bronze
   end
 
   subgraph S[SILVER - PARQUET TRÊN MINIO]
@@ -63,7 +63,7 @@ flowchart TB
   S2V --> G1
   S3V --> G1
   S3V --> G4
-  S4V -->|Entity Linking, NLP<br/>và quality gate| G7
+  S4V -->|Entity Linking và NLP<br/>quality check độc lập| G7
   G7 -->|Tổng hợp ticker + ngày| G9
   S5V --> G5
   B5 -->|Kafka Engine và MV| G6

@@ -68,6 +68,28 @@ erDiagram
     UInt8 breakdown_flag
   }
 
+  FACT_DAILY_PRICE_INDICATORS {
+    String ticker PK,FK
+    UInt32 date_id PK,FK
+    Date trading_date
+    Float64 close
+    UInt64 volume
+    Float64 market_cap
+    Float64 price_change
+    Float64 pct_change
+    Float64 sma_20
+    Float64 ema_12
+    Float64 ema_26
+    Float64 macd
+    Float64 macd_signal
+    Float64 rsi_14
+    Float64 bb_upper
+    Float64 bb_lower
+    Float64 volume_sma_20
+    UInt8 breakout_flag
+    UInt8 breakdown_flag
+  }
+
   FACT_MARKET_INDEX {
     String index_id PK,FK
     UInt32 date_id PK,FK
@@ -163,6 +185,9 @@ erDiagram
   DIM_SECTOR ||--o{ DIM_STOCK : "sector_id"
   DIM_STOCK ||--o{ FACT_DAILY_PRICE : "ticker"
   DIM_DATE ||--o{ FACT_DAILY_PRICE : "date_id"
+  DIM_STOCK ||--o{ FACT_DAILY_PRICE_INDICATORS : "ticker"
+  DIM_DATE ||--o{ FACT_DAILY_PRICE_INDICATORS : "date_id"
+  FACT_DAILY_PRICE ||--|| FACT_DAILY_PRICE_INDICATORS : "dbt incremental mart"
   DIM_INDEX ||--o{ FACT_MARKET_INDEX : "index_id"
   DIM_DATE ||--o{ FACT_MARKET_INDEX : "date_id"
   DIM_STOCK ||--o{ FACT_INTRADAY_OHLCV : "ticker"

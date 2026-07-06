@@ -10,8 +10,8 @@ flowchart TB
 
   subgraph SOURCES[NGUỒN DỮ LIỆU]
     direction LR
-    KBS["API Chứng khoán (vnstock)<br/>Dữ liệu Giao dịch & Doanh nghiệp"]:::source
-    VCI["API Chỉ số (vnstock)<br/>VNINDEX, VN30"]:::source
+    KBS["vnstock<br/>VCI: OHLCV ngày<br/>KBS: listing, profile"]:::source
+    VCI["vnstock VCI<br/>VNINDEX, VN30"]:::source
     NEWS[Tin tức Tài chính<br/>VnExpress, Vietstock, CafeF]:::source
     DNSE["WebSocket (DNSE)<br/>Dữ liệu thời gian thực (Tick, 1m)"]:::source
   end
@@ -64,12 +64,12 @@ flowchart TB
   VCI --> AIRFLOW
   NEWS --> CRAWLER --> BRONZE
   AIRFLOW -. Điều phối 2 lịch chạy .-> CRAWLER
-  CRAWLER -.->|Nạp trực tiếp mỗi 5 phút| CLICKHOUSE
   AIRFLOW --> BRONZE
   BRONZE --> TRANSFORM --> SILVER --> QUALITY
   QUALITY --> CLICKHOUSE
   CLICKHOUSE --> DBT --> CLICKHOUSE
-  SILVER -->|Tin đã chuẩn hóa| NLP --> NLPQ --> CLICKHOUSE
+  SILVER -->|Tin đã chuẩn hóa| NLP -->|Nạp detail và daily aggregate| CLICKHOUSE
+  NLP -. Kiểm tra độc lập trong DAG ngày .-> NLPQ
   CLICKHOUSE -->|Xuất Parquet| GOLD
   CLICKHOUSE --> BACKUP
   POSTGRES --> BACKUP
