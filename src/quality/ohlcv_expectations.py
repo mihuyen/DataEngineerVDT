@@ -153,7 +153,7 @@ def discover_silver_ohlcv_files(local_silver_dir: Path = DEFAULT_LOCAL_SILVER_DI
     base_dir = local_silver_dir / "ohlcv"
     if not base_dir.exists():
         return []
-    return sorted(base_dir.glob("ticker=*/year=*/month=*/data.parquet"))
+    return sorted(base_dir.glob("year=*/month=*/data.parquet"))
 
 
 def load_silver_ohlcv_dataset(
@@ -161,19 +161,19 @@ def load_silver_ohlcv_dataset(
     tickers: list[str] | None = None,
 ) -> pl.DataFrame:
     """Load local Silver OHLCV data for quality validation."""
-    allowed_tickers = {ticker.upper() for ticker in tickers} if tickers else None
-    frames: list[pl.DataFrame] = []
-
-    for file_path in discover_silver_ohlcv_files(local_silver_dir):
-        ticker = file_path.parts[-4].replace("ticker=", "").upper()
-        if allowed_tickers is not None and ticker not in allowed_tickers:
-            continue
-        frames.append(pl.read_parquet(file_path))
+    frames = [pl.read_parquet(file_path) for file_path in discover_silver_ohlcv_files(local_silver_dir)]
 
     if not frames:
         raise FileNotFoundError("No Silver OHLCV parquet files found for quality validation")
 
-    return pl.concat(frames, how="diagonal_relaxed")
+    dataset = (
+        pl.concat(frames, how="diagonal_relaxed")
+        .unique(subset=["ticker", "date"], keep="last", maintain_order=True)
+    )
+    if tickers:
+        allowed_tickers = sorted({ticker.upper() for ticker in tickers})
+        dataset = dataset.filter(pl.col("ticker").cast(pl.Utf8).str.to_uppercase().is_in(allowed_tickers))
+    return dataset
 
 
 def save_quality_report(

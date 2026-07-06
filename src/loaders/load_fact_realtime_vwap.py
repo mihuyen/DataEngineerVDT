@@ -4,8 +4,6 @@ from datetime import date, datetime, time, timedelta
 
 import polars as pl
 
-from src.common.clickhouse_client import insert_dataframe
-
 
 REALTIME_VWAP_COLUMNS = [
     "ticker",
@@ -119,14 +117,3 @@ def build_fact_realtime_vwap(trade_ticks: pl.DataFrame) -> pl.DataFrame:
         .select(REALTIME_VWAP_COLUMNS)
     )
     return minute_bars
-
-
-def load_fact_realtime_vwap(
-    client: object,
-    trade_ticks: pl.DataFrame | None = None,
-) -> pl.DataFrame:
-    """Load demo realtime VWAP rows into ClickHouse."""
-    source = trade_ticks if trade_ticks is not None else generate_demo_trade_ticks()
-    frame = build_fact_realtime_vwap(source)
-    insert_dataframe(client, "fact_realtime_vwap", frame)  # type: ignore[arg-type]
-    return frame

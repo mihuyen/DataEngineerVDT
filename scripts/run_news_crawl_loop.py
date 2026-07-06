@@ -39,6 +39,7 @@ def run_cycle(args: argparse.Namespace) -> None:
     if not args.skip_linking:
         run_command([sys.executable, "scripts/run_news_entity_linking.py"])
     if args.load_gold:
+        run_command([sys.executable, "scripts/run_news_nlp_inference.py"])
         run_command([sys.executable, "scripts/load_news_sentiment_gold.py"])
 
 

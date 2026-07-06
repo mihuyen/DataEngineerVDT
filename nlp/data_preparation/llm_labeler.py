@@ -40,9 +40,13 @@ VALID_IMPACT_LABELS = {"High", "Medium", "Low", "None"}
 
 SYSTEM_PROMPT = (
     "Bạn là chuyên gia phân tích thị trường chứng khoán Việt Nam "
-    "với 10 năm kinh nghiệm. Nhiệm vụ: gán nhãn cảm xúc, chủ đề "
-    "và mức độ tác động thị trường cho nội dung tài chính một cách "
-    "chính xác và nhất quán."
+    "với 10 năm kinh nghiệm. Hãy đánh giá tác động kỳ vọng của thông tin "
+    "đối với doanh nghiệp niêm yết hoặc thị trường, không đánh giá giọng văn. "
+    "Chỉ dùng positive khi thông tin có tác động tài chính thuận lợi rõ ràng, "
+    "negative khi có tác động bất lợi rõ ràng; dùng neutral cho thông báo, "
+    "tin hành chính, nội dung hai chiều hoặc không có tác động định hướng rõ. "
+    "Nhiệm vụ là gán nhãn cảm xúc, chủ đề và mức độ tác động một cách "
+    "chính xác, nhất quán."
 )
 
 USER_PROMPT_TEMPLATE = """Phân tích bài báo tài chính sau:
@@ -56,7 +60,7 @@ Trả về JSON với format CHÍNH XÁC (không thêm gì khác):
   "confidence": <float 0.0 đến 1.0>,
   "impact_label": "<High|Medium|Low|None>",
   "impact_score": <float 0.0 đến 1.0>,
-  "topics": ["<topic1>", "<topic2 nếu có>"],
+  "topics": ["<chỉ chọn trong: Chính sách tiền tệ|Kết quả kinh doanh|M&A|Biến động vĩ mô|Tin đồn thị trường|Khác>"],
   "topic_distribution": {{
     "Chính sách tiền tệ": 0.0,
     "Kết quả kinh doanh": 0.0,
@@ -69,7 +73,7 @@ Trả về JSON với format CHÍNH XÁC (không thêm gì khác):
 }}"""
 
 MAX_RETRIES = 3
-CHECKPOINT_EVERY = 100
+CHECKPOINT_EVERY = int(os.getenv("LABEL_CHECKPOINT_EVERY", "10"))
 
 
 def _validate_label(result: dict) -> bool:
@@ -92,8 +96,18 @@ def _validate_label(result: dict) -> bool:
     if not isinstance(impact_score, (int, float)) or not (0.0 <= impact_score <= 1.0):
         return False
 
+    topics = result.get("topics")
+    if (
+        not isinstance(topics, list)
+        or not topics
+        or any(topic not in VALID_TOPICS for topic in topics)
+    ):
+        return False
+
     dist = result.get("topic_distribution", {})
-    if not isinstance(dist, dict):
+    if not isinstance(dist, dict) or set(dist) != VALID_TOPICS:
+        return False
+    if any(not isinstance(value, (int, float)) or not 0.0 <= value <= 1.0 for value in dist.values()):
         return False
     total = sum(dist.values())
     if not (0.85 <= total <= 1.15):  # cho phép sai số nhỏ

@@ -90,6 +90,7 @@ class NewsURLRegistry:
         url: str,
         max_attempts: int = 3,
         retry_after: timedelta = timedelta(minutes=30),
+        retry_skipped: bool = False,
     ) -> bool:
         normalized_url = normalize_url(url)
         with self._connect() as connection:
@@ -99,8 +100,10 @@ class NewsURLRegistry:
             ).fetchone()
         if row is None or row["status"] == "discovered":
             return True
-        if row["status"] in {"success", "skipped"}:
+        if row["status"] == "success":
             return False
+        if row["status"] == "skipped":
+            return retry_skipped
         if int(row["attempt_count"]) >= max_attempts:
             return False
         if not row["last_attempt_at"]:

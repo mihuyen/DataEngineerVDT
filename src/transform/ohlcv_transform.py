@@ -21,34 +21,32 @@ SILVER_PREFIX = "ohlcv"
 
 
 def build_silver_object_name(
-    ticker: str,
     partition_date: date | None = None,
     filename: str = "data.parquet",
 ) -> str:
-    """Build the Silver OHLCV object name partitioned by ticker and month."""
+    """Build the Silver OHLCV object name partitioned by year and month (all tickers combined)."""
     output_date = partition_date or date.today()
     return (
         f"{SILVER_PREFIX}/"
-        f"ticker={ticker.upper()}/"
         f"year={output_date:%Y}/"
         f"month={output_date:%m}/"
         f"{filename}"
     )
 
 
-def _read_bronze_from_local(local_bronze_dir: Path, ticker: str) -> pl.DataFrame | None:
-    """Read local Bronze parquet files when they exist."""
-    ticker_dir = local_bronze_dir / BRONZE_PREFIX / f"ticker={ticker.upper()}"
-    files = sorted(ticker_dir.glob("year=*/month=*/day=*/data.parquet"))
+def _read_bronze_from_local(local_bronze_dir: Path) -> pl.DataFrame | None:
+    """Read local Bronze parquet files (year/month/day partition, all tickers combined)."""
+    base_dir = local_bronze_dir / BRONZE_PREFIX
+    files = sorted(base_dir.glob("year=*/month=*/day=*/data.parquet"))
     if not files:
         return None
     return pl.concat([pl.read_parquet(file_path) for file_path in files], how="diagonal_relaxed")
 
 
-def _read_bronze_from_minio(ticker: str) -> pl.DataFrame:
+def _read_bronze_from_minio() -> pl.DataFrame:
     """Read Bronze parquet files from MinIO."""
     client = create_client()
-    prefix = f"{BRONZE_PREFIX}/ticker={ticker.upper()}/"
+    prefix = f"{BRONZE_PREFIX}/"
     frames: list[pl.DataFrame] = []
 
     for item in list_objects(client, BRONZE_BUCKET, prefix=prefix):
@@ -63,33 +61,38 @@ def _read_bronze_from_minio(ticker: str) -> pl.DataFrame:
             response.release_conn()
 
     if not frames:
-        raise FileNotFoundError(f"No Bronze OHLCV parquet files found for ticker={ticker.upper()}")
+        raise FileNotFoundError("No Bronze OHLCV parquet files found")
     return pl.concat(frames, how="diagonal_relaxed")
 
 
 def discover_local_bronze_tickers(local_bronze_dir: Path = DEFAULT_LOCAL_BRONZE_DIR) -> list[str]:
-    """Discover tickers that already have local Bronze OHLCV parquet files."""
-    base_dir = local_bronze_dir / BRONZE_PREFIX
-    if not base_dir.exists():
+    """Discover tickers present in the combined local Bronze OHLCV parquet files."""
+    frame = _read_bronze_from_local(local_bronze_dir)
+    if frame is None:
+        return []
+    frame = normalize_columns(frame)
+    if "ticker" not in frame.columns:
         return []
     return sorted(
-        path.name.replace("ticker=", "").upper()
-        for path in base_dir.glob("ticker=*")
-        if path.is_dir() and list(path.glob("year=*/month=*/day=*/data.parquet"))
+        frame.get_column("ticker")
+        .drop_nulls()
+        .cast(pl.Utf8)
+        .str.to_uppercase()
+        .unique()
+        .to_list()
     )
 
 
 def load_bronze_data(
-    ticker: str,
     start_date: str | None = None,
     end_date: str | None = None,
     local_bronze_dir: Path = DEFAULT_LOCAL_BRONZE_DIR,
     prefer_local: bool = True,
 ) -> pl.DataFrame:
-    """Load Bronze OHLCV data from local cache or MinIO and filter by date range."""
-    frame = _read_bronze_from_local(local_bronze_dir, ticker) if prefer_local else None
+    """Load all Bronze OHLCV data from local cache or MinIO and filter by date range."""
+    frame = _read_bronze_from_local(local_bronze_dir) if prefer_local else None
     if frame is None:
-        frame = _read_bronze_from_minio(ticker)
+        frame = _read_bronze_from_minio()
 
     frame = normalize_columns(frame)
     if "date" in frame.columns:
@@ -152,13 +155,12 @@ def remove_invalid_records(frame: pl.DataFrame) -> pl.DataFrame:
 
 def add_metadata_columns(
     frame: pl.DataFrame,
-    ticker: str,
     source_name: str = "vnstock_ohlcv",
 ) -> pl.DataFrame:
     """Add metadata columns required by the Silver Layer."""
     now = datetime.now(timezone.utc)
     return frame.with_columns(
-        pl.lit(ticker.upper()).alias("ticker"),
+        pl.col("ticker").cast(pl.Utf8).str.to_uppercase().alias("ticker"),
         pl.lit(now).alias("ingested_at"),
         pl.lit(now).alias("processed_at"),
         pl.lit(source_name).alias("source_name"),
@@ -167,14 +169,13 @@ def add_metadata_columns(
 
 def transform_ohlcv(
     frame: pl.DataFrame,
-    ticker: str,
     source_name: str = "vnstock_ohlcv",
 ) -> pl.DataFrame:
-    """Run all OHLCV Silver transformations."""
+    """Run all OHLCV Silver transformations for the combined multi-ticker frame."""
     return (
         frame.pipe(normalize_columns)
         .pipe(cast_schema)
-        .pipe(add_metadata_columns, ticker=ticker, source_name=source_name)
+        .pipe(add_metadata_columns, source_name=source_name)
         .pipe(remove_invalid_records)
         .pipe(remove_duplicates)
         .sort(["ticker", "date"])
@@ -183,12 +184,11 @@ def transform_ohlcv(
 
 def save_to_silver(
     frame: pl.DataFrame,
-    ticker: str,
     output_dir: Path = DEFAULT_LOCAL_SILVER_DIR,
     partition_date: date | None = None,
 ) -> Path:
     """Write Silver OHLCV parquet to a local path matching the MinIO object layout."""
-    object_name = build_silver_object_name(ticker=ticker, partition_date=partition_date)
+    object_name = build_silver_object_name(partition_date=partition_date)
     output_path = output_dir / object_name
     output_path.parent.mkdir(parents=True, exist_ok=True)
     frame.write_parquet(output_path)
@@ -208,55 +208,6 @@ def upload_silver_to_minio(local_path: Path, object_name: str, bucket_name: str 
     )
 
 
-def run(
-    ticker: str = "VCB",
-    start_date: str | None = None,
-    end_date: str | None = None,
-    local_bronze_dir: Path = DEFAULT_LOCAL_BRONZE_DIR,
-    local_silver_dir: Path = DEFAULT_LOCAL_SILVER_DIR,
-    upload_to_minio: bool = True,
-    skip_existing: bool = False,
-) -> dict[str, Any]:
-    """Run Bronze-to-Silver OHLCV transform, validation, and optional MinIO upload."""
-    object_name = build_silver_object_name(ticker=ticker)
-    local_path = local_silver_dir / object_name
-    if skip_existing and local_path.is_file():
-        return {
-            "ticker": ticker.upper(),
-            "status": "SKIPPED",
-            "record_count": pl.read_parquet(local_path).height,
-            "quality_success": True,
-            "quality_report": "",
-            "local_path": str(local_path),
-            "bucket": SILVER_BUCKET,
-            "object_name": object_name,
-        }
-
-    bronze = load_bronze_data(
-        ticker=ticker,
-        start_date=start_date,
-        end_date=end_date,
-        local_bronze_dir=local_bronze_dir,
-    )
-    silver = transform_ohlcv(bronze, ticker=ticker)
-    report = validate_ohlcv(silver)
-    report_path = save_quality_report(report)
-    local_path = save_to_silver(silver, ticker=ticker, output_dir=local_silver_dir)
-    if upload_to_minio:
-        upload_silver_to_minio(local_path=local_path, object_name=object_name)
-
-    return {
-        "ticker": ticker.upper(),
-        "status": "SUCCESS",
-        "record_count": silver.height,
-        "quality_success": report.success,
-        "quality_report": str(report_path),
-        "local_path": str(local_path),
-        "bucket": SILVER_BUCKET,
-        "object_name": object_name,
-    }
-
-
 def run_many(
     tickers: list[str] | None = None,
     start_date: str | None = None,
@@ -267,36 +218,58 @@ def run_many(
     continue_on_error: bool = True,
     skip_existing: bool = False,
 ) -> dict[str, Any]:
-    """Run Bronze-to-Silver OHLCV transform for many tickers."""
-    resolved_tickers = tickers or discover_local_bronze_tickers(local_bronze_dir)
-    results: list[dict[str, Any]] = []
-    errors: list[dict[str, str]] = []
+    """Run Bronze-to-Silver OHLCV transform for all tickers at once.
 
-    for ticker in resolved_tickers:
-        try:
-            results.append(
-                run(
-                    ticker=ticker,
-                    start_date=start_date,
-                    end_date=end_date,
-                    local_bronze_dir=local_bronze_dir,
-                    local_silver_dir=local_silver_dir,
-                    upload_to_minio=upload_to_minio,
-                    skip_existing=skip_existing,
-                )
-            )
-        except Exception as exc:
-            if not continue_on_error:
-                raise
-            errors.append({"ticker": ticker.upper(), "error": str(exc)})
+    Writes ONE Silver file per month: ohlcv/year=YYYY/month=MM/data.parquet
+    (all tickers combined — mirrors the Bronze year/month/day layout).
+    """
+    object_name = build_silver_object_name()
+    local_path = local_silver_dir / object_name
+    if skip_existing and local_path.is_file():
+        existing = pl.read_parquet(local_path)
+        return {
+            "requested": "0",
+            "succeeded": "0",
+            "skipped": "1",
+            "failed": "0",
+            "record_count": existing.height,
+            "quality_success": True,
+            "quality_report": "",
+            "local_path": str(local_path),
+            "bucket": SILVER_BUCKET,
+            "object_name": object_name,
+            "results": [],
+            "errors": [],
+        }
 
-    succeeded = sum(1 for result in results if result.get("status") == "SUCCESS")
-    skipped = sum(1 for result in results if result.get("status") == "SKIPPED")
+    bronze = load_bronze_data(
+        start_date=start_date,
+        end_date=end_date,
+        local_bronze_dir=local_bronze_dir,
+    )
+    if tickers:
+        wanted = [ticker.strip().upper() for ticker in tickers if ticker.strip()]
+        bronze = bronze.filter(pl.col("ticker").cast(pl.Utf8).str.to_uppercase().is_in(wanted))
+
+    silver = transform_ohlcv(bronze)
+    report = validate_ohlcv(silver)
+    report_path = save_quality_report(report)
+    local_path = save_to_silver(silver, output_dir=local_silver_dir)
+    if upload_to_minio:
+        upload_silver_to_minio(local_path=local_path, object_name=object_name)
+
+    ticker_count = silver.get_column("ticker").n_unique() if silver.height else 0
     return {
-        "requested": str(len(resolved_tickers)),
-        "succeeded": str(succeeded),
-        "skipped": str(skipped),
-        "failed": str(len(errors)),
-        "results": results,
-        "errors": errors,
+        "requested": str(ticker_count),
+        "succeeded": str(ticker_count),
+        "skipped": "0",
+        "failed": "0",
+        "record_count": silver.height,
+        "quality_success": report.success,
+        "quality_report": str(report_path),
+        "local_path": str(local_path),
+        "bucket": SILVER_BUCKET,
+        "object_name": object_name,
+        "results": [],
+        "errors": [],
     }

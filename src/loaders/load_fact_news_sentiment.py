@@ -166,12 +166,68 @@ def build_fact_news_sentiment_daily(linked_news: pl.DataFrame) -> pl.DataFrame:
     )
 
 
+NLP_SENTIMENT_DETAIL_PREFIX = "news_sentiment_detail"
+
+
+def load_nlp_sentiment_detail(local_gold_dir: Path = DEFAULT_LOCAL_GOLD_DIR) -> pl.DataFrame | None:
+    """Load NLP inference output from run_news_nlp_inference.py, or None if not available."""
+    files = sorted((local_gold_dir / NLP_SENTIMENT_DETAIL_PREFIX).glob("year=*/month=*/data.parquet"))
+    if not files:
+        return None
+    return pl.concat([pl.read_parquet(f) for f in files], how="diagonal_relaxed")
+
+
+def build_fact_news_sentiment_daily_from_nlp(nlp_detail: pl.DataFrame) -> pl.DataFrame:
+    """Build fact_news_sentiment_daily from NLP model inference output."""
+    now = datetime.now()
+    return (
+        nlp_detail
+        .with_columns(
+            pl.col("ticker").str.to_uppercase(),
+            pl.col("published_at").cast(pl.Date).alias("news_date"),
+            (pl.col("sentiment_label") == "positive").cast(pl.UInt8).alias("is_positive"),
+            (pl.col("sentiment_label") == "negative").cast(pl.UInt8).alias("is_negative"),
+            (pl.col("sentiment_label") == "neutral").cast(pl.UInt8).alias("is_neutral"),
+        )
+        .filter(pl.col("news_date").is_not_null())
+        .unique(subset=["article_id", "ticker"], keep="last", maintain_order=True)
+        .group_by(["ticker", "news_date"])
+        .agg(
+            pl.col("article_id").n_unique().cast(pl.UInt32).alias("news_count"),
+            pl.lit(1).cast(pl.UInt8).alias("source_count"),
+            pl.sum("is_positive").cast(pl.UInt32).alias("positive_count"),
+            pl.sum("is_negative").cast(pl.UInt32).alias("negative_count"),
+            pl.sum("is_neutral").cast(pl.UInt32).alias("neutral_count"),
+            pl.mean("sentiment_score").alias("avg_sentiment_score"),
+            pl.col("title").sort_by("match_score", descending=True).first().alias("top_headline"),
+        )
+        .with_columns(
+            pl.col("news_date").dt.strftime("%Y%m%d").cast(pl.UInt32).alias("date_id"),
+            pl.lit(now, dtype=pl.Datetime).alias("created_at"),
+        )
+        .select(
+            "ticker", "date_id", "news_date", "news_count", "source_count",
+            "positive_count", "negative_count", "neutral_count",
+            "avg_sentiment_score", "top_headline", "created_at",
+        )
+        .sort(["ticker", "news_date"])
+    )
+
+
 def load_fact_news_sentiment_daily(
     client: object,
     linked_news: pl.DataFrame | None = None,
 ) -> pl.DataFrame:
-    """Load fact_news_sentiment_daily into ClickHouse."""
-    source = linked_news if linked_news is not None else load_news_entity_links()
-    frame = build_fact_news_sentiment_daily(source)
+    """Load fact_news_sentiment_daily into ClickHouse.
+
+    Uses NLP model output (news_sentiment_detail) when available,
+    falls back to lexicon scoring from entity links.
+    """
+    nlp_detail = load_nlp_sentiment_detail()
+    if nlp_detail is not None and not nlp_detail.is_empty():
+        frame = build_fact_news_sentiment_daily_from_nlp(nlp_detail)
+    else:
+        source = linked_news if linked_news is not None else load_news_entity_links()
+        frame = build_fact_news_sentiment_daily(source)
     insert_dataframe(client, "fact_news_sentiment_daily", frame)  # type: ignore[arg-type]
     return frame

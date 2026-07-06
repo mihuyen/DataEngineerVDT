@@ -170,13 +170,18 @@ services:
       retries: 10
       start_period: 30s
 
+  # One-shot init: applies sql/streaming/realtime_vwap_kafka_engine.sql, which
+  # creates the Kafka Engine tables plus the Materialized Views that compute
+  # per-minute VWAP state directly in ClickHouse (fact_realtime_vwap_1m_state)
+  # and the fact_realtime_vwap view on top of it. No standalone Python
+  # consumer polls/aggregates VWAP anymore -- ClickHouse does it on ingest.
   realtime-vwap-consumer:
     build:
       context: .
       dockerfile: docker/vwap-consumer.Dockerfile
     image: stock-vwap-consumer:local
     container_name: stock-realtime-vwap-consumer
-    restart: unless-stopped
+    restart: "no"
     depends_on:
       clickhouse:
         condition: service_healthy
@@ -191,9 +196,7 @@ services:
       CLICKHOUSE_DATABASE: stock_lakehouse
       KAFKA_BOOTSTRAP_SERVERS: kafka:29092
     working_dir: /app
-    command: >
-      bash -c "python scripts/init_realtime_streaming.py &&
-      python scripts/run_realtime_vwap_kafka_consumer.py --interval-seconds 15"
+    command: ["python", "scripts/init_realtime_streaming.py"]
 
   dnse-producer:
     build:
@@ -288,6 +291,7 @@ services:
       AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://${POSTGRES_USER:-stock_user}:${POSTGRES_PASSWORD:-stock_password}@postgres:5432/${POSTGRES_DB:-stock_lakehouse}
       AIRFLOW__WEBSERVER__SECRET_KEY: ${AIRFLOW_WEBSERVER_SECRET_KEY:-change_me_airflow}
       AIRFLOW__API__AUTH_BACKENDS: airflow.api.auth.backend.basic_auth,airflow.api.auth.backend.session
+      SLACK_WEBHOOK_URL: ${SLACK_WEBHOOK_URL:-}
     volumes:
       - ./dags:/opt/airflow/dags
       - .:/opt/airflow/project
@@ -328,6 +332,7 @@ services:
       AIRFLOW__CORE__LOAD_EXAMPLES: "false"
       AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://${POSTGRES_USER:-stock_user}:${POSTGRES_PASSWORD:-stock_password}@postgres:5432/${POSTGRES_DB:-stock_lakehouse}
       AIRFLOW__WEBSERVER__SECRET_KEY: ${AIRFLOW_WEBSERVER_SECRET_KEY:-change_me_airflow}
+      SLACK_WEBHOOK_URL: ${SLACK_WEBHOOK_URL:-}
     volumes:
       - ./dags:/opt/airflow/dags
       - .:/opt/airflow/project

@@ -13,8 +13,9 @@ from dotenv import load_dotenv
 
 sys.path.append(str(Path(__file__).resolve().parents[1]))
 
-from src.common.clickhouse_client import create_client, execute, query_dataframe
-from src.loaders.load_fact_realtime_vwap import build_fact_realtime_vwap
+from src.common.clickhouse_client import create_client, execute, insert_dataframe, query_dataframe
+from src.common.minio_client import create_bucket_if_missing, create_client as create_minio_client, upload_file
+from scripts.run_realtime_vwap_kafka_consumer import run_backfill
 from src.streaming.dnse_websocket import (
     DNSEOhlcCandle,
     DNSETradeTick,
@@ -238,6 +239,31 @@ def save_ticks_to_bronze(ticks: pl.DataFrame, output_path: Path) -> None:
     ticks.write_parquet(output_path)
 
 
+def upload_bronze_backup(local_path: Path, bucket_prefix: str, bucket_name: str = "bronze") -> None:
+    """Best-effort backup of the realtime Bronze parquet to MinIO.
+
+    ClickHouse is the primary store for this module (raw ticks land there via
+    the Kafka Materialized View and are pruned after 30 days), so this is only
+    a durability backstop for the raw source -- a MinIO outage should not
+    interrupt the realtime ingest loop.
+    """
+    if not local_path.is_file():
+        return
+    try:
+        client = create_minio_client()
+        create_bucket_if_missing(client, bucket_name)
+        object_name = f"{bucket_prefix}/{local_path.relative_to(local_path.parents[3]).as_posix()}"
+        upload_file(
+            client=client,
+            bucket_name=bucket_name,
+            object_name=object_name,
+            file_path=local_path,
+            content_type="application/vnd.apache.parquet",
+        )
+    except Exception as exc:
+        print(f"- minio_backup_failed: {bucket_prefix} ({exc})")
+
+
 def save_subscription_metadata(symbols: tuple[str, ...], output_path: Path) -> None:
     metadata_path = output_path.parent / "subscription.json"
     metadata_path.write_text(
@@ -362,19 +388,31 @@ async def main_async() -> None:
         print(f"- ohlcv_candles: {candle_frame.height}")
         print(f"- ohlcv_bronze_file: {ohlcv_output_path}")
 
+    # Backup: mirror the local Bronze parquet files to MinIO so the raw
+    # realtime source survives even though ClickHouse only retains 30 days
+    # (see the TTL clauses on realtime_trade_ticks_raw / fact_intraday_ohlcv /
+    # fact_realtime_vwap_1m_state in sql/streaming/realtime_vwap_kafka_engine.sql).
+    upload_bronze_backup(output_path, bucket_prefix="dnse/trades")
+    if not args.no_ohlcv:
+        upload_bronze_backup(ohlcv_output_path, bucket_prefix="dnse/ohlcv_1m")
+
     if args.load_vwap and not ticks.is_empty():
         client = create_client()
         if not args.append:
-            execute(client, "TRUNCATE TABLE IF EXISTS fact_realtime_vwap")
-        frame = build_fact_realtime_vwap(
-            ticks.select(["ticker", "trade_ts", "price", "volume", "data_source"])
+            execute(client, "TRUNCATE TABLE IF EXISTS realtime_trade_ticks_raw")
+            execute(client, "TRUNCATE TABLE IF EXISTS fact_realtime_vwap_1m_state")
+        insert_dataframe(
+            client,
+            "realtime_trade_ticks_raw",
+            ticks.select(["ticker", "trade_ts", "price", "volume", "data_source"]),
         )
-        client.insert_df("fact_realtime_vwap", frame.to_pandas())
+        for session_date in ticks["trade_ts"].dt.date().unique().sort().to_list():
+            run_backfill(client, session_date.isoformat())
         counts = query_dataframe(
             client,
             "SELECT count() AS row_count, uniqExact(ticker) AS ticker_count FROM fact_realtime_vwap",
         )
-        print("- loaded_fact_realtime_vwap: yes")
+        print("- loaded_fact_realtime_vwap: yes (via realtime_trade_ticks_raw backfill)")
         print(counts.write_csv())
 
 

@@ -10,20 +10,29 @@ from src.loaders.load_fact_realtime_vwap import (
 
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
-DDL_PATH = PROJECT_ROOT / "sql" / "ddl" / "fact_realtime_vwap.sql"
 STREAMING_SQL_PATH = PROJECT_ROOT / "sql" / "streaming" / "realtime_vwap_kafka_engine.sql"
 
 
-def test_day21_fact_realtime_vwap_ddl_matches_scheme() -> None:
-    ddl = DDL_PATH.read_text(encoding="utf-8")
+def test_day21_fact_realtime_vwap_view_matches_scheme() -> None:
+    sql = STREAMING_SQL_PATH.read_text(encoding="utf-8")
 
-    assert "ticker String" in ddl
-    assert "data_source LowCardinality(String)" in ddl
-    assert "minute_ts DateTime" in ddl
-    assert "vwap_1m Float64" in ddl
-    assert "session_vwap Float64" in ddl
-    assert "PARTITION BY toYYYYMMDD(trading_date)" in ddl
-    assert "ORDER BY (ticker, minute_ts)" in ddl
+    assert "CREATE VIEW fact_realtime_vwap AS" in sql
+    assert "ticker" in sql
+    assert "data_source LowCardinality(String)" in sql
+    assert "minute_ts" in sql
+    assert "vwap_1m" in sql
+    assert "session_vwap" in sql
+    assert "PARTITION BY toYYYYMMDD(trading_date)" in sql
+    assert "ORDER BY (data_source, ticker, minute_ts)" in sql
+
+
+def test_day21_fact_realtime_vwap_state_table_uses_aggregating_merge_tree() -> None:
+    sql = STREAMING_SQL_PATH.read_text(encoding="utf-8")
+
+    assert "CREATE TABLE IF NOT EXISTS fact_realtime_vwap_1m_state" in sql
+    assert "ENGINE = AggregatingMergeTree" in sql
+    assert "TTL trading_date + INTERVAL 30 DAY" in sql
+    assert "CREATE MATERIALIZED VIEW mv_fact_realtime_vwap_1m_state" in sql
 
 
 def test_day21_generate_demo_trade_ticks_is_deterministic() -> None:
@@ -69,9 +78,10 @@ def test_day21_streaming_sql_contains_kafka_engine_and_materialized_view() -> No
     assert "dnse-trades-raw" in sql
     assert "CREATE MATERIALIZED VIEW" in sql
     assert "data_source LowCardinality(String)" in sql
-    # The MV lands raw ticks into a staging table; a Python consumer
-    # (scripts/run_realtime_vwap_kafka_consumer.py) computes the correct
-    # cumulative session VWAP and loads fact_realtime_vwap from there.
+    # Raw ticks land in a staging table; a second Materialized View on the
+    # same Kafka source table computes per-minute VWAP aggregate states
+    # directly in ClickHouse (no Python consumer polls/recomputes it anymore).
     assert "TO realtime_trade_ticks_raw" in sql
+    assert "TO fact_realtime_vwap_1m_state" in sql
     assert "dnse-ohlcv-1m" in sql
     assert "TO fact_intraday_ohlcv" in sql

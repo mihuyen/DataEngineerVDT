@@ -11,17 +11,22 @@ from src.common.clickhouse_client import create_client, execute
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 DDL_DIR = PROJECT_ROOT / "sql" / "ddl"
 
-# fact_realtime_vwap and fact_alert_event are owned by the continuous
-# realtime-vwap-consumer and alert-engine services. DROP TABLE here would
-# destroy their history on every DAG run regardless of what load_gold.py
-# does downstream (it ran before load_gold.py's own truncate-avoidance fix
-# could matter at all) -- this table set must never be dropped, only created
-# if missing.
+# fact_alert_event and fact_intraday_ohlcv are owned by the continuous
+# alert-engine service and the Kafka-engine Materialized View pipeline
+# respectively. DROP TABLE here would destroy their history on every DAG run
+# regardless of what load_gold.py does downstream (it ran before
+# load_gold.py's own truncate-avoidance fix could matter at all) -- this
+# table set must never be dropped, only created if missing.
+#
+# fact_realtime_vwap is not in sql/ddl at all: it is a plain VIEW defined in
+# sql/streaming/realtime_vwap_kafka_engine.sql (applied by
+# scripts/init_realtime_streaming.py), computed on top of the
+# AggregatingMergeTree state table fact_realtime_vwap_1m_state -- there is no
+# physical table for this loop to create or skip.
 NO_DROP_TABLES = [
     "fact_alert_event",
     "fact_alert_rule_state",
     "fact_intraday_ohlcv",
-    "fact_realtime_vwap",
 ]
 
 GOLD_TABLES = [

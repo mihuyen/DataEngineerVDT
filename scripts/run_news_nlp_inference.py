@@ -109,8 +109,37 @@ def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Run FiNTA NLP inference for linked market news.")
     parser.add_argument("--service-url", default=None)
     parser.add_argument("--batch-size", type=int, default=16)
+    parser.add_argument("--workers", type=int, default=8)
     parser.add_argument("--no-upload", action="store_true")
     return parser.parse_args()
+
+
+def predict_parallel(articles: list[NLPArticle], base_url: str, workers: int) -> list[dict]:
+    """Gọi /predict/sentiment song song bằng thread pool."""
+    import requests
+    from concurrent.futures import ThreadPoolExecutor, as_completed
+
+    session = requests.Session()
+    url = base_url.rstrip("/") + "/predict/sentiment"
+
+    def call_one(article: NLPArticle) -> dict:
+        resp = session.post(url, json=article.as_payload(), timeout=60)
+        resp.raise_for_status()
+        result = resp.json()
+        result["article_id"] = article.article_id
+        return result
+
+    results = [None] * len(articles)
+    with ThreadPoolExecutor(max_workers=workers) as pool:
+        future_to_idx = {pool.submit(call_one, a): i for i, a in enumerate(articles)}
+        done = 0
+        for future in as_completed(future_to_idx):
+            idx = future_to_idx[future]
+            results[idx] = future.result()
+            done += 1
+            if done % 50 == 0:
+                print(f"  inference: {done}/{len(articles)}", flush=True)
+    return results
 
 
 def main() -> None:
@@ -122,7 +151,9 @@ def main() -> None:
 
     client = NLPClient(base_url=args.service_url)
     health = client.health()
-    predictions = client.predict_batch(articles, batch_size=args.batch_size)
+    base_url = (args.service_url or "http://localhost:8002")
+    print(f"Running inference on {len(articles)} articles with {args.workers} workers...")
+    predictions = predict_parallel(articles, base_url, workers=args.workers)
     prediction_frame = flatten_predictions(predictions)
     enriched = links.join(prediction_frame, on="article_id", how="inner")
 

@@ -14,10 +14,13 @@ DEFAULT_LOCAL_SILVER_DIR = PROJECT_ROOT / "data" / "silver_local"
 
 def load_silver_ohlcv(local_silver_dir: Path = DEFAULT_LOCAL_SILVER_DIR) -> pl.DataFrame:
     """Load local Silver OHLCV parquet files."""
-    files = sorted((local_silver_dir / "ohlcv").glob("ticker=*/year=*/month=*/data.parquet"))
+    files = sorted((local_silver_dir / "ohlcv").glob("year=*/month=*/data.parquet"))
     if not files:
         raise FileNotFoundError(f"No Silver OHLCV parquet files found under {local_silver_dir}")
-    frame = pl.concat([pl.read_parquet(file_path) for file_path in files], how="diagonal_relaxed")
+    frame = (
+        pl.concat([pl.read_parquet(file_path) for file_path in files], how="diagonal_relaxed")
+        .unique(subset=["ticker", "date"], keep="last", maintain_order=True)
+    )
 
     company_profile_files = sorted((local_silver_dir / "company_profile").glob("year=*/month=*/data.parquet"))
     if not company_profile_files:
@@ -187,5 +190,6 @@ def load_fact_daily_price(
     source = silver_ohlcv if silver_ohlcv is not None else load_silver_ohlcv()
     shares = company_shares if company_shares is not None else load_silver_company_shares()
     frame = build_fact_daily_price(source, company_shares=shares)
+    client.command("TRUNCATE TABLE fact_daily_price")  # type: ignore[union-attr]
     insert_dataframe(client, "fact_daily_price", frame)  # type: ignore[arg-type]
     return frame

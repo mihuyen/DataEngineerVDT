@@ -500,6 +500,11 @@ Underfull \hbox (badness 4647) in paragraph at lines 115--115
  []
 
 
+Underfull \hbox (badness 3148) in paragraph at lines 120--121
+[]\TU/DejaVuSerif(0)/m/sc/10 Thiết kế partition cân bằng hai mục tiêu:
+ []
+
+
 Underfull \hbox (badness 3989) in paragraph at lines 126--127
 \TU/DejaVuSerif(0)/m/sc/10 dịch, số cổ phiếu lưu hành, vốn hóa, biến
  []
@@ -520,205 +525,208 @@ Underfull \hbox (badness 2573) in paragraph at lines 126--127
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 128--129
+Underfull \hbox (badness 10000) in paragraph at lines 130--131
 []\TU/DejaVuSerif(0)/m/sc/10 Grain của \TU/DejaVuSansMono(0)/m/n/10 fact_daily_
 price \TU/DejaVuSerif(0)/m/sc/10 là một
  []
 
 
-Underfull \hbox (badness 3668) in paragraph at lines 128--129
+Underfull \hbox (badness 3668) in paragraph at lines 130--131
 \TU/DejaVuSerif(0)/m/sc/10 ticker trong một ngày giao dịch; grain của
  []
 
 
-Underfull \hbox (badness 2486) in paragraph at lines 128--129
+Underfull \hbox (badness 2486) in paragraph at lines 130--131
 \TU/DejaVuSansMono(0)/m/n/10 fact_market_index \TU/DejaVuSerif(0)/m/sc/10 là mộ
 t chỉ số trong một
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 128--129
+Underfull \hbox (badness 10000) in paragraph at lines 130--131
 \TU/DejaVuSerif(0)/m/sc/10 ngày; grain của \TU/DejaVuSansMono(0)/m/n/10 fact_in
 traday_ohlcv \TU/DejaVuSerif(0)/m/sc/10 và
  []
 
 
-Underfull \hbox (badness 2096) in paragraph at lines 128--129
+Underfull \hbox (badness 2096) in paragraph at lines 130--131
 \TU/DejaVuSansMono(0)/m/n/10 fact_realtime_vwap \TU/DejaVuSerif(0)/m/sc/10 là m
 ột ticker trong một
  []
 
-
-Underfull \hbox (badness 10000) in paragraph at lines 138--139
+[3]
+Underfull \hbox (badness 10000) in paragraph at lines 140--141
 \TU/DejaVuSerif(0)/m/sc/10 hoàn tất và ghi vào \TU/DejaVuSansMono(0)/m/n/10 fac
 t_intraday_ohlcv\TU/DejaVuSerif(0)/m/sc/10 .
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 138--139
+Underfull \hbox (badness 10000) in paragraph at lines 140--141
 \TU/DejaVuSerif(0)/m/sc/10 Nến được buffer theo lô nhỏ, lưu bản
  []
 
 
-Underfull \hbox (badness 3471) in paragraph at lines 138--139
+Underfull \hbox (badness 3471) in paragraph at lines 140--141
 \TU/DejaVuSerif(0)/m/sc/10 Bronze local và insert vào ClickHouse bằng
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 138--139
+Underfull \hbox (badness 10000) in paragraph at lines 140--141
 \TU/DejaVuSansMono(0)/m/n/10 ReplacingMergeTree(ingested_at) \TU/DejaVuSerif(0)
 /m/sc/10 để xử lý
  []
 
 
-Underfull \hbox (badness 1688) in paragraph at lines 138--139
+Underfull \hbox (badness 1688) in paragraph at lines 140--141
 \TU/DejaVuSerif(0)/m/sc/10 bản ghi cập nhật. API có thể tổng hợp nến
  []
 
 
-Underfull \hbox (badness 1946) in paragraph at lines 138--139
+Underfull \hbox (badness 1946) in paragraph at lines 140--141
 \TU/DejaVuSerif(0)/m/sc/10 1 phút thành 5/15/30 phút hoặc 1 giờ bằng
  []
 
-[3]
-Underfull \hbox (badness 1953) in paragraph at lines 146--147
+
+Underfull \hbox (badness 1953) in paragraph at lines 148--149
 []\TU/DejaVuSerif(0)/m/sc/10 Các điều kiện crossing cần giá trị chu kỳ
  []
 
 
-Underfull \hbox (badness 2753) in paragraph at lines 146--147
+Underfull \hbox (badness 2753) in paragraph at lines 148--149
 \TU/DejaVuSerif(0)/m/sc/10 trước. Bảng \TU/DejaVuSansMono(0)/m/n/10 fact_alert_
 rule_state \TU/DejaVuSerif(0)/m/sc/10 sử dụng
  []
 
-
-Underfull \hbox (badness 10000) in paragraph at lines 175--176
+[4]
+Underfull \hbox (badness 10000) in paragraph at lines 177--178
 []|\TU/DejaVuSerif(0)/m/n/7 Không gồm
  []
 
 
-Underfull \hbox (badness 1708) in paragraph at lines 178--179
+Underfull \hbox (badness 1708) in paragraph at lines 180--181
 []|\TU/DejaVuSerif(0)/m/n/7 320 mã, hai ngày
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 183--183
+Underfull \hbox (badness 10000) in paragraph at lines 185--185
 []|\TU/DejaVuSerif(0)/m/n/7 14
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 183--184
+Underfull \hbox (badness 10000) in paragraph at lines 185--186
 []|\TU/DejaVuSerif(0)/m/n/7 Batch, streaming,
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 184--185
+Underfull \hbox (badness 10000) in paragraph at lines 186--187
 []|\TU/DejaVuSerif(0)/m/n/7 Không thiếu/dư
  []
 
-[4]
-Underfull \hbox (badness 10000) in paragraph at lines 202--203
+
+Underfull \hbox (badness 10000) in paragraph at lines 204--205
 []|\TU/DejaVuSerif(0)/m/n/7 VNINDEX/VN30,
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 202--203
+Underfull \hbox (badness 10000) in paragraph at lines 204--205
 \TU/DejaVuSerif(0)/m/n/7 breadth, top
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 202--203
+Underfull \hbox (badness 10000) in paragraph at lines 204--205
 \TU/DejaVuSerif(0)/m/n/7 tăng/giảm,
  []
 
 
-Underfull \hbox (badness 7151) in paragraph at lines 204--205
+Underfull \hbox (badness 7151) in paragraph at lines 206--207
 \TU/DejaVuSerif(0)/m/n/7 out, MACD, volume
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 205--206
+Underfull \hbox (badness 10000) in paragraph at lines 207--208
 []|\TU/DejaVuSerif(0)/m/n/7 Giá cuối, VWAP
  []
 
 
-Underfull \hbox (badness 5431) in paragraph at lines 205--206
+Underfull \hbox (badness 5431) in paragraph at lines 207--208
 \TU/DejaVuSerif(0)/m/n/7 phút/phiên, độ lệch,
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 206--206
+Underfull \hbox (badness 10000) in paragraph at lines 208--208
 []|\TU/DejaVuSerif(0)/m/n/7 PostgreSQL và
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 206--207
+Underfull \hbox (badness 10000) in paragraph at lines 208--209
 []|\TU/DejaVuSerif(0)/m/n/7 Mã theo dõi, rule,
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 206--207
+Underfull \hbox (badness 10000) in paragraph at lines 208--209
 \TU/DejaVuSerif(0)/m/n/7 cooldown, delivery
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 207--207
+Underfull \hbox (badness 10000) in paragraph at lines 209--209
 []|\TU/DejaVuSerif(0)/m/n/7 Airflow,
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 207--207
+Underfull \hbox (badness 10000) in paragraph at lines 209--209
 \TU/DejaVuSerif(0)/m/n/7 ClickHouse,
  []
 
 
-Underfull \hbox (badness 5533) in paragraph at lines 207--208
+Underfull \hbox (badness 5533) in paragraph at lines 209--210
 \TU/DejaVuSerif(0)/m/n/7 count, quality error,
  []
 
-
-Underfull \hbox (badness 10000) in paragraph at lines 226--227
+[5]
+Underfull \hbox (badness 10000) in paragraph at lines 228--229
 []\TU/DejaVuSerif(0)/m/sc/10 Thứ nhất, quality realtime phát hiện
  []
 
 
-Underfull \hbox (badness 1360) in paragraph at lines 226--227
+Underfull \hbox (badness 1360) in paragraph at lines 228--229
 \TU/DejaVuSansMono(0)/m/n/10 session_volume \TU/DejaVuSerif(0)/m/sc/10 từ VWAP 
 là 9.103.410, trong
  []
 
-[5]
-Underfull \hbox (badness 1668) in paragraph at lines 240--241
+
+Underfull \hbox (badness 1668) in paragraph at lines 244--245
 []\TU/DejaVuSerif(0)/m/sc/10 Nền tảng đã xây dựng được một chuỗi xử
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 242--243
+Underfull \vbox (badness 10000) has occurred while \output is active []
+
+ [6]
+Underfull \hbox (badness 10000) in paragraph at lines 246--247
 []\TU/DejaVuSerif(0)/m/sc/10 Mã nguồn đi kèm bao gồm cấu hình
  []
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 242--243
+Underfull \hbox (badness 10000) in paragraph at lines 246--247
 \TU/DejaVuSerif(0)/m/sc/10 Docker Compose, DAG Airflow, DDL
  []
 
 
-Underfull \hbox (badness 2582) in paragraph at lines 242--243
+Underfull \hbox (badness 2582) in paragraph at lines 246--247
 \TU/DejaVuSerif(0)/m/sc/10 ClickHouse/PostgreSQL, mô hình dbt, module
  []
 
 LaTeX Font Info:    External font `cmex10' loaded for size
-(Font)              <8> on input line 246.
+(Font)              <8> on input line 250.
 LaTeX Font Info:    External font `cmex10' loaded for size
-(Font)              <6> on input line 246.
+(Font)              <6> on input line 250.
 
-Underfull \hbox (badness 1728) in paragraph at lines 248--249
+Underfull \hbox (badness 1728) in paragraph at lines 252--253
 \TU/DejaVuSerif(0)/m/sc/8 tation,” [Online]. Available: $[][][][][] [] [] [] []
 [][][][][][] [] [][][][][][] [] [][][] []
  []
 
 
-Underfull \hbox (badness 3138) in paragraph at lines 252--253
+Underfull \hbox (badness 3138) in paragraph at lines 256--257
 \TU/DejaVuSerif(0)/m/sc/8 able: $[][][][][] [] [] [] [][][][][][][] [] [][][][]
 [][][][] [] [][][][]$. Accessed: Jun. 29,
  []
@@ -734,9 +742,11 @@ Before submitting the final camera ready copy, remember to:
  uses only Type 1 fonts and that every step in the generation
  process uses the appropriate paper size.
 
-[6] (stock_lakehouse_ieee.aux)
+[7
+
+] (stock_lakehouse_ieee.aux)
 
 LaTeX Font Warning: Some font shapes were not available, defaults substituted.
 
  )
-Output written on stock_lakehouse_ieee.xdv (6 pages, 276288 bytes).
+Output written on stock_lakehouse_ieee.xdv (7 pages, 300840 bytes).

@@ -3,7 +3,6 @@ import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell,
   LineChart, Line,
 } from "recharts";
-import { newsSentiment as mockNewsSentiment, sentimentByDate as mockSentimentByDate } from "./mockData";
 import { fetchNewsSentiment, NewsSentimentRow, SentimentByDate } from "./api";
 
 const CARD: React.CSSProperties = { background: "#111827", border: "1px solid rgba(255,255,255,0.07)", borderRadius: 8, padding: 16 };
@@ -26,9 +25,9 @@ interface NewsSentimentProps { onNavigate: (page: string, ticker?: string) => vo
 export function NewsSentiment({ onNavigate }: NewsSentimentProps) {
   const [filterSentiment, setFilterSentiment] = useState<"all" | "positive" | "negative" | "neutral">("all");
   const [search, setSearch] = useState("");
-  const [newsSentiment, setNewsSentiment] = useState<NewsSentimentRow[]>(mockNewsSentiment);
-  const [sentimentByDate, setSentimentByDate] = useState<SentimentByDate[]>(mockSentimentByDate);
-  const [apiStatus, setApiStatus] = useState("Snapshot local");
+  const [newsSentiment, setNewsSentiment] = useState<NewsSentimentRow[]>([]);
+  const [sentimentByDate, setSentimentByDate] = useState<SentimentByDate[]>([]);
+  const [apiStatus, setApiStatus] = useState<"loading" | "ok" | "error">("loading");
 
   useEffect(() => {
     let cancelled = false;
@@ -37,10 +36,10 @@ export function NewsSentiment({ onNavigate }: NewsSentimentProps) {
         if (cancelled) return;
         setNewsSentiment(payload.data);
         setSentimentByDate(payload.byDate);
-        setApiStatus("ClickHouse live query");
+        setApiStatus("ok");
       })
       .catch(() => {
-        if (!cancelled) setApiStatus("Snapshot local");
+        if (!cancelled) setApiStatus("error");
       });
     return () => {
       cancelled = true;
@@ -71,7 +70,9 @@ export function NewsSentiment({ onNavigate }: NewsSentimentProps) {
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
         <div>
           <h1 style={{ color: "#e2e8f0", margin: 0, fontSize: 18, fontWeight: 700, ...INTER }}>Tin tức & cảm xúc thị trường</h1>
-          <p style={{ color: "#6b7fa3", margin: 0, fontSize: 12, ...INTER }}>Tin tức & cảm xúc thị trường · {apiStatus}</p>
+          <p style={{ color: apiStatus === "error" ? "#ff4d6d" : "#6b7fa3", margin: 0, fontSize: 12, ...INTER }}>
+            {apiStatus === "loading" ? "Đang tải dữ liệu..." : apiStatus === "error" ? "Không thể tải dữ liệu — kiểm tra API" : `ClickHouse live · ${newsSentiment.length} mã`}
+          </p>
         </div>
         <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
           <input

@@ -19,10 +19,13 @@ SOCIAL_EXPECTED_NUM_LABELS = 3
 LABEL_ALIASES = {
     "positive": "positive",
     "pos": "positive",
+    "bullish": "positive",
     "negative": "negative",
     "neg": "negative",
+    "bearish": "negative",
     "neutral": "neutral",
     "neu": "neutral",
+    "uncertainty": "neutral",
 }
 
 

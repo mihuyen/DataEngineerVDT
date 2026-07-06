@@ -40,14 +40,13 @@ def test_validate_schema_rejects_missing_column() -> None:
         vnstock_ohlcv.validate_schema(frame)
 
 
-def test_build_bronze_object_name_partitions_by_ticker_and_ingest_date() -> None:
+def test_build_bronze_object_name_partitions_by_ingest_date() -> None:
     object_name = vnstock_ohlcv.build_bronze_object_name(
-        ticker="vcb",
         ingest_date=date(2026, 6, 10),
         bronze_path="ohlcv/",
     )
 
-    assert object_name == "ohlcv/ticker=VCB/year=2026/month=06/day=10/data.parquet"
+    assert object_name == "ohlcv/year=2026/month=06/day=10/data.parquet"
 
 
 def test_fetch_ticker_universe_filters_requested_exchanges(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -72,7 +71,7 @@ def test_fetch_ticker_universe_filters_requested_exchanges(monkeypatch: pytest.M
 
 
 def test_save_parquet_writes_file(tmp_path: Path) -> None:
-    output_path = tmp_path / "ohlcv" / "ticker=VCB" / "data.parquet"
+    output_path = tmp_path / "ohlcv" / "data.parquet"
 
     saved_path = vnstock_ohlcv.save_parquet(sample_ohlcv_frame(), output_path)
 
@@ -89,14 +88,13 @@ def test_read_tickers_from_file(tmp_path: Path) -> None:
     assert tickers == ["ACB", "VCB"]
 
 
-def test_run_uses_mocked_fetch_and_upload(
+def test_run_many_writes_one_combined_file(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     uploaded: dict[str, str] = {}
 
     def fake_fetch_ohlcv(ticker: str, start_date: str, end_date: str) -> pl.DataFrame:
-        assert ticker == "VCB"
         assert start_date == "2026-05-10"
         assert end_date == "2026-06-10"
         return sample_ohlcv_frame()
@@ -109,16 +107,19 @@ def test_run_uses_mocked_fetch_and_upload(
     monkeypatch.setattr(vnstock_ohlcv, "fetch_ohlcv", fake_fetch_ohlcv)
     monkeypatch.setattr(vnstock_ohlcv, "upload_to_minio", fake_upload_to_minio)
 
-    result = vnstock_ohlcv.run(
-        ticker="VCB",
+    result = vnstock_ohlcv.run_many(
+        tickers=["VCB", "ACB"],
         start_date="2026-05-10",
         end_date="2026-06-10",
         local_output_dir=tmp_path,
     )
 
     assert result["bucket"] == "bronze"
-    assert result["object_name"].startswith("ohlcv/ticker=VCB/")
-    assert Path(result["local_path"]).is_file()
+    assert result["object_name"].startswith("ohlcv/year=")
+    assert "ticker=" not in result["object_name"]
+    assert result["succeeded"] == "2"
+    combined = pl.read_parquet(result["local_path"])
+    assert sorted(combined.get_column("ticker").unique().to_list()) == ["ACB", "VCB"]
     assert uploaded["bucket_name"] == "bronze"
 
 
@@ -152,11 +153,11 @@ def test_run_many_continues_when_one_ticker_fails(
     assert result["errors"][0]["ticker"] == "BAD"
 
 
-def test_run_skips_existing_local_file(
+def test_run_many_skips_existing_local_file(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    object_name = vnstock_ohlcv.build_bronze_object_name(ticker="VCB")
+    object_name = vnstock_ohlcv.build_bronze_object_name()
     existing_path = tmp_path / object_name
     existing_path.parent.mkdir(parents=True, exist_ok=True)
     sample_ohlcv_frame().write_parquet(existing_path)
@@ -166,13 +167,13 @@ def test_run_skips_existing_local_file(
 
     monkeypatch.setattr(vnstock_ohlcv, "fetch_ohlcv", fail_fetch_ohlcv)
 
-    result = vnstock_ohlcv.run(
-        ticker="VCB",
+    result = vnstock_ohlcv.run_many(
+        tickers=["VCB"],
         start_date="2026-05-10",
         end_date="2026-06-10",
         local_output_dir=tmp_path,
         skip_existing=True,
     )
 
-    assert result["status"] == "SKIPPED"
+    assert result["skipped"] == "1"
     assert result["object_name"] == object_name

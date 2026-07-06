@@ -5,7 +5,10 @@ from datetime import datetime, timedelta
 import pendulum
 from airflow import DAG
 from airflow.operators.bash import BashOperator
+from airflow.operators.python import PythonOperator
 from airflow.utils.trigger_rule import TriggerRule
+
+from slack_notifications import notify_failure, notify_success
 
 
 PROJECT_DIR = "/opt/airflow/project"
@@ -36,6 +39,12 @@ default_args = {
     "depends_on_past": False,
     "retries": 1,
     "retry_delay": timedelta(minutes=5),
+    # Fires once per task that exhausts its retries, not once per DAG run --
+    # for a single-branch failure that's the same thing; for parallel branches
+    # failing together it means more than one Slack message, which is an
+    # acceptable trade-off for a project this size versus wiring a dedicated
+    # "did anything fail" trigger-rule task.
+    "on_failure_callback": notify_failure,
 }
 
 
@@ -188,6 +197,15 @@ with DAG(
         trigger_rule=TriggerRule.ALL_DONE,
     )
 
+    notify_dag_success = PythonOperator(
+        task_id="notify_dag_success",
+        python_callable=notify_success,
+        # Only fires when every upstream task in the fan-in below succeeded --
+        # this is the "whole run succeeded" Slack message; per-task failures
+        # are already covered independently by default_args' on_failure_callback.
+        trigger_rule=TriggerRule.ALL_SUCCESS,
+    )
+
     init_minio >> [ingest_market_index, ingest_news, ingest_ohlcv, ingest_company_profile]
     ingest_ohlcv >> silver_ohlcv
     ingest_market_index >> silver_market_index
@@ -208,3 +226,4 @@ with DAG(
     reconcile_gold >> intraday_ohlcv_backfill >> realtime_quality_check
     reconcile_gold >> export_gold_to_minio
     [export_gold_to_minio, check_alerts, dbt_test] >> export_frontend_data
+    export_frontend_data >> notify_dag_success

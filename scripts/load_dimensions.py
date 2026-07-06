@@ -52,16 +52,16 @@ def load_silver_company_profile(local_silver_dir: Path = DEFAULT_LOCAL_SILVER_DI
 
 def load_silver_tickers(local_silver_dir: Path = DEFAULT_LOCAL_SILVER_DIR) -> list[str]:
     """Read available Silver OHLCV tickers as a fallback for dim_stock."""
-    paths = sorted((local_silver_dir / "ohlcv").glob("ticker=*/year=*/month=*/day=*/data.parquet"))
+    paths = sorted((local_silver_dir / "ohlcv").glob("year=*/month=*/data.parquet"))
     if not paths:
         return []
 
-    tickers = {
-        path.parent.parent.parent.parent.name.removeprefix("ticker=").upper()
-        for path in paths
-        if path.parent.parent.parent.parent.name.startswith("ticker=")
-    }
-    return sorted(tickers)
+    frame = pl.concat([pl.read_parquet(path) for path in paths], how="diagonal_relaxed")
+    if "ticker" not in frame.columns:
+        return []
+    return sorted(
+        frame.get_column("ticker").drop_nulls().cast(pl.Utf8).str.to_uppercase().unique().to_list()
+    )
 
 
 def truncate_dimension_tables(client: object) -> None:

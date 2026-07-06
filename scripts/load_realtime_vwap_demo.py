@@ -6,16 +6,29 @@ from pathlib import Path
 
 sys.path.append(str(Path(__file__).resolve().parents[1]))
 
-from src.common.clickhouse_client import create_client, execute, query_dataframe
-from src.loaders.load_fact_realtime_vwap import generate_demo_trade_ticks, load_fact_realtime_vwap
+from src.common.clickhouse_client import create_client, execute, insert_dataframe, query_dataframe
+from src.loaders.load_fact_realtime_vwap import generate_demo_trade_ticks
+from scripts.run_realtime_vwap_kafka_consumer import run_backfill
 
 
 def parse_args() -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description="Load demo realtime VWAP rows into ClickHouse.")
+    parser = argparse.ArgumentParser(
+        description=(
+            "Load demo realtime trade ticks into ClickHouse and backfill "
+            "fact_realtime_vwap_1m_state, the same path production ticks take "
+            "via the Kafka Materialized View. fact_realtime_vwap itself is a "
+            "VIEW computed on top of that state table -- nothing is inserted "
+            "into it directly."
+        )
+    )
     parser.add_argument("--tickers", default="ALL", help="Comma-separated tickers, or ALL for dim_stock.")
     parser.add_argument("--minutes", type=int, default=10)
     parser.add_argument("--trades-per-minute", type=int, default=4)
-    parser.add_argument("--append", action="store_true", help="Append instead of truncating fact_realtime_vwap.")
+    parser.add_argument(
+        "--append",
+        action="store_true",
+        help="Append instead of truncating realtime_trade_ticks_raw and fact_realtime_vwap_1m_state.",
+    )
     return parser.parse_args()
 
 
@@ -51,8 +64,13 @@ def main() -> None:
         trades_per_minute=args.trades_per_minute,
     )
     if not args.append:
-        execute(client, "TRUNCATE TABLE IF EXISTS fact_realtime_vwap")
-    frame = load_fact_realtime_vwap(client, trade_ticks=ticks)
+        execute(client, "TRUNCATE TABLE IF EXISTS realtime_trade_ticks_raw")
+        execute(client, "TRUNCATE TABLE IF EXISTS fact_realtime_vwap_1m_state")
+
+    insert_dataframe(client, "realtime_trade_ticks_raw", ticks)
+    for session_date in ticks["trade_ts"].dt.date().unique().sort().to_list():
+        run_backfill(client, session_date.isoformat())
+
     counts = query_dataframe(
         client,
         "SELECT count() AS row_count, uniqExact(ticker) AS ticker_count FROM fact_realtime_vwap",
@@ -60,7 +78,6 @@ def main() -> None:
     print("Realtime VWAP demo load completed")
     print(f"- tickers: {len(tickers)}")
     print(f"- input_ticks: {ticks.height}")
-    print(f"- loaded_rows: {frame.height}")
     print(counts.write_csv())
 
 

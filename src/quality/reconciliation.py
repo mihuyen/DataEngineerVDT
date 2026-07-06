@@ -67,6 +67,23 @@ def count_distinct_bronze_ticker_dates(root: Path, glob_pattern: str, ticker_par
     return frame.unique(["key", "date"]).height
 
 
+def count_distinct_bronze_keys(root: Path, glob_pattern: str, key_column: str) -> int:
+    """Count distinct (key, trading date) pairs when the key lives in a column.
+
+    Used for the combined year/month/day Bronze layout where all tickers share
+    one file per ingest day, so the ticker is a data column instead of a path
+    segment.
+    """
+    files = sorted(root.glob(glob_pattern))
+    if not files:
+        return 0
+    frame = pl.concat(
+        (pl.read_parquet(file_path).select(key_column, "date") for file_path in files),
+        how="diagonal_relaxed",
+    )
+    return frame.unique([key_column, "date"]).height
+
+
 def _ratio_check(
     name: str,
     upstream_count: int,
@@ -230,19 +247,19 @@ def build_reconciliation_report(
     """
     today = today or datetime.now(timezone.utc).date()
 
-    bronze_ohlcv = count_distinct_bronze_ticker_dates(
-        local_bronze_dir, "ohlcv/ticker=*/year=*/month=*/day=*/data.parquet", ticker_part_index=-5
+    bronze_ohlcv = count_distinct_bronze_keys(
+        local_bronze_dir, "ohlcv/year=*/month=*/day=*/data.parquet", "ticker"
     )
-    silver_ohlcv = count_parquet_rows(local_silver_dir, "ohlcv/ticker=*/year=*/month=*/data.parquet")
+    silver_ohlcv = len(read_silver_keys(local_silver_dir, "ohlcv/year=*/month=*/data.parquet", "ticker"))
     gold_daily_price = int(ch_client.query("SELECT count() FROM fact_daily_price").result_rows[0][0])
 
     bronze_market_index = count_distinct_bronze_ticker_dates(
         local_bronze_dir, "market_index/index_code=*/year=*/month=*/day=*/data.parquet", ticker_part_index=-5
     )
-    silver_market_index = count_parquet_rows(local_silver_dir, "market_index/year=*/month=*/data.parquet")
+    silver_market_index = len(read_silver_keys(local_silver_dir, "market_index/year=*/month=*/data.parquet", "index_code"))
     gold_market_index = int(ch_client.query("SELECT count() FROM fact_market_index").result_rows[0][0])
 
-    silver_ohlcv_keys = read_silver_keys(local_silver_dir, "ohlcv/ticker=*/year=*/month=*/data.parquet", "ticker")
+    silver_ohlcv_keys = read_silver_keys(local_silver_dir, "ohlcv/year=*/month=*/data.parquet", "ticker")
     gold_ohlcv_keys = read_gold_keys(ch_client, "fact_daily_price", "ticker", "trading_date")
 
     silver_market_index_keys = read_silver_keys(

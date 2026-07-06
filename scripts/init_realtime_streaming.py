@@ -21,13 +21,6 @@ def table_exists(client, table_name: str) -> bool:
 
 def main() -> None:
     client = create_client()
-    if table_exists(client, "fact_realtime_vwap"):
-        execute(
-            client,
-            "ALTER TABLE fact_realtime_vwap "
-            "ADD COLUMN IF NOT EXISTS data_source LowCardinality(String) "
-            "DEFAULT 'UNKNOWN' AFTER trading_date",
-        )
     if table_exists(client, "realtime_trade_ticks_raw"):
         execute(
             client,

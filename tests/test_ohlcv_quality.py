@@ -80,12 +80,12 @@ def test_save_quality_report_supports_custom_name(tmp_path: Path) -> None:
 
 
 def test_load_silver_ohlcv_dataset_reads_selected_tickers(tmp_path: Path) -> None:
-    vcb_path = tmp_path / "ohlcv" / "ticker=VCB" / "year=2026" / "month=06" / "data.parquet"
-    acb_path = tmp_path / "ohlcv" / "ticker=ACB" / "year=2026" / "month=06" / "data.parquet"
-    vcb_path.parent.mkdir(parents=True)
-    acb_path.parent.mkdir(parents=True)
-    valid_frame().write_parquet(vcb_path)
-    valid_frame().with_columns(pl.lit("ACB").alias("ticker")).write_parquet(acb_path)
+    silver_path = tmp_path / "ohlcv" / "year=2026" / "month=06" / "data.parquet"
+    silver_path.parent.mkdir(parents=True)
+    pl.concat(
+        [valid_frame(), valid_frame().with_columns(pl.lit("ACB").alias("ticker"))],
+        how="diagonal_relaxed",
+    ).write_parquet(silver_path)
 
     frame = load_silver_ohlcv_dataset(local_silver_dir=tmp_path, tickers=["ACB"])
 

@@ -40,7 +40,10 @@ def load_silver_market_index(local_silver_dir: Path = DEFAULT_LOCAL_SILVER_DIR) 
     files = sorted((local_silver_dir / "market_index").glob("year=*/month=*/data.parquet"))
     if not files:
         raise FileNotFoundError(f"No Silver market index parquet files found under {local_silver_dir}")
-    return pl.concat([pl.read_parquet(file_path) for file_path in files], how="diagonal_relaxed")
+    return (
+        pl.concat([pl.read_parquet(file_path) for file_path in files], how="diagonal_relaxed")
+        .unique(subset=["index_code", "date"], keep="last", maintain_order=True)
+    )
 
 
 def load_silver_company_profile(local_silver_dir: Path = DEFAULT_LOCAL_SILVER_DIR) -> pl.DataFrame | None:
@@ -300,5 +303,6 @@ def load_fact_market_index(
             if silver_ohlcv is None:
                 raise
             frame = build_fact_market_index(silver_ohlcv)
+    client.command("TRUNCATE TABLE fact_market_index")  # type: ignore[union-attr]
     insert_dataframe(client, "fact_market_index", frame)  # type: ignore[arg-type]
     return frame

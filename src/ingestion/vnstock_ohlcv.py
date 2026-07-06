@@ -154,16 +154,15 @@ def validate_schema(frame: pl.DataFrame) -> None:
 
 
 def build_bronze_object_name(
-    ticker: str,
     ingest_date: date | None = None,
     bronze_path: str = "ohlcv/",
     filename: str = "data.parquet",
 ) -> str:
+    """All tickers combined into one file per ingest day (year/month/day partition)."""
     partition_date = ingest_date or date.today()
     cleaned_prefix = bronze_path.strip("/")
     return (
         f"{cleaned_prefix}/"
-        f"ticker={ticker.upper()}/"
         f"year={partition_date:%Y}/"
         f"month={partition_date:%m}/"
         f"day={partition_date:%d}/"
@@ -193,49 +192,6 @@ def upload_to_minio(
     )
 
 
-def run(
-    ticker: str = "VCB",
-    start_date: str | None = None,
-    end_date: str | None = None,
-    config_path: Path = DEFAULT_CONFIG_PATH,
-    local_output_dir: Path = DEFAULT_LOCAL_BRONZE_DIR,
-    skip_existing: bool = False,
-) -> dict[str, str]:
-    today = date.today()
-    resolved_end_date = end_date or today.isoformat()
-    resolved_start_date = start_date or (today - timedelta(days=30)).isoformat()
-    source_config = load_config(config_path)
-    bronze_path = str(source_config.get("bronze_path", "ohlcv/"))
-    bucket_name = str(source_config.get("bronze_bucket", "bronze"))
-    object_name = build_bronze_object_name(ticker=ticker, bronze_path=bronze_path)
-    local_path = local_output_dir / object_name
-
-    if skip_existing and local_path.is_file():
-        return {
-            "ticker": ticker.upper(),
-            "status": "SKIPPED",
-            "start_date": resolved_start_date,
-            "end_date": resolved_end_date,
-            "local_path": str(local_path),
-            "bucket": bucket_name,
-            "object_name": object_name,
-        }
-
-    frame = fetch_ohlcv(ticker=ticker, start_date=resolved_start_date, end_date=resolved_end_date)
-    save_parquet(frame, local_path)
-    upload_to_minio(local_path=local_path, object_name=object_name, bucket_name=bucket_name)
-
-    return {
-        "ticker": ticker.upper(),
-        "status": "SUCCESS",
-        "start_date": resolved_start_date,
-        "end_date": resolved_end_date,
-        "local_path": str(local_path),
-        "bucket": bucket_name,
-        "object_name": object_name,
-    }
-
-
 def run_many(
     tickers: Sequence[str],
     start_date: str | None = None,
@@ -246,44 +202,77 @@ def run_many(
     request_delay_seconds: float = 0.0,
     skip_existing: bool = False,
 ) -> dict[str, Any]:
-    results: list[dict[str, str]] = []
+    """Fetch OHLCV for all tickers and write ONE combined Bronze file per ingest day.
+
+    Partition layout: ohlcv/year=YYYY/month=MM/day=DD/data.parquet
+    (all tickers combined — avoids the small-file problem of per-ticker files).
+    """
+    today = date.today()
+    resolved_end_date = end_date or today.isoformat()
+    resolved_start_date = start_date or (today - timedelta(days=30)).isoformat()
+    source_config = load_config(config_path)
+    bronze_path = str(source_config.get("bronze_path", "ohlcv/"))
+    bucket_name = str(source_config.get("bronze_bucket", "bronze"))
+    object_name = build_bronze_object_name(bronze_path=bronze_path)
+    local_path = local_output_dir / object_name
+
+    if skip_existing and local_path.is_file():
+        return {
+            "requested": str(len(tickers)),
+            "succeeded": "0",
+            "skipped": str(len(tickers)),
+            "failed": "0",
+            "local_path": str(local_path),
+            "bucket": bucket_name,
+            "object_name": object_name,
+            "results": [],
+            "errors": [],
+        }
+
+    frames: list[pl.DataFrame] = []
     errors: list[dict[str, str]] = []
 
     for ticker in tickers:
         cleaned_ticker = ticker.strip().upper()
         if not cleaned_ticker:
             continue
-
-        status = "FAILED"
         try:
-            result = run(
+            frame = fetch_ohlcv(
                 ticker=cleaned_ticker,
-                start_date=start_date,
-                end_date=end_date,
-                config_path=config_path,
-                local_output_dir=local_output_dir,
-                skip_existing=skip_existing,
+                start_date=resolved_start_date,
+                end_date=resolved_end_date,
             )
-            results.append(result)
-            status = result.get("status", "SUCCESS")
-            print(f"- {cleaned_ticker}: {status}", flush=True)
+            frames.append(frame.with_columns(pl.lit(cleaned_ticker).alias("ticker")))
+            print(f"- {cleaned_ticker}: FETCHED ({frame.height} rows)", flush=True)
         except Exception as exc:
             if not continue_on_error:
                 raise
             errors.append({"ticker": cleaned_ticker, "error": str(exc)})
             print(f"- {cleaned_ticker}: FAILED ({exc})", flush=True)
 
-        if request_delay_seconds > 0 and status != "SKIPPED":
+        if request_delay_seconds > 0:
             sleep(request_delay_seconds)
 
-    skipped = sum(1 for result in results if result.get("status") == "SKIPPED")
-    succeeded = sum(1 for result in results if result.get("status") == "SUCCESS")
+    if not frames:
+        raise RuntimeError("No OHLCV data fetched for any ticker")
+
+    combined = (
+        pl.concat(frames, how="diagonal_relaxed")
+        .unique(subset=["ticker", "date"], keep="last", maintain_order=True)
+        .sort(["ticker", "date"])
+    )
+    save_parquet(combined, local_path)
+    upload_to_minio(local_path=local_path, object_name=object_name, bucket_name=bucket_name)
 
     return {
         "requested": str(len(tickers)),
-        "succeeded": str(succeeded),
-        "skipped": str(skipped),
+        "succeeded": str(len(frames)),
+        "skipped": "0",
         "failed": str(len(errors)),
-        "results": results,
+        "record_count": str(combined.height),
+        "local_path": str(local_path),
+        "bucket": bucket_name,
+        "object_name": object_name,
+        "results": [],
         "errors": errors,
     }
