@@ -25,6 +25,11 @@ def parse_args() -> argparse.Namespace:
         action="store_true",
         help="Run all checks even if one pipeline fails.",
     )
+    parser.add_argument(
+        "--exclude-news",
+        action="store_true",
+        help="Skip Silver news checks when news is owned by the 5-minute DAG.",
+    )
     return parser.parse_args()
 
 
@@ -32,7 +37,8 @@ def main() -> None:
     args = parse_args()
     failures: list[str] = []
 
-    for dataset_name, command in QUALITY_COMMANDS:
+    commands = [item for item in QUALITY_COMMANDS if not (args.exclude_news and item[0] == "news")]
+    for dataset_name, command in commands:
         print(f"Running quality check: {dataset_name}")
         completed = subprocess.run(command, cwd=PROJECT_ROOT, check=False)
         if completed.returncode != 0:
@@ -44,7 +50,7 @@ def main() -> None:
             print(f"- {dataset_name}: PASSED")
 
     print("All quality checks completed")
-    print(f"- passed: {len(QUALITY_COMMANDS) - len(failures)}")
+    print(f"- passed: {len(commands) - len(failures)}")
     print(f"- failed: {len(failures)}")
     if failures:
         print("- failed_datasets: " + ", ".join(failures))

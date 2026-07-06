@@ -5,9 +5,8 @@ from datetime import datetime, timedelta
 import pendulum
 from airflow import DAG
 from airflow.operators.bash import BashOperator
-from airflow.operators.python import PythonOperator
 
-from slack_notifications import notify_failure, notify_success
+from slack_notifications import notify_failure
 
 
 PROJECT_DIR = "/opt/airflow/project"
@@ -60,10 +59,3 @@ with DAG(
             "--run-once --load-gold"
         ),
     )
-
-    notify_dag_success = PythonOperator(
-        task_id="notify_dag_success",
-        python_callable=notify_success,
-    )
-
-    run_news_cycle >> notify_dag_success

@@ -36,10 +36,12 @@ def run_cycle(args: argparse.Namespace) -> None:
         if args.no_upload:
             silver_cmd.append("--no-upload")
         run_command(silver_cmd)
+        run_command([sys.executable, "scripts/run_news_quality_check.py", "--fail-on-error"])
     if not args.skip_linking:
         run_command([sys.executable, "scripts/run_news_entity_linking.py"])
     if args.load_gold:
         run_command([sys.executable, "scripts/run_news_nlp_inference.py"])
+        run_command([sys.executable, "scripts/run_news_sentiment_quality.py"])
         run_command([sys.executable, "scripts/load_news_sentiment_gold.py"])
 
 

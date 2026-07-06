@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import argparse
 import sys
 from datetime import date, timedelta
 from pathlib import Path
@@ -148,6 +149,16 @@ def reprocessing_cutoff(watermark: date | None, lookback_days: int = INDICATOR_L
     return watermark - timedelta(days=lookback_days)
 
 
+def parse_args() -> argparse.Namespace:
+    parser = argparse.ArgumentParser(description="Load batch dimensions and facts into ClickHouse Gold.")
+    parser.add_argument(
+        "--skip-news",
+        action="store_true",
+        help="Do not reload news tables owned by news_crawl_5m.",
+    )
+    return parser.parse_args()
+
+
 def main() -> None:
     """Load Gold Layer dimensions and available batch facts.
 
@@ -156,6 +167,7 @@ def main() -> None:
     services, which write to them continuously and independently of this
     daily batch run.
     """
+    args = parse_args()
     client = create_client()
     silver_ohlcv = load_silver_ohlcv()
     silver_company_profile = load_silver_company_profile()
@@ -193,11 +205,14 @@ def main() -> None:
         drop_partitions_for_dates(client, "fact_market_index", market_index_frame.get_column("trading_date"))
         insert_dataframe(client, "fact_market_index", market_index_frame)
 
-    try:
-        truncate_news_sentiment_tables(client)
-        load_fact_news_sentiment_daily(client)
-    except FileNotFoundError as exc:
-        print(f"- skipped fact_news_sentiment_daily: {exc}")
+    if not args.skip_news:
+        try:
+            truncate_news_sentiment_tables(client)
+            load_fact_news_sentiment_daily(client)
+        except FileNotFoundError as exc:
+            print(f"- skipped fact_news_sentiment_daily: {exc}")
+    else:
+        print("- preserved news Gold tables (owned by news_crawl_5m)")
 
     counts = verify_counts(client)
     print("Gold Layer load completed")

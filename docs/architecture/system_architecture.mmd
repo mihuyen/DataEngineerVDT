@@ -18,7 +18,8 @@ flowchart TB
 
   subgraph BATCH[LUỒNG BATCH]
     direction LR
-    AIRFLOW["Apache Airflow<br/>DAG batch 18:00 (giá, chỉ số, tin tức)<br/>+ DAG news_crawl_5m mỗi 5 phút"]:::ingest
+    AIRFLOW_DAILY["Airflow: stock_lakehouse_daily<br/>18:00 thứ 2 đến thứ 6<br/>Giá, chỉ số, profile, dbt"]:::ingest
+    AIRFLOW_NEWS["Airflow: news_crawl_5m<br/>Mỗi 5 phút, chạy 24/7<br/>Chủ sở hữu duy nhất của news"]:::ingest
     CRAWLER[Module Thu thập Dữ liệu<br/>Crawl, Entity Linking, NLP, nạp Gold]:::ingest
     BRONZE[("MinIO Bronze Layer<br/>Lưu trữ dữ liệu thô")]:::storage
     SILVER[("MinIO Silver Layer<br/>Dữ liệu đã làm sạch & chuẩn hóa")]:::storage
@@ -60,11 +61,11 @@ flowchart TB
     SLACK[Thông báo vận hành<br/>Slack Webhook]:::ops
   end
 
-  KBS --> AIRFLOW
-  VCI --> AIRFLOW
+  KBS --> AIRFLOW_DAILY
+  VCI --> AIRFLOW_DAILY
+  AIRFLOW_DAILY --> BRONZE
   NEWS --> CRAWLER --> BRONZE
-  AIRFLOW -. Điều phối 2 lịch chạy .-> CRAWLER
-  AIRFLOW --> BRONZE
+  AIRFLOW_NEWS --> CRAWLER
   BRONZE --> TRANSFORM --> SILVER --> QUALITY
   QUALITY --> CLICKHOUSE
   CLICKHOUSE --> DBT --> CLICKHOUSE
@@ -87,8 +88,10 @@ flowchart TB
   CLICKHOUSE --> GRAFANA
   CLICKHOUSE --> ALERT
   POSTGRES --> ALERT --> CHANNEL
-  AIRFLOW -. Trạng thái DAG .-> API
-  AIRFLOW -. DAG thành công hoặc lỗi .-> SLACK
+  AIRFLOW_DAILY -. Trạng thái DAG .-> API
+  AIRFLOW_NEWS -. Trạng thái DAG .-> API
+  AIRFLOW_DAILY -. Thành công hoặc lỗi .-> SLACK
+  AIRFLOW_NEWS -. Chỉ khi lỗi .-> SLACK
   KAFKA -. Lag .-> GRAFANA
 
   style SOURCES fill:#F8FAFC,stroke:#94A3B8,color:#172033

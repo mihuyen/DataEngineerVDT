@@ -30,7 +30,6 @@ COMMON_ENV = (
     "export POSTGRES_USER=${POSTGRES_USER:-stock_user} && "
     "export POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-stock_password} && "
     "export POSTGRES_DB=${POSTGRES_DB:-stock_lakehouse} && "
-    "export NLP_SERVICE_URL=${NLP_SERVICE_URL:-http://nlp-service:8000} && "
     "cd " + PROJECT_DIR
 )
 
@@ -67,11 +66,6 @@ with DAG(
     ingest_market_index = BashOperator(
         task_id="bronze_market_index",
         bash_command=f"{COMMON_ENV} && uv run python scripts/run_market_index_ingest.py",
-    )
-
-    ingest_news = BashOperator(
-        task_id="bronze_market_news",
-        bash_command=f"{COMMON_ENV} && uv run python scripts/run_news_ingest.py",
     )
 
     ingest_company_profile = BashOperator(
@@ -111,47 +105,19 @@ with DAG(
         bash_command=f"{COMMON_ENV} && uv run python scripts/run_market_index_silver.py",
     )
 
-    silver_news = BashOperator(
-        task_id="silver_news",
-        bash_command=f"{COMMON_ENV} && uv run python scripts/run_news_silver.py",
-    )
-
     quality_all = BashOperator(
         task_id="quality_all",
-        bash_command=f"{COMMON_ENV} && uv run python scripts/run_all_quality_checks.py",
-    )
-
-    news_nlp_inference = BashOperator(
-        task_id="news_nlp_inference",
-        bash_command=(
-            f"{COMMON_ENV} && uv run python scripts/run_news_nlp_inference.py "
-            "--service-url ${NLP_SERVICE_URL} --workers 4"
-        ),
-        execution_timeout=timedelta(hours=2),
-    )
-
-    news_sentiment_quality = BashOperator(
-        task_id="news_sentiment_quality",
-        bash_command=f"{COMMON_ENV} && uv run python scripts/run_news_sentiment_quality.py",
-        # news_nlp_inference calls an external NLP service that can fail for
-        # reasons unrelated to price/index Gold data (timeout, cold start,
-        # port not ready yet). This check must still run and report on
-        # whatever sentiment data already exists, and -- critically -- must
-        # not gate load_gold (see the dependency edges below): a batch run
-        # that failed once for this exact reason emptied dim_stock,
-        # fact_daily_price and friends for hours because load_gold never got
-        # the chance to run at all.
-        trigger_rule=TriggerRule.ALL_DONE,
+        bash_command=f"{COMMON_ENV} && uv run python scripts/run_all_quality_checks.py --exclude-news",
     )
 
     migrate_gold = BashOperator(
         task_id="migrate_gold_schema",
-        bash_command=f"{COMMON_ENV} && uv run python scripts/migrate_gold_schema.py",
+        bash_command=f"{COMMON_ENV} && uv run python scripts/migrate_gold_schema.py --skip-news",
     )
 
     load_gold = BashOperator(
         task_id="load_gold",
-        bash_command=f"{COMMON_ENV} && uv run python scripts/load_gold.py",
+        bash_command=f"{COMMON_ENV} && uv run python scripts/load_gold.py --skip-news",
     )
 
     reconcile_gold = BashOperator(
@@ -230,20 +196,12 @@ with DAG(
         trigger_rule=TriggerRule.ALL_SUCCESS,
     )
 
-    init_minio >> [ingest_market_index, ingest_news, ingest_ohlcv, ingest_company_profile]
+    init_minio >> [ingest_market_index, ingest_ohlcv, ingest_company_profile]
     ingest_ohlcv >> silver_ohlcv
     ingest_market_index >> silver_market_index
-    ingest_news >> silver_news
     ingest_company_profile >> silver_company_profile
-    [silver_ohlcv, silver_company_profile, silver_market_index, silver_news] >> quality_all
-    quality_all >> [migrate_gold, news_nlp_inference]
-    news_nlp_inference >> news_sentiment_quality
-    # load_gold depends only on the schema being ready, not on the news NLP
-    # side branch: load_gold.py already reads whatever news sentiment data
-    # exists on disk (falling back to the lexicon scorer if the NLP output
-    # isn't there yet) and never blocks on news_nlp_inference internally --
-    # the DAG must not impose a dependency the script itself doesn't have.
-    migrate_gold >> load_gold >> reconcile_gold
+    [silver_ohlcv, silver_company_profile, silver_market_index] >> quality_all
+    quality_all >> migrate_gold >> load_gold >> reconcile_gold
     reconcile_gold >> init_user_alerts >> check_alerts
     reconcile_gold >> dbt_run >> dbt_test
     # Backup and the intraday backfill do not gate export_gold_to_minio or

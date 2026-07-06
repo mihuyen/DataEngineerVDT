@@ -10,13 +10,9 @@ def test_stock_lakehouse_daily_dag_contains_core_tasks() -> None:
         "bronze_ohlcv",
         "bronze_company_profile_listing",
         "bronze_market_index",
-        "bronze_market_news",
         "silver_ohlcv",
         "silver_company_profile",
         "silver_market_index",
-        "silver_news",
-        "news_nlp_inference",
-        "news_sentiment_quality",
         "quality_all",
         "migrate_gold_schema",
         "load_gold",
@@ -24,6 +20,9 @@ def test_stock_lakehouse_daily_dag_contains_core_tasks() -> None:
 
     for task_id in expected_tasks:
         assert task_id in content
+
+    for news_task in ["bronze_market_news", "silver_news", "news_nlp_inference", "news_sentiment_quality"]:
+        assert news_task not in content
 
 
 def test_stock_lakehouse_daily_dag_uses_resume_for_long_ohlcv_ingest() -> None:
@@ -37,19 +36,10 @@ def test_stock_lakehouse_daily_dag_uses_resume_for_long_ohlcv_ingest() -> None:
 def test_stock_lakehouse_daily_dag_has_quality_gate_before_gold() -> None:
     content = Path("dags/stock_lakehouse_daily.py").read_text(encoding="utf-8")
 
-    assert "scripts/run_all_quality_checks.py" in content
-    assert "quality_all >> [migrate_gold, news_nlp_inference]" in content
-    assert "news_nlp_inference >> news_sentiment_quality" in content
-    # load_gold must depend only on the schema being ready (migrate_gold), not
-    # on the news NLP side branch: news_nlp_inference calls an external NLP
-    # service that can fail for reasons unrelated to price/index Gold data,
-    # and load_gold.py already degrades gracefully on its own when news
-    # sentiment output isn't available. Gating load_gold on the news branch
-    # previously emptied dim_stock/fact_daily_price/etc. for hours in
-    # production when news_nlp_inference failed and load_gold never got the
-    # chance to run at all.
-    assert "migrate_gold >> load_gold" in content
-    assert "[migrate_gold, news_sentiment_quality] >> load_gold" not in content
+    assert "scripts/run_all_quality_checks.py --exclude-news" in content
+    assert "scripts/migrate_gold_schema.py --skip-news" in content
+    assert "scripts/load_gold.py --skip-news" in content
+    assert "quality_all >> migrate_gold >> load_gold" in content
 
 
 def test_stock_lakehouse_daily_dag_uses_vietnam_timezone_and_weekday_schedule() -> None:
@@ -66,3 +56,4 @@ def test_news_crawl_5m_dag_runs_every_five_minutes() -> None:
     assert 'schedule="*/5 * * * *"' in content
     assert "scripts/run_news_crawl_loop.py" in content
     assert "--run-once --load-gold" in content
+    assert "notify_success" not in content

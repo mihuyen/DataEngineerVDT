@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import argparse
 import sys
 from pathlib import Path
 
@@ -39,6 +40,17 @@ GOLD_TABLES = [
     "dim_index",
     "dim_date",
 ]
+NEWS_TABLES = {"fact_news_sentiment_detail", "fact_news_sentiment_daily"}
+
+
+def parse_args() -> argparse.Namespace:
+    parser = argparse.ArgumentParser(description="Recreate batch Gold tables from DDL files.")
+    parser.add_argument(
+        "--skip-news",
+        action="store_true",
+        help="Preserve news Gold tables owned by news_crawl_5m.",
+    )
+    return parser.parse_args()
 
 
 def main() -> None:
@@ -50,13 +62,23 @@ def main() -> None:
     continuous services (NO_DROP_TABLES) are only created if missing, never
     dropped, since they are not repopulated from Silver by anything.
     """
+    args = parse_args()
     client = create_client()
-    for table_name in GOLD_TABLES:
+    tables_to_recreate = [
+        table_name for table_name in GOLD_TABLES if not (args.skip_news and table_name in NEWS_TABLES)
+    ]
+    for table_name in tables_to_recreate:
         execute(client, f"DROP TABLE IF EXISTS {table_name}")
         print(f"- dropped: {table_name}")
 
     for ddl_file in sorted(DDL_DIR.glob("*.sql")):
         table_name = ddl_file.stem
+        if args.skip_news and table_name in NEWS_TABLES:
+            # CREATE IF NOT EXISTS keeps fresh deployments usable without
+            # dropping data continuously owned by news_crawl_5m.
+            execute(client, ddl_file.read_text(encoding="utf-8"))
+            print(f"- preserved (owned by news_crawl_5m): {ddl_file.name}")
+            continue
         if table_name in NO_DROP_TABLES:
             print(f"- skipped drop (owned by continuous service): {table_name}")
         execute(client, ddl_file.read_text(encoding="utf-8"))
