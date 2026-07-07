@@ -126,7 +126,7 @@ export function NewsSentiment({ onNavigate }: NewsSentimentProps) {
       {/* KPI row */}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(5, 1fr)", gap: 12 }}>
         {[
-          { label: "Tổng tin hôm nay", value: totalNews + "", color: "#e2e8f0" },
+          { label: "Tổng tin 7 ngày qua", value: totalNews + "", color: "#e2e8f0" },
           { label: "Tin tích cực", value: totalPositive + "", color: "#00d97e" },
           { label: "Tin tiêu cực", value: totalNegative + "", color: "#ff4d6d" },
           { label: "Mã được nhắc đến", value: newsSentiment.length + "", color: "#3b82f6" },

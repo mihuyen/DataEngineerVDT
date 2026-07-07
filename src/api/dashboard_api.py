@@ -1132,7 +1132,7 @@ def get_news_sentiment(days: int = Query(7, ge=1, le=60)) -> dict[str, Any]:
             avg(confidence_score) AS avgConfidence,
             countIf(is_low_confidence = 1) AS lowConfidenceCount,
             argMax(url, inferred_at) AS url,
-            argMax(source, inferred_at) AS source,
+            argMax(source, inferred_at) AS latestSource,
             argMax(model_version, inferred_at) AS modelVersion
           FROM fact_news_sentiment_detail
           WHERE published_at >= (SELECT max(news_date) FROM fact_news_sentiment_daily) - {days}
@@ -1149,7 +1149,7 @@ def get_news_sentiment(days: int = Query(7, ge=1, le=60)) -> dict[str, Any]:
           avg(n.avg_sentiment_score) AS avgScore,
           argMax(n.top_headline, n.news_date) AS headline,
           any(d.url) AS url,
-          any(d.source) AS source,
+          any(d.latestSource) AS source,
           any(d.avgConfidence) AS avgConfidence,
           any(d.lowConfidenceCount) AS lowConfidenceCount,
           any(d.modelVersion) AS modelVersion,

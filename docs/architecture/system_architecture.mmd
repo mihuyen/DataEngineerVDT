@@ -1,4 +1,4 @@
-%%{init: {"theme":"base","htmlLabels":false,"flowchart":{"htmlLabels":false,"curve":"basis","nodeSpacing":18,"rankSpacing":28,"diagramPadding":6},"themeVariables":{"background":"#ffffff","primaryTextColor":"#172033","lineColor":"#526070","clusterBkg":"#f8fafc","clusterBorder":"#cbd5e1","edgeLabelBackground":"#ffffff","titleColor":"#172033","fontFamily":"Arial"}}}%%
+%%{init: {"theme":"base","htmlLabels":false,"flowchart":{"htmlLabels":false,"curve":"basis","nodeSpacing":34,"rankSpacing":48,"diagramPadding":10},"themeVariables":{"background":"#ffffff","primaryTextColor":"#172033","lineColor":"#526070","clusterBkg":"#f8fafc","clusterBorder":"#cbd5e1","edgeLabelBackground":"#ffffff","titleColor":"#172033","fontFamily":"Arial"}}}%%
 flowchart TB
   classDef source fill:#E8F1FF,stroke:#2563EB,color:#10213B,stroke-width:1.5px;
   classDef ingest fill:#FFF4D6,stroke:#D97706,color:#3B2600,stroke-width:1.5px;
@@ -8,94 +8,114 @@ flowchart TB
   classDef ops fill:#FCEAEC,stroke:#C43B55,color:#4A1620,stroke-width:1.5px;
   classDef observe fill:#F2F4F7,stroke:#64748B,color:#263244,stroke-width:1.5px;
 
+  %% ================= NGUỒN =================
   subgraph SOURCES[NGUỒN DỮ LIỆU]
     direction LR
-    KBS["vnstock<br/>VCI: OHLCV ngày<br/>KBS: listing, profile"]:::source
-    VCI["vnstock VCI<br/>VNINDEX, VN30"]:::source
-    NEWS[Tin tức Tài chính<br/>VnExpress, Vietstock, CafeF]:::source
-    DNSE["WebSocket (DNSE)<br/>Dữ liệu thời gian thực (Tick, 1m)"]:::source
+    KBS["vnstock — KBS<br/>Danh sách HOSE, hồ sơ doanh nghiệp"]:::source
+    VCI["vnstock — VCI<br/>OHLCV ngày, VNINDEX, VN30"]:::source
+    NEWS["Báo chí<br/>VnExpress, Vietstock, CafeF"]:::source
+    DNSE["DNSE WebSocket<br/>Tick khớp lệnh + nến 1 phút (2 kênh riêng)"]:::source
   end
 
-  subgraph BATCH[LUỒNG BATCH]
+  %% ================= ĐIỀU PHỐI BATCH & NEWS =================
+  subgraph ORCH[ĐIỀU PHỐI — AIRFLOW BATCH & NEWS]
     direction LR
-    AIRFLOW_DAILY["Airflow: stock_lakehouse_daily<br/>18:00 thứ 2 đến thứ 6<br/>Giá, chỉ số, profile, dbt"]:::ingest
-    AIRFLOW_NEWS["Airflow: news_crawl_5m<br/>Mỗi 5 phút, chạy 24/7<br/>Chủ sở hữu duy nhất của news"]:::ingest
-    CRAWLER[Module Thu thập Dữ liệu<br/>Crawl, Entity Linking, NLP, nạp Gold]:::ingest
-    BRONZE[("MinIO Bronze Layer<br/>Lưu trữ dữ liệu thô")]:::storage
-    SILVER[("MinIO Silver Layer<br/>Dữ liệu đã làm sạch & chuẩn hóa")]:::storage
-    TRANSFORM["Data Processing (Polars)<br/>Biến đổi và Khử trùng lặp"]:::process
-    QUALITY[Kiểm định Chất lượng<br/>Quality Gate Python tự xây]:::process
-    DBT["Data Transformation (dbt)<br/>Tính toán các chỉ báo kỹ thuật"]:::process
-    NLP[Dịch vụ AI/NLP<br/>Nhận diện thực thể & Cảm xúc]:::process
-    NLPQ[Quality Gate NLP<br/>Nhãn, score, confidence, model version]:::process
+    AIRFLOW_DAILY["DAG stock_lakehouse_daily<br/>18:00, T2–T6<br/>Giá · chỉ số · listing"]:::ingest
+    AIRFLOW_NEWS["DAG news_crawl_5m<br/>Mỗi 5 phút, 24/7<br/>Micro-batch độc lập, chủ sở hữu tin tức"]:::ingest
   end
 
-  subgraph STREAM[LUỒNG REALTIME]
+  %% ================= BRONZE/SILVER/QUALITY =================
+  subgraph LAYERS[BRONZE — SILVER — QUALITY]
     direction LR
-    PRODUCER[Kafka Producer<br/>Tiếp nhận dữ liệu thời gian thực]:::ingest
-    KAFKA[("Apache Kafka<br/>Message Broker")]:::storage
-    ZK[Zookeeper<br/>Quản lý cụm Kafka]:::observe
-    KENGINE[ClickHouse Kafka Engine<br/>Xử lý dòng dữ liệu]:::process
-    RAWTICK[("Bảng dữ liệu Tick thô<br/>realtime_trade_ticks_raw")]:::storage
-    VWAPSTATE[("Bảng trạng thái VWAP<br/>fact_realtime_vwap_1m_state")]:::storage
-    INTRADAY[("Bảng Nến giao dịch<br/>fact_intraday_ohlcv")]:::storage
-    VWAPVIEW[Khung nhìn VWAP<br/>Chỉ số trung bình giá theo KL]:::serving
+    BRONZE[("MinIO Bronze<br/>Dữ liệu thô (batch & news, khác dataset)")]:::storage
+    SILVER[("MinIO Silver<br/>Đã chuẩn hóa (batch & news, khác dataset)")]:::storage
+    QUALITY["Quality Gate (batch)<br/>Silver: null/domain/duplicate keys"]:::process
+    NEWSQUALITY["News Quality Gate<br/>run_news_quality_check.py"]:::process
+    NLP["Entity Linking + NLP<br/>PhoBERT sentiment"]:::process
+    SENTQUALITY["Sentiment Quality<br/>run_news_sentiment_quality.py"]:::process
+    NEWSGOLDLOADER["News Gold Loader<br/>load_news_sentiment_gold.py"]:::process
+    DBT["dbt<br/>fact_daily_price → indicators mart"]:::process
   end
 
-  subgraph LAKE_SERVE[LAKEHOUSE VÀ SERVING]
+  %% ================= STREAMING =================
+  subgraph STREAM[LUỒNG THỜI GIAN THỰC — 2 NHÁNH ĐỘC LẬP]
     direction LR
-    CLICKHOUSE[("ClickHouse - Gold Layer<br/>Kho dữ liệu phân tích tốc độ cao")]:::serving
-    GOLD[("MinIO Gold Layer<br/>Lưu trữ Parquet định kỳ")]:::storage
-    BACKUP[("MinIO Backup<br/>Bản sao dự phòng hệ thống")]:::storage
-    POSTGRES[("PostgreSQL<br/>Cấu hình Cảnh báo & Danh mục")]:::ops
+    PRODUCER["Kafka Producer<br/>(trade tick)"]:::ingest
+    KAFKA[("Kafka<br/>+ Zookeeper")]:::storage
+    KENGINE["ClickHouse Kafka Engine<br/>+ Materialized View"]:::process
+    CANDLE["DNSE OHLC Consumer<br/>ohlc_closed.1 — KHÔNG qua Kafka"]:::ingest
   end
 
-  subgraph CONSUME[PHỤC VỤ VÀ CẢNH BÁO]
+  %% ================= NỀN TẢNG DỮ LIỆU =================
+  subgraph PLATFORM[NỀN TẢNG DỮ LIỆU]
     direction LR
-    API["RESTful API (FastAPI)<br/>Cung cấp dữ liệu hệ thống"]:::serving
-    REACT["Giao diện Người dùng (React)<br/>Bảng điều khiển Thị trường"]:::serving
-    SUPERSET[Apache Superset<br/>Báo cáo & Phân tích BI]:::observe
-    GRAFANA[Grafana<br/>Giám sát sức khỏe Hệ thống]:::observe
-    ALERT[Hệ thống Cảnh báo tự động<br/>Alert Engine]:::ops
-    CHANNEL[Kênh Thông báo<br/>Telegram & Email]:::ops
-    SLACK[Thông báo vận hành<br/>Slack Webhook]:::ops
+    GOLDLOADER["Gold Loader<br/>migrate schema + nạp Gold"]:::process
+    CLICKHOUSE[("ClickHouse Gold<br/>dim_* · fact_* · fact_realtime_vwap_1m_state (TTL 30 ngày) · view VWAP")]:::serving
+    RECON["Reconciliation<br/>Bronze–Silver: tỷ lệ giảm ≤5%<br/>Silver–Gold: anti-join khóa chính xác"]:::process
+    POSTGRES[("PostgreSQL (operational)<br/>Watchlist · rule cảnh báo<br/>+ metadata Airflow")]:::ops
+    MINIO_GOLD[("MinIO gold/<br/>Parquet export định kỳ")]:::storage
+    MINIO_BACKUP[("MinIO backups/<br/>ClickHouse Native + pg_dump")]:::storage
   end
 
+  %% ================= PHỤC VỤ =================
+  subgraph SERVE[LỚP TIÊU THỤ — Ứng dụng + Cảnh báo]
+    direction LR
+    API["FastAPI"]:::serving
+    REACT["Dashboard React"]:::serving
+    ALERT["Alert Engine"]:::ops
+    SUPERSET["Superset<br/>đọc thẳng ClickHouse"]:::observe
+    GRAFANA["Grafana<br/>đọc thẳng ClickHouse + Postgres"]:::observe
+    CHANNEL["Telegram + Email"]:::ops
+    SLACK["Slack Webhook"]:::ops
+  end
+
+  %% ---- nguồn batch -> điều phối ----
   KBS --> AIRFLOW_DAILY
   VCI --> AIRFLOW_DAILY
+  NEWS --> AIRFLOW_NEWS
+
+  %% ---- realtime: 2 nhánh tách biệt hoàn toàn ----
+  DNSE --> PRODUCER --> KAFKA --> KENGINE --> CLICKHOUSE
+  DNSE --> CANDLE --> CLICKHOUSE
+  PRODUCER -.->|raw Parquet, best-effort| BRONZE
+  CANDLE -.->|raw Parquet, best-effort| BRONZE
+
+  %% ---- batch: điều phối -> bronze/silver/quality -> gold loader -> reconciliation ----
   AIRFLOW_DAILY --> BRONZE
-  NEWS --> CRAWLER --> BRONZE
-  AIRFLOW_NEWS --> CRAWLER
-  BRONZE --> TRANSFORM --> SILVER --> QUALITY
-  QUALITY --> CLICKHOUSE
+  AIRFLOW_NEWS --> BRONZE
+  BRONZE --> SILVER
+  SILVER --> QUALITY --> GOLDLOADER
+  GOLDLOADER --> CLICKHOUSE --> RECON
+
+  %% ---- news: nhánh riêng, gold loader riêng, chỉ dùng chung Bronze/Silver storage ----
+  SILVER --> NEWSQUALITY --> NLP --> SENTQUALITY --> NEWSGOLDLOADER --> CLICKHOUSE
+
+  %% ---- dbt chạy SAU reconciliation, không song song (reconcile_gold >> dbt_run) ----
+  RECON -.->|trigger sau khi đối soát xong| DBT
   CLICKHOUSE --> DBT --> CLICKHOUSE
-  SILVER -->|Tin đã chuẩn hóa| NLP -->|Nạp detail và daily aggregate| CLICKHOUSE
-  NLP -. Kiểm tra độc lập trong DAG ngày .-> NLPQ
-  CLICKHOUSE -->|Xuất Parquet| GOLD
-  CLICKHOUSE --> BACKUP
-  POSTGRES --> BACKUP
 
-  DNSE --> PRODUCER --> KAFKA --> KENGINE
-  ZK -. Điều phối broker .-> KAFKA
-  KENGINE --> RAWTICK
-  KENGINE --> VWAPSTATE --> VWAPVIEW --> CLICKHOUSE
-  KENGINE --> INTRADAY --> CLICKHOUSE
+  %% ---- nền tảng dữ liệu -> export/backup (khác mục đích) ----
+  CLICKHOUSE --> MINIO_GOLD
+  CLICKHOUSE --> MINIO_BACKUP
+  POSTGRES --> MINIO_BACKUP
 
+  %% ---- nền tảng dữ liệu -> phục vụ (không qua FastAPI với Superset/Grafana) ----
   CLICKHOUSE --> API
-  POSTGRES --> API
-  API --> REACT
+  POSTGRES --> API --> REACT
   CLICKHOUSE --> SUPERSET
   CLICKHOUSE --> GRAFANA
+  POSTGRES --> GRAFANA
   CLICKHOUSE --> ALERT
   POSTGRES --> ALERT --> CHANNEL
-  AIRFLOW_DAILY -. Trạng thái DAG .-> API
-  AIRFLOW_NEWS -. Trạng thái DAG .-> API
-  AIRFLOW_DAILY -. Thành công hoặc lỗi .-> SLACK
-  AIRFLOW_NEWS -. Chỉ khi lỗi .-> SLACK
-  KAFKA -. Lag .-> GRAFANA
+  ALERT -.->|ghi fact_alert_event| CLICKHOUSE
+
+  %% ---- điều phối -> Slack (2 DAG chính sách khác nhau) ----
+  AIRFLOW_DAILY -.->|thành công hoặc lỗi| SLACK
+  AIRFLOW_NEWS -.->|chỉ khi lỗi| SLACK
 
   style SOURCES fill:#F8FAFC,stroke:#94A3B8,color:#172033
-  style BATCH fill:#FFFFFF,stroke:#94A3B8,color:#172033
+  style ORCH fill:#FFFFFF,stroke:#94A3B8,color:#172033
+  style LAYERS fill:#FFFFFF,stroke:#94A3B8,color:#172033
   style STREAM fill:#FFFFFF,stroke:#94A3B8,color:#172033
-  style LAKE_SERVE fill:#F8FAFC,stroke:#94A3B8,color:#172033
-  style CONSUME fill:#F8FAFC,stroke:#94A3B8,color:#172033
+  style PLATFORM fill:#F8FAFC,stroke:#94A3B8,color:#172033
+  style SERVE fill:#F8FAFC,stroke:#94A3B8,color:#172033

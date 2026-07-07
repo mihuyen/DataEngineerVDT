@@ -218,7 +218,7 @@ export function AlertHistory({ onNavigate, initialTicker }: AlertHistoryProps) {
           <table style={{ width: "100%", borderCollapse: "collapse" }}>
             <thead>
               <tr style={{ borderBottom: "1px solid rgba(255,255,255,0.07)" }}>
-                {["#", "Thời điểm KT", "User", "Mã CK", "Điều kiện", "Ngưỡng", "Giá trị TT", "Kênh", "Trạng thái", "Sent At", "Cooldown"].map((h) => (
+                {["Thời điểm KT", "User", "Mã CK", "Điều kiện", "Ngưỡng", "Giá trị TT", "Kênh", "Trạng thái", "Sent At", "Cooldown"].map((h) => (
                   <th key={h} style={{ color: "#6b7fa3", fontSize: 10, textAlign: "left", padding: "6px 10px", ...INTER, textTransform: "uppercase", letterSpacing: "0.04em", fontWeight: 500, whiteSpace: "nowrap" }}>{h}</th>
                 ))}
               </tr>
@@ -231,7 +231,6 @@ export function AlertHistory({ onNavigate, initialTicker }: AlertHistoryProps) {
                     onMouseEnter={(e) => (e.currentTarget as HTMLTableRowElement).style.background = "rgba(255,255,255,0.03)"}
                     onMouseLeave={(e) => (e.currentTarget as HTMLTableRowElement).style.background = "transparent"}
                   >
-                    <td style={{ padding: "9px 10px", color: "#6b7fa3", fontSize: 11, ...MONO }}>{a.id}</td>
                     <td style={{ padding: "9px 10px", color: "#e2e8f0", fontSize: 12, ...MONO, whiteSpace: "nowrap" }}>{a.triggeredAt}</td>
                     <td style={{ padding: "9px 10px" }}>
                       <span style={{ background: "rgba(255,255,255,0.06)", color: "#6b7fa3", fontSize: 11, padding: "2px 8px", borderRadius: 3, ...MONO }}>{a.user}</span>

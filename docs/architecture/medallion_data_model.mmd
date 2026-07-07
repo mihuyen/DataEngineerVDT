@@ -17,7 +17,7 @@ flowchart TB
   subgraph B[BRONZE - PARQUET TRÊN MINIO]
     direction LR
     B1[Dữ liệu OHLCV Thô<br/>Partition: year/month/day]:::bronze
-    B2[Hồ sơ Doanh nghiệp Thô<br/>Listing: dataset/year/month/day<br/>Profile: dataset/ticker/year/month/day]:::bronze
+    B2["Hồ sơ Doanh nghiệp Thô<br/>Listing HOSE: dataset/year/month/day (tự động hằng ngày)<br/>Profile: dataset/ticker/year/month/day (đã thu thập/backfill)"]:::bronze
     B3[Chỉ số Thị trường Thô<br/>Partition: index_code/year/month/day]:::bronze
     B4[Tin tức Thô<br/>Partition: source/year/month/day]:::bronze
     B5["Dữ liệu Intraday Thô<br/>DNSE: trades hoặc ohlcv_1m/year/month/day<br/>KBS: source/year/month/day"]:::bronze
@@ -34,9 +34,9 @@ flowchart TB
 
   subgraph G[GOLD - PARQUET MINIO VÀ CLICKHOUSE]
     direction LR
-    G1["Các Bảng Chiều (Dimensions)<br/>dim_date, dim_stock, dim_sector..."]:::gold
+    G1["Các Bảng Chiều (Dimensions)<br/>dim_date, dim_stock, dim_sector, dim_index"]:::gold
     G2[fact_daily_price<br/>Giao dịch cuối ngày & Biến động]:::gold
-    G3[fact_daily_price_indicators<br/>Các Chỉ báo Kỹ thuật]:::gold
+    G3["fact_daily_price_indicators<br/>Các Chỉ báo Kỹ thuật<br/>(chỉ ClickHouse/dbt, chưa export MinIO)"]:::gold
     G4[fact_market_index<br/>Chỉ số chung & Thanh khoản]:::gold
     G5[fact_intraday_ohlcv<br/>Nến 1 phút Intraday]:::gold
     G6[fact_realtime_vwap<br/>VWAP Phút & Phiên giao dịch]:::gold
@@ -65,9 +65,11 @@ flowchart TB
   S3V --> G4
   S4V -->|Entity Linking và NLP<br/>quality check độc lập| G7
   G7 -->|Tổng hợp ticker + ngày| G9
-  S5V --> G5
+  S5V -->|KBS: backfill theo lô| G5
+  B5 -->|DNSE: Kafka Engine và MV<br/>mv_dnse_ohlcv_1m_fact| G5
   B5 -->|Kafka Engine và MV| G6
   G3 --> G8
+  G5 --> G8
   G6 --> G8
 
   style SRC fill:#F8FAFC,stroke:#94A3B8,color:#172033

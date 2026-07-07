@@ -43,10 +43,12 @@ Email: \mentoremail}
 
 \begin{document}
 \maketitle
+\raggedbottom
 
 \begin{abstract}
-Báo cáo trình bày quá trình xây dựng một nền tảng dữ liệu cho thị trường chứng khoán HOSE, hợp nhất giá cổ phiếu, hồ sơ doanh nghiệp, chỉ số thị trường, tin tức và giao dịch trong phiên vào cùng một hệ thống. Dữ liệu được tổ chức qua ba tầng Bronze--Silver--Gold, kết hợp một pipeline xử lý theo lô chạy hằng ngày với một pipeline xử lý dòng cho dữ liệu thời gian thực, cùng một pipeline riêng thu thập và phân tích cảm xúc tin tức theo chu kỳ ngắn. Toàn bộ quá trình thu thập, chuẩn hóa, kiểm tra chất lượng và cảnh báo được điều phối tự động, có khả năng chạy lại khi gặp lỗi. Kết quả kiểm chứng cho thấy dữ liệu nhất quán giữa các tầng, đồng thời báo cáo cũng chỉ ra một số hạn chế thực tế còn tồn tại và hướng hoàn thiện tiếp theo.
+Báo cáo trình bày một nền tảng dữ liệu cho thị trường chứng khoán HOSE, hợp nhất giá cổ phiếu, hồ sơ doanh nghiệp, chỉ số thị trường, tin tức và giao dịch trong phiên vào cùng một hệ thống. Dữ liệu được tổ chức qua ba tầng Bronze--Silver--Gold, kết hợp pipeline theo lô chạy hằng ngày, pipeline thời gian thực và pipeline riêng thu thập, phân tích cảm xúc tin tức theo chu kỳ ngắn. Quá trình thu thập, chuẩn hóa, kiểm tra chất lượng và cảnh báo được điều phối tự động, có khả năng chạy lại khi gặp lỗi. Kết quả tại thời điểm đo cho thấy dữ liệu giá và chỉ số nhất quán giữa ba tầng; các hạn chế về độ phủ realtime, đánh giá mô hình cảm xúc và vận hành đa người dùng cũng được xác định để làm cơ sở cải thiện.
 \end{abstract}
+
 
 \begin{IEEEkeywords}
 Lakehouse, HOSE, Airflow, MinIO, ClickHouse, Kafka, dbt, VWAP, data quality.
@@ -58,7 +60,7 @@ Dữ liệu thị trường chứng khoán có nhiều nhịp cập nhật khác
 
 Phạm vi hiện tại gồm 404 mã cổ phiếu HOSE, VNINDEX và VN30. Mục tiêu là hợp nhất dữ liệu có tần suất khác nhau; chuẩn hóa qua Bronze--Silver--Gold; tự động hóa thu thập và kiểm tra chất lượng; cung cấp giá cuối ngày (end-of-day, EOD), nến một phút, VWAP, chỉ báo kỹ thuật, cảm xúc tin tức, watchlist và cảnh báo. Điểm nổi bật là tách lớp lưu trữ khỏi lớp phục vụ, duy trì hai luồng thời gian thực độc lập (VWAP từ tick khớp lệnh và nến từ kênh DNSE riêng) để đối chiếu, đồng thời hỗ trợ cảnh báo theo sự kiện cắt ngưỡng (\emph{threshold crossing}) thay vì gửi lặp lại khi chỉ báo vẫn nằm ngoài ngưỡng.
 
-Các đóng góp chính gồm thiết kế mô hình dữ liệu ba tầng, xây dựng hai DAG Airflow, triển khai luồng Kafka--ClickHouse cho VWAP và nến phút, xây dựng bộ đối soát liên tầng, tích hợp phân loại cảm xúc tin tức, phát triển API/dashboard và cơ chế cảnh báo đa kênh. Toàn bộ thành phần được đóng gói để có thể tái lập trên môi trường Docker Compose.
+Các đóng góp chính gồm thiết kế mô hình dữ liệu ba tầng, xây dựng hai DAG Airflow, triển khai luồng Kafka--ClickHouse cho VWAP và luồng nến phút độc lập, xây dựng bộ đối soát liên tầng, tích hợp phân loại cảm xúc tin tức, phát triển API/dashboard và cơ chế cảnh báo đa kênh. Toàn bộ thành phần được đóng gói để có thể tái lập trên môi trường Docker Compose.
 
 Mã nguồn và hướng dẫn triển khai được công bố tại \url{https://github.com/mihuyen/DataEngineerVDT}.
 
@@ -68,24 +70,30 @@ Mã nguồn và hướng dẫn triển khai được công bố tại \url{https
 
 Hạ tầng được triển khai bằng Docker Compose và chia thành bốn nhóm. MinIO, ClickHouse và PostgreSQL đảm nhiệm lưu trữ; Airflow điều phối công việc; Kafka, ZooKeeper và các DNSE producer xử lý dữ liệu trong phiên; FastAPI, React, Superset, Grafana, Alert Engine và dịch vụ NLP đảm nhiệm phục vụ và giám sát. Parquet trên MinIO lưu dữ liệu có thể truy vết và tái xử lý; ClickHouse tối ưu truy vấn phân tích; PostgreSQL lưu dữ liệu ứng dụng thay đổi thường xuyên như watchlist và quy tắc cảnh báo. dbt được gọi từ Airflow để xây dựng mart chỉ báo kỹ thuật.
 
+
 \begin{figure*}[t]
-  \centering
-  \includegraphics[width=0.92\textwidth]{../docs/architecture/system_architecture.pdf}
-  \caption{Kiến trúc tổng thể: nguồn dữ liệu, luồng batch, luồng streaming, lớp serving và tiêu thụ.}
-  \label{fig:architecture}
+    \centering
+    \includegraphics[width=1\linewidth]{vdt-Trang-7(1).drawio.png}
+    \caption{Kiến trúc tổng thể}
+    \label{fig:architecture}
 \end{figure*}
 
-Theo Armbrust \textit{et al.}~\cite{lakehouse}, kiến trúc Lakehouse kết hợp khả năng lưu trữ linh hoạt của Data Lake với quản trị dữ liệu và hiệu năng truy vấn của Data Warehouse. Một triển khai đầy đủ thường có table format như Delta Lake, Apache Iceberg hoặc Apache Hudi để cung cấp giao dịch ACID, tiến hóa lược đồ (\emph{schema evolution}) và truy vấn phiên bản dữ liệu (\emph{time travel}). Hệ thống hiện áp dụng kiến trúc Medallion và tách lớp lưu trữ khỏi lớp phục vụ, nhưng Parquet trên MinIO chưa có table format. Vì vậy, báo cáo sử dụng thuật ngữ \emph{nền tảng theo kiến trúc Lakehouse}; Apache Iceberg là hướng hoàn thiện được trình bày tại Mục~\ref{sec:future}.
 
 \subsection{Nguồn dữ liệu}
 
-Bảng~\ref{tab:sources} tổng hợp bốn nguồn: ba nguồn đầu vận hành theo lô, riêng DNSE theo dòng liên tục trong giờ giao dịch -- lý do hệ thống cần hai kiến trúc thu thập song song.
+Bảng~\ref{tab:sources} tổng hợp bốn nhóm nguồn. Mỗi nguồn được xử lý theo một chiến lược riêng vì khác nhau về tần suất, lược đồ và khả năng chạy lại; điểm hội tụ của chúng là mô hình Gold trong ClickHouse.
 
-\textbf{OHLCV và danh sách niêm yết.} Danh sách mã và hồ sơ doanh nghiệp được lấy qua thư viện vnstock với nguồn KBS; giá OHLCV sử dụng nguồn VCI. Mỗi yêu cầu trả về giá mở cửa, cao nhất, thấp nhất, đóng cửa và khối lượng. Tùy chọn \code{--skip-existing} giúp lần chạy lại bỏ qua phân vùng đã có. Tại Silver, pipeline chuẩn hóa kiểu ngày và số, loại bản ghi thiếu khóa, kiểm tra quan hệ \code{high >= open, close, low} và chỉ giữ mã HOSE.
+\textbf{Giá ngày và danh mục HOSE.} Pipeline trước hết lấy danh sách niêm yết HOSE từ KBS qua vnstock để hình thành tập mã đầu vào. Với từng mã, nguồn VCI được gọi để lấy OHLCV gồm ngày giao dịch, giá mở cửa, cao nhất, thấp nhất, đóng cửa và khối lượng. Các yêu cầu được giãn cách nhằm hạn chế lỗi giới hạn tần suất; lỗi của một mã được ghi riêng để không làm mất kết quả đã thu thập của các mã còn lại. Khi chạy lại, tùy chọn \code{--skip-existing} bỏ qua phân vùng ingest đã tồn tại. Bronze giữ tên cột và giá trị gần nguồn nhất, đồng thời bổ sung \code{ticker}, nguồn và thời điểm thu thập. Silver đổi tên cột về \emph{snake case}, ép kiểu ngày và số bằng chế độ không nghiêm ngặt, loại giá không dương, khối lượng âm và miền OHLC không hợp lệ; khóa \code{ticker + date} được khử trùng bằng cách giữ bản ghi cuối rồi sắp xếp lại trước khi ghi Parquet.
 
-\textbf{Chỉ số thị trường.} VNINDEX và VN30 cũng lấy qua vnstock (VCI), khai báo tường minh trong cấu hình nguồn; Silver chỉ chấp nhận đúng hai mã này. Khi lên Gold, pipeline nối với \code{dim\_index}, tính biến động điểm, SMA20, RSI14 và độ rộng thị trường (số mã tăng/giảm/đứng giá trong HOSE, VN30 dùng danh sách thành phần tại thời điểm chạy).
+\textbf{Hồ sơ doanh nghiệp.} Listing từ KBS được dùng để xác định mã, tên công ty, sàn và trạng thái niêm yết. Các thuộc tính profile đã thu thập như ngành, số cổ phiếu lưu hành và chỉ tiêu doanh nghiệp được làm sạch chuỗi, chuẩn hóa mã ngành và hợp nhất với listing. Tầng Gold dùng kết quả này để xây dựng \code{dim\_stock}, \code{dim\_sector} và bổ sung số cổ phiếu lưu hành khi tính vốn hóa trong \code{fact\_daily\_price}. DAG hằng ngày hiện cập nhật listing HOSE; profile chi tiết được tái sử dụng từ các phân vùng đã thu thập thay vì gọi lại toàn bộ từng mã mỗi ngày.
 
-\textbf{Tin tức.} DAG \code{news\_crawl\_5m} chạy mỗi 5 phút, độc lập với DAG batch 18:00. Pipeline thu thập bài từ VnExpress, Vietstock và CafeF; URL registry lưu URL chuẩn hóa để chỉ tải bài mới. Silver làm sạch nội dung và loại trùng. Bước liên kết thực thể (\emph{entity linking}) sử dụng mã cổ phiếu, tên doanh nghiệp và ngữ cảnh xuất hiện để gắn một bài với một hoặc nhiều mã HOSE. Dịch vụ PhoBERT phân loại ba nhãn tích cực, trung lập và tiêu cực; mỗi dự đoán lưu điểm, độ tin cậy, phiên bản mô hình và thời điểm suy luận trong \code{fact\_news\_sentiment\_detail}. Bảng \code{fact\_news\_sentiment\_daily} sau đó tổng hợp theo \code{ticker + news\_date}.
+\textbf{Chỉ số thị trường.} VNINDEX và VN30 được lấy từ VCI theo danh sách cấu hình tường minh. Bronze tách theo \code{index\_code} và ngày ingest; Silver chỉ chấp nhận hai mã thuộc phạm vi HOSE, chuẩn hóa khóa \code{index\_code + date} và loại trùng. Gold ánh xạ mã nguồn sang \code{dim\_index}, tính biến động điểm, tỷ lệ phần trăm, SMA20 và RSI14. Độ rộng VNINDEX được tổng hợp từ toàn bộ mã HOSE; độ rộng VN30 dùng danh sách thành phần được lấy tại thời điểm chạy, sau đó tính số mã tăng, giảm, đứng giá và tỷ lệ tăng/giảm.
+
+\textbf{Tin tức và cảm xúc.} DAG \code{news\_crawl\_5m} là chủ sở hữu duy nhất của luồng tin tức và chạy mỗi 5 phút trong 24 giờ. Bộ thu thập đọc VnExpress, Vietstock và CafeF bằng RSS/API khi có, kết hợp phân tích HTML cho nội dung chi tiết. URL được chuẩn hóa rồi tra trong registry SQLite; URL đã xử lý thành công không được tải lại, còn URL lỗi giữ số lần thử để có thể xử lý ở chu kỳ sau. Bronze nối kết quả mới với dữ liệu cùng ngày và loại trùng theo URL. Silver chuẩn hóa nhà xuất bản, tiêu đề, nội dung và thời điểm công bố, loại bài thiếu nội dung hoặc trùng URL, rồi chạy quality gate trước bước NLP.
+
+Entity linking tạo từ điển từ \code{dim\_stock}/company profile gồm ticker, tên đầy đủ và biến thể tên doanh nghiệp. Một bài chỉ được đưa sang suy luận khi tìm được bằng chứng gắn với mã HOSE; kết quả lưu cả phương pháp và điểm ghép để có thể kiểm tra lại. Dịch vụ NLP nhận tiêu đề và nội dung, phân loại ba nhãn \emph{positive}, \emph{neutral}, \emph{negative}. Suy luận chạy song song theo lô nhỏ, mỗi request thử lại tối đa ba lần với thời gian chờ tăng dần. Pipeline từ chối công bố nếu dịch vụ đang dùng bộ luật fallback, bỏ qua \code{article\_id} đã được xử lý bởi cùng \code{model\_version}, và để bài lỗi quay lại chu kỳ sau. Kết quả chi tiết giữ nhãn, điểm cảm xúc, confidence, cờ độ tin cậy thấp, phiên bản mô hình và bằng chứng entity linking; sau đó tổng hợp theo \code{ticker + news\_date} thành số bài theo từng nhãn và điểm trung bình.
+
+\textbf{Dữ liệu trong phiên.} DNSE cung cấp hai kênh WebSocket độc lập. Kênh trade phát từng giao dịch khớp lệnh để hệ thống tự tính VWAP; kênh \code{ohlc\_closed.1} phát nến một phút đã đóng để dựng biểu đồ và chỉ báo intraday. Việc không suy ra cả hai sản phẩm từ cùng một luồng tạo ra một nguồn đối chiếu chéo: tổng khối lượng từ tick có thể so sánh với khối lượng candle nhằm phát hiện mất kết nối hoặc thiếu message.
 
 \begin{table}[t]
 \caption{Nguồn dữ liệu và đích phục vụ}
@@ -96,7 +104,7 @@ Bảng~\ref{tab:sources} tổng hợp bốn nguồn: ba nguồn đầu vận hà
 \toprule
 \textbf{Nguồn} & \textbf{Nhịp cập nhật} & \textbf{Nội dung và đích} \\
 \midrule
-KBS (vnstock) & Sau giờ giao dịch & Danh sách HOSE, hồ sơ doanh nghiệp \\
+KBS (vnstock) & Sau giờ giao dịch & Danh sách HOSE; profile đã thu thập \\
 VCI (vnstock) & Sau giờ giao dịch & OHLCV ngày, VNINDEX, VN30 \\
 Báo chí & Theo chu kỳ crawl & Tin tức, cảm xúc thị trường \\
 DNSE WebSocket & Trong giờ giao dịch & Tick khớp lệnh, nến 1 phút \\
@@ -106,9 +114,13 @@ DNSE WebSocket & Trong giờ giao dịch & Tick khớp lệnh, nến 1 phút \\
 
 \subsection{Tổ chức Bronze--Silver--Gold}
 
-Bronze giữ dữ liệu gần nguyên trạng và bổ sung thông tin về nguồn, thời điểm thu thập. OHLCV được phân vùng theo \code{year/month/day}, trong đó toàn bộ mã của một ngày được gộp vào một file Parquet. Nếu chia tiếp theo ticker, mỗi ngày sẽ phát sinh hàng trăm file nhỏ, làm tăng chi phí liệt kê và mở đối tượng trên MinIO (\emph{small-file problem}). Silver gộp OHLCV theo \code{year/month}. Khi truy vấn một mã, hệ thống phải đọc rồi lọc dữ liệu của tháng tương ứng; đổi lại, số file giảm đáng kể và Parquet vẫn hỗ trợ chỉ đọc các cột cần thiết (\emph{column pruning}).
+\textbf{Bronze.} Tầng này giữ dữ liệu gần nguyên trạng và bổ sung nguồn, thời điểm ingest cùng khóa phục vụ truy vết. OHLCV được phân vùng \code{ohlcv/year/month/day}; toàn bộ mã của một ngày ingest nằm trong một file thay vì một file cho mỗi ticker. Chỉ số dùng thêm \code{index\_code}; company profile dùng \code{dataset} và chỉ thêm \code{ticker} cho dữ liệu profile theo mã; news dùng \code{news/year/month/day}, còn nguồn báo được giữ trong cột dữ liệu. Cách tổ chức theo ngày ingest trả lời được câu hỏi ``chu kỳ nào đã lấy dữ liệu này'', đồng thời tránh tạo hàng trăm file nhỏ mỗi ngày. Dữ liệu DNSE trade được ghi Parquet cục bộ và sao lưu best-effort lên Bronze MinIO; candle một phút cũng có bản Bronze cục bộ trước khi nạp ClickHouse.
 
-Gold sử dụng mô hình sao (\emph{star schema}) với bốn bảng chiều: \code{dim\_date}, \code{dim\_stock}, \code{dim\_sector}, \code{dim\_index}. Các bảng sự kiện lưu giá ngày, chỉ số, nến phút, VWAP, cảm xúc tin tức và cảnh báo. Mỗi bảng có mức chi tiết bản ghi (\emph{grain}) và khóa sắp xếp phù hợp với truy vấn chính. Một lỗi ở Gold có thể truy ngược về bản ghi Silver và phân vùng Bronze tương ứng mà không cần thu thập lại toàn bộ dữ liệu.
+\textbf{Silver.} Mỗi loại dữ liệu có một hàm biến đổi xác định rõ lược đồ đầu ra, khóa nghiệp vụ và quy tắc loại bỏ. OHLCV có grain \code{ticker + date}; chỉ số có grain \code{index\_code + date}; hồ sơ có grain \code{ticker + snapshot}; news có grain một URL bài viết. Các bản ghi được ép kiểu, chuẩn hóa mã viết hoa, loại trùng và bổ sung \code{source\_name}, \code{ingested\_at}, \code{processed\_at}. OHLCV, index, profile và news đều được ghi theo \code{year/month}, nhờ đó giảm số file trong khi vẫn giới hạn lượng dữ liệu phải đọc khi tái xử lý. Silver chỉ được công bố sau khi expectation tương ứng đạt yêu cầu.
+
+\textbf{Gold.} Gold sử dụng mô hình sao (\emph{star schema}) với bốn bảng chiều \code{dim\_date}, \code{dim\_stock}, \code{dim\_sector}, \code{dim\_index}; các fact lần lượt biểu diễn giá mã--ngày, chỉ số--ngày, bài báo--mã, cảm xúc mã--ngày, mã--phút và sự kiện cảnh báo. Loader tạo lại các dimension nhỏ, nhưng với fact ngày chỉ xử lý cửa sổ từ watermark lùi 35 ngày để đủ lịch sử tính SMA/EMA/RSI/Bollinger. Vì ClickHouse partition fact theo tháng, loader xác định các tháng bị tác động, xóa đúng partition đó rồi chèn lại toàn bộ tháng; cách này tránh mất các ngày đầu tháng khi chỉ nạp phần sau watermark. Các bảng realtime và cảnh báo có owner riêng nên batch loader không truncate chúng.
+
+Sau khi nạp, Gold được xuất ngược thành Parquet trên MinIO: dimension theo \code{snapshot\_date}, fact ngày/index/news/alert theo \code{year/month}, còn VWAP và intraday theo \code{trading\_date}. ClickHouse vì vậy đóng vai trò serving/index layer, trong khi MinIO giữ bản Gold có thể trao đổi và khôi phục. Riêng mart dbt \code{fact\_daily\_price\_indicators} hiện được vật hóa trong ClickHouse và chưa nằm trong danh sách export Parquet.
 
 \begin{table}[t]
 \caption{Data contract qua ba tầng}
@@ -128,34 +140,49 @@ Gold & Mô hình phục vụ và chỉ báo & Khóa chiều/sự kiện, độ t
 
 \begin{figure*}[t]
   \centering
-  \includegraphics[width=0.92\textwidth]{../docs/architecture/gold_star_schema.pdf}
-  \caption{Mô hình sao tầng Gold: bốn bảng chiều dùng chung và các bảng sự kiện có mức chi tiết riêng.}
+  \includegraphics[width=0.92\textwidth]{mi-3. Mo hinh du lieu Logic _ ERD.drawio.png}
+  \caption{Gold schema}
   \label{fig:schema}
 \end{figure*}
 
+\begin{figure}[t]
+  \centering
+  \includegraphics[width=\linewidth]{mi-2. Luong du lieu Medallion.drawio.png}
+  \caption{Luồng xử lý dữ liệu qua các tầng Bronze--Silver--Gold.}
+  \label{fig:medallion-flow}
+\end{figure}
+Hình~\ref{fig:medallion-flow} mô tả cách từng nhóm dữ liệu được lưu ở
+Bronze, chuẩn hóa tại Silver và chuyển thành các bảng dimension, fact
+tại Gold. Dữ liệu theo lô đi đầy đủ qua ba tầng; dữ liệu thời gian thực
+có thể ghi trực tiếp vào ClickHouse sau khi được chuẩn hóa tại tiến
+trình ingest, đồng thời giữ bản thô để truy vết và tái xử lý.
+
 \subsection{Pipeline theo lô và dbt}
 
-DAG \code{stock\_lakehouse\_daily} chạy lúc 18:00 từ thứ Hai đến thứ Sáu. Ba nhánh giá, hồ sơ doanh nghiệp và chỉ số chạy song song, sau đó lần lượt chuẩn hóa Silver, kiểm tra chất lượng, nạp Gold, đối soát, chạy dbt, xuất Parquet và kiểm tra cảnh báo. DAG này không thu thập, suy luận hoặc nạp lại dữ liệu news. DAG \code{news\_crawl\_5m} là chủ sở hữu duy nhất của luồng tin tức và chạy theo chu kỳ 5 phút trong suốt 24 giờ.
+DAG \code{stock\_lakehouse\_daily} chạy lúc 18:00 từ thứ Hai đến thứ Sáu, đặt \code{catchup=False} và \code{max\_active\_runs=1} để tránh hai lượt nạp cùng sửa một partition. Sau bước khởi tạo bucket, ba nhánh OHLCV, company listing và market index được thu thập song song. Mỗi nhánh chỉ đi tiếp vào transform tương ứng khi ingest thành công; ba nhánh hội tụ tại quality gate. Nếu một expectation bắt buộc thất bại, schema migration và Gold loader không chạy, nhờ đó dữ liệu lỗi không được công bố chỉ vì file đã tồn tại.
 
-dbt~\cite{dbt} được sử dụng cho phép biến đổi trong ClickHouse~\cite{clickhouse}, chủ yếu tính chỉ báo bằng hàm cửa sổ SQL (\emph{window function}). Kiểm tra chất lượng liên tầng được viết bằng Python vì \code{dbt test} chủ yếu kiểm tra quan hệ trong dự án dbt, trong khi hệ thống cần phát hiện mất bản ghi từ Bronze sang Silver và sai khác khóa từ Silver sang Gold. Loader Gold bảo vệ các bảng do dịch vụ thời gian thực sở hữu; các bảng theo lô sử dụng mốc dữ liệu đã nạp (\emph{watermark}) và chỉ ghi lại phân vùng tháng bị ảnh hưởng.
+Khi Silver đạt yêu cầu, DAG lần lượt bảo đảm DDL, nạp dimension/fact, rồi đối soát Bronze--Silver--Gold. Từ điểm đối soát thành công, DAG tách thành các nhánh độc lập: dbt run/test, xuất Gold Parquet, kiểm tra alert, sao lưu ClickHouse/PostgreSQL và backfill nến phút. Nhánh backfill gọi API ngoài nên không được phép chặn việc công bố Gold cuối ngày; quality realtime dùng \code{ALL\_DONE} để vẫn tạo báo cáo trên phần dữ liệu hiện có. Chỉ khi các nhánh công bố chính hoàn tất, snapshot frontend được cập nhật và Slack gửi trạng thái thành công; lỗi task được gửi sau khi hết retry. DAG này dùng \code{--exclude-news}/\code{--skip-news}, vì toàn bộ news do DAG 5 phút quản lý.
+
+dbt~\cite{dbt} kết nối trực tiếp ClickHouse~\cite{clickhouse}, đọc \code{fact\_daily\_price} qua staging view và xây mart \code{fact\_daily\_price\_indicators}. Các hàm cửa sổ sắp xếp theo \code{ticker, trading\_date} để tính SMA, EMA, MACD, RSI, Bollinger và trung bình khối lượng mà không chuyển dữ liệu về Python. \code{dbt test} kiểm tra not-null, uniqueness và một số bất biến của mart; kiểm tra liên tầng vẫn dùng Python vì dbt không nhìn thấy trực tiếp tập khóa trong Parquet Bronze/Silver.
 
 \subsection{Pipeline thời gian thực và VWAP}
 
-Luồng thời gian thực đi từ DNSE WebSocket qua producer chuẩn hóa đến Kafka~\cite{kafka}. ClickHouse đọc Kafka bằng Kafka Engine. Materialized View thứ nhất ghi tick vào \code{realtime\_trade\_ticks\_raw}; Materialized View thứ hai tổng hợp tick thành trạng thái theo phút trong \code{fact\_realtime\_vwap\_1m\_state}. Bảng này dùng \code{AggregatingMergeTree} để gộp các trạng thái tổng hợp khi tick của cùng một phút đến ở nhiều đợt khác nhau. \code{fact\_realtime\_vwap} là một view truy vấn các trạng thái đã gộp và tính VWAP lũy kế trong phiên bằng hàm cửa sổ. Nến một phút được ghi vào \code{fact\_intraday\_ohlcv} dùng \code{ReplacingMergeTree(ingested\_at)}; khi DNSE gửi lại một nến đã hiệu chỉnh, phiên bản có thời điểm nạp mới hơn được giữ lại.
+\textbf{Nhánh tick và VWAP.} Producer xác thực với DNSE, subscribe trade của phạm vi mã cấu hình, chuẩn hóa ticker, thời gian, giá, khối lượng và đẩy message vào Kafka~\cite{kafka}. ClickHouse Kafka Engine là consumer chính; Materialized View thứ nhất lưu bản sao tick trong \code{realtime\_trade\_ticks\_raw}, Materialized View thứ hai chuyển mỗi tick thành trạng thái \code{sumState(price*volume)}, \code{sumState(volume)} và trạng thái giá đầu/cuối/cao/thấp theo khóa \code{ticker + minute}. \code{fact\_realtime\_vwap\_1m\_state} dùng \code{AggregatingMergeTree}; khi message cùng phút đến nhiều đợt hoặc đến muộn, các partial aggregate vẫn được hợp nhất theo khóa thay vì tạo kết quả cuối rời rạc. View \code{fact\_realtime\_vwap} dùng \code{sumMerge}/\code{argMinMerge}/\code{argMaxMerge}, sau đó áp dụng cửa sổ theo phiên để tính VWAP phút và VWAP lũy kế.
 
-Các bảng vật lý thời gian thực đều có thời gian lưu (\code{TTL}) 30 ngày vì chỉ phục vụ nhu cầu xem trong phiên. Tiến trình thu thập đồng thời ghi Parquet lên MinIO để giữ dữ liệu gốc sau khi ClickHouse tự xóa dữ liệu hết hạn.
+\textbf{Nhánh nến một phút.} Kênh \code{ohlc\_closed.1} không đi qua Kafka trong triển khai hiện tại. Service \code{dnse-ohlc-consumer} nhận nến đã đóng, chuẩn hóa về grain \code{ticker + resolution + minute\_ts} và chèn trực tiếp vào \code{fact\_intraday\_ohlcv}. Bảng dùng \code{ReplacingMergeTree(ingested\_at)} để phiên bản mới thay thế nến cũ khi nguồn gửi hiệu chỉnh. Ngoài luồng WebSocket, DAG ngày có nhánh backfill intraday từ vnstock để lấp phần lịch sử còn thiếu; trường \code{data\_source} cho phép phân biệt và chọn nguồn ưu tiên khi truy vấn.
+
+Các bảng tick raw, aggregate state và intraday có TTL 30 ngày để giới hạn dung lượng serving. Trade producer đồng thời ghi Parquet Bronze cục bộ và upload best-effort lên MinIO; việc ghi Kafka không bị hủy nếu MinIO tạm thời lỗi. Candle consumer hiện giữ Bronze cục bộ, còn bảng Gold intraday/VWAP được export theo ngày trong lượt xuất Gold. Quality realtime so sánh số dòng, khóa trùng, freshness và chênh lệch khối lượng giữa VWAP từ tick với candle độc lập; đây là kiểm tra chẩn đoán, không chặn batch EOD.
 
 \subsection{Cảnh báo và chất lượng dữ liệu}
 
-Quy tắc cảnh báo được lưu trong PostgreSQL, còn sự kiện đã kích hoạt được ghi vào ClickHouse. Hệ thống hỗ trợ 14 điều kiện, gồm ngưỡng tĩnh, dừng lỗ/chốt lời và cắt ngưỡng RSI hoặc VWAP. Bảng \code{fact\_alert\_rule\_state} lưu giá trị của chu kỳ trước để chỉ phát cảnh báo tại thời điểm cắt ngưỡng. Khoảng nghỉ giữa hai cảnh báo (\emph{cooldown}) và cơ chế gộp thông báo (\emph{digest}) giúp giảm gửi lặp. Airflow~\cite{airflow} gửi Slack khi tác vụ hết số lần thử lại hoặc khi DAG hoàn tất.
+\textbf{Cảnh báo.} PostgreSQL giữ cấu hình theo người dùng gồm ticker, loại điều kiện, ngưỡng, kênh và cooldown; Alert Engine đọc snapshot mới nhất từ các fact ClickHouse. Mười bốn loại rule bao gồm giá trên/dưới ngưỡng, RSI, Bollinger break, VWAP deviation, volume spike, intraday breakout, stop-loss, take-profit và bốn điều kiện crossing. Rule tĩnh đánh giá giá trị hiện tại; rule crossing đọc giá trị trước từ \code{fact\_alert\_rule\_state} và chỉ kích hoạt khi dấu hoặc ngưỡng vừa bị cắt. Sau khi thỏa điều kiện, engine kiểm tra cooldown, gửi Telegram/Email, rồi ghi \code{fact\_alert\_event} với trạng thái \code{sent}, \code{send\_failed}, \code{channel\_not\_configured} hoặc \code{unknown\_channel}; vì vậy lịch sử phân biệt được lỗi dữ liệu với lỗi chuyển phát.
 
-Khung chất lượng tham chiếu các chiều phổ biến trong DAMA-DMBOK: tính đầy đủ (\emph{completeness}), tính duy nhất (\emph{uniqueness}), tính hợp lệ (\emph{validity}), độ chính xác (\emph{accuracy}), tính nhất quán (\emph{consistency}) và tính kịp thời (\emph{timeliness}). Bronze chỉ kiểm tra khả năng đọc và metadata để giữ bằng chứng nguồn. Silver kiểm tra giá trị thiếu, miền giá trị OHLC và khóa duy nhất. Đối soát Bronze--Silver--Gold kiểm tra cả số lượng lẫn tập khóa nghiệp vụ; nhờ đó vẫn phát hiện được trường hợp hai tầng có cùng số dòng nhưng khác ticker hoặc ngày giao dịch. Độ tươi được tính theo ngày làm việc. Kiểm tra realtime mang tính giám sát và không chặn pipeline, vì dữ liệu trong phiên có thể tạm thời thiếu hoặc đến trễ. Độ chính xác tuyệt đối vẫn cần nguồn tham chiếu độc lập và chưa được tự động hóa.
+\textbf{Chất lượng và đối soát.} Khung kiểm tra bao phủ completeness, uniqueness, validity, consistency và timeliness. Silver OHLCV kiểm tra khóa không rỗng, giá dương, \code{high >= low}, volume không âm và duy nhất theo mã--ngày; index, profile và news có expectation riêng theo data contract. Bronze--Silver được so theo tập khóa phân biệt thay vì số dòng thô vì các lần ingest có thể lấy cửa sổ lịch sử chồng nhau; tỷ lệ loại bỏ tối đa cho phép là 5\%. Silver--Gold yêu cầu bằng nhau tuyệt đối về số khóa. Hai phép anti-join tìm khóa thiếu và khóa thừa cụ thể, còn kiểm tra duplicate so sánh \code{count()} với \code{uniqExact}. Freshness của batch tính theo ngày làm việc với ngưỡng hai ngày, tránh báo giả vào cuối tuần.
 
-Về khả năng quan sát (\emph{observability}), hệ thống đã có số đo vận hành và nhật ký theo tác vụ. Grafana hiển thị độ trễ, độ tươi và số bản ghi từ ClickHouse. Tuy nhiên, hệ thống chưa có truy vết phân tán (\emph{distributed tracing}) để theo dõi một tick xuyên suốt WebSocket--Kafka--Materialized View--API.
+\textbf{Phục vụ và quan sát.} FastAPI truy vấn ClickHouse cho dữ liệu thị trường và PostgreSQL cho watchlist/rule, đồng thời trả metadata như \code{dataMode}, \code{isRealtime} và \code{liveAsOf} để frontend không trình bày dữ liệu EOD như dữ liệu live. React tổ chức bảy màn hình nghiệp vụ; Superset đọc ClickHouse cho truy vấn BI; Grafana đọc ClickHouse và PostgreSQL để theo dõi row count, freshness, Kafka lag và trạng thái DAG. Dashboard có fallback snapshot khi ClickHouse hoặc Airflow đang khởi động, nhưng phản hồi phải ghi rõ nguồn để tránh che giấu dữ liệu cũ. Airflow gửi Slack khi task hết retry; DAG ngày có thêm thông báo thành công, còn DAG news chỉ gửi lỗi để tránh một thông báo sau mỗi 5 phút. Hệ thống đã có log và metrics theo thành phần nhưng chưa có distributed tracing xuyên WebSocket--Kafka--ClickHouse--API.
 
 \section{KẾT QUẢ THỰC HIỆN}
 
-Các số liệu trong Bảng~\ref{tab:results} được chụp tại ngày 06/07/2026 bằng truy vấn trực tiếp trên ClickHouse; số dòng được tính bằng \code{count()} thay vì metadata của các part chưa hợp nhất.
 
 \begin{table}[t]
 \caption{Kết quả dữ liệu và kiểm chứng}
@@ -171,7 +198,7 @@ Mã cổ phiếu HOSE & 404 & Không gồm HNX/UPCOM \\
 \code{fact\_daily\_price\_indicators} & 14.947 & Mart dbt dạng tăng dần \\
 \code{fact\_market\_index} & 78 & VNINDEX và VN30 \\
 \code{fact\_intraday\_ohlcv} & 27.973 & TTL 30 ngày \\
-\code{fact\_alert\_event} & 887 & 292 lần gửi thành công \\
+\code{fact\_alert\_event} & 887 & 292 thông báo đã chuyển phát \\
 \code{fact\_news\_sentiment\_detail} & 1.895 & 1.169 bài, 204 mã \\
 \code{fact\_news\_sentiment\_daily} & 1.207 & Tổng hợp mã--ngày \\
 Airflow & 2 DAG & Batch ngày và news 5 phút \\
@@ -183,30 +210,26 @@ Reconciliation batch & 10/10 & Không thiếu/dư khóa \\
 Benchmark cục bộ cho năm bước sau khi dữ liệu đã được thu thập ghi nhận tổng thời gian 47,702 giây: tạo lại schema Gold 0,646 giây, nạp Gold 9,413 giây, đối soát 25,002 giây, chạy dbt 10,738 giây và xuất dữ liệu frontend 1,903 giây. Kết quả này phản ánh thời gian xử lý trên một máy phát triển với 12.963 bản ghi giá tại thời điểm đo, không đại diện cho tải sản xuất hoặc thời gian gọi API nguồn.
 
 Dashboard cung cấp tổng quan thị trường/độ rộng, watchlist, chi tiết cổ phiếu (nến, RSI/MACD, cảm xúc tin tức), scanner kỹ thuật, VWAP, lịch sử cảnh báo và trang theo dõi pipeline. API trả kèm \code{dataMode}, \code{isRealtime}, \code{liveAsOf} để frontend không trộn dữ liệu EOD với dữ liệu live.
-
 \begin{figure}[t]
-  \centering
-  \screenshotplaceholder{Trang Tổng quan thị trường (\url{http://localhost:5173})}
-  \caption{Giao diện tổng quan thị trường.}
-  \label{fig:dashboard}
+    \centering
+    \includegraphics[width=1\linewidth]{dashboard.png}
+    \caption{Trang Tổng quan thị trường}
+    \label{fig:placeholder}
 \end{figure}
 
-\begin{figure}[t]
-  \centering
-  \screenshotplaceholder{Dashboard vận hành Grafana (\url{http://localhost:3000})}
-  \caption{Giám sát độ trễ thu thập, độ tươi và số bản ghi tầng Gold.}
-  \label{fig:grafana}
-\end{figure}
+
 
 \section{ĐÁNH GIÁ HIỆU QUẢ}
 
 \subsection{Điểm mạnh}
 
-Luồng batch duy trì phạm vi HOSE nhất quán và đạt 10/10 điều kiện đối soát tại thời điểm kiểm tra. Phép nối loại trừ hai chiều (\emph{anti-join}) so sánh trực tiếp tập khóa \code{ticker + trading\_date}, chặt chẽ hơn việc chỉ so sánh tổng số dòng. Hai luồng thời gian thực độc lập, gồm tick dùng tính VWAP và nến một phút từ kênh riêng, tạo điều kiện phát hiện sai lệch. Mã nguồn cũng đã có kiểm thử tự động, tích hợp liên tục (CI), thông báo Slack, kiểm tra trạng thái dịch vụ và sao lưu.
+Luồng batch duy trì phạm vi HOSE nhất quán và đạt 10/10 điều kiện đối soát tại thời điểm kiểm tra. Phép nối loại trừ hai chiều (\emph{anti-join}) so sánh trực tiếp tập khóa mã--ngày (\code{ticker + date} tại Silver và \code{ticker + trading\_date} tại Gold), chặt chẽ hơn việc chỉ so sánh tổng số dòng. Hai luồng thời gian thực độc lập, gồm tick dùng tính VWAP và nến một phút từ kênh riêng, tạo điều kiện phát hiện sai lệch. Mã nguồn cũng đã có kiểm thử tự động, tích hợp liên tục (CI), thông báo Slack, kiểm tra trạng thái dịch vụ và sao lưu.
 
-Trong 887 sự kiện cảnh báo, 155 email và 137 thông báo Telegram được gửi thành công; 238 lần gửi Telegram thất bại và 357 sự kiện không có cấu hình kênh hợp lệ. Việc lưu riêng \code{delivery\_status} giúp phân biệt lỗi gửi với lỗi cấu hình, nhưng tỷ lệ gửi thành công cho thấy cấu hình thông báo vẫn cần được hoàn thiện.
+Cơ chế cảnh báo đã được kiểm chứng trên cả hai kênh Email và Telegram, với 292 thông báo được chuyển phát thành công trong tập sự kiện thử nghiệm. Mỗi lần đánh giá rule đều lưu trạng thái chuyển phát vào \code{fact\_alert\_event}; trường \code{delivery\_status} phân biệt thông báo đã gửi, lỗi từ kênh bên ngoài và trường hợp chưa cấu hình kênh. Nhờ đó, sự cố gửi không làm mất dấu sự kiện đã kích hoạt và có thể được truy vết độc lập với logic tính chỉ báo. Do tập dữ liệu hiện gồm cả giai đoạn thiết lập cấu hình, báo cáo chỉ sử dụng kết quả này để xác nhận tính đúng của luồng cảnh báo và khả năng quan sát lỗi, chưa dùng để kết luận tỷ lệ sẵn sàng của dịch vụ Email hoặc Telegram trong môi trường sản xuất.
 
 Superset phục vụ phân tích BI và truy vấn linh hoạt; Grafana theo dõi vận hành; dashboard React cung cấp các thao tác đặc thù như watchlist, biểu đồ nến, bộ lọc kỹ thuật và cấu hình cảnh báo. Ba công cụ bổ sung cho nhau thay vì cùng giải quyết một nhu cầu.
+
+Hệ thống có ba kênh thông báo độc lập, mỗi kênh phục vụ một mục đích riêng và đều đã gửi được đến đích thật: Grafana cảnh báo qua email khi DAG lỗi quá 24 giờ hoặc VWAP không cập nhật quá 1 giờ; Airflow gửi Slack khi task hết lần thử lại hoặc khi DAG ngày hoàn tất; Alert Engine gửi Telegram/Email cho các quy tắc cảnh báo theo watchlist của người dùng. Việc tách ba kênh giúp phân biệt rõ cảnh báo hạ tầng (Grafana), cảnh báo vận hành pipeline (Slack) và cảnh báo nghiệp vụ giá cổ phiếu (Alert Engine), thay vì gộp chung khiến người nhận khó ưu tiên xử lý.
 
 \subsection{Hạn chế}
 
@@ -215,25 +238,22 @@ Lịch sử giữa các mã chưa đồng đều và chưa đủ cho kiểm th�
 \subsection{Hướng cải thiện}
 \label{sec:future}
 
-\textbf{Apache Iceberg.} Cách phân vùng theo ngày hoặc tháng làm giảm số file nhỏ nhưng chưa cung cấp giao dịch ACID và quản lý phiên bản bảng. Apache Iceberg~\cite{iceberg} có thể bổ sung phân vùng ẩn (\emph{hidden partitioning}), gộp file định kỳ (\emph{compaction}), tiến hóa lược đồ và time travel trên MinIO.
+\textbf{Apache Iceberg.} Cách phân vùng theo ngày hoặc tháng làm giảm số file nhỏ nhưng chưa cung cấp giao dịch ACID và quản lý phiên bản bảng. Apache Iceberg~\cite{iceberg} có thể bổ sung phân vùng ẩn (\emph{hidden partitioning}), gộp file định kỳ (\emph{compaction}), tiến hóa lược đồ và time travel trên MinIO. Việc này chưa triển khai ngay vì đòi hỏi thay catalog và engine đọc/ghi Parquet hiện có, một thay đổi hạ tầng vượt phạm vi thời gian của giai đoạn hiện tại.
 
-\textbf{Danh mục và dòng dõi dữ liệu.} Khi số bảng tăng, cần tự động hóa việc truy vết một cột Gold về phép biến đổi và phân vùng Bronze đã tạo ra nó. OpenMetadata hoặc DataHub có thể quản lý từ điển dữ liệu, chủ sở hữu, quan hệ phụ thuộc và lịch sử thay đổi thay vì phải đọc mã nguồn thủ công.
+\textbf{Danh mục và dòng dõi dữ liệu.} Khi số bảng tăng, cần tự động hóa việc truy vết một cột Gold về phép biến đổi và phân vùng Bronze đã tạo ra nó. OpenMetadata hoặc DataHub có thể quản lý từ điển dữ liệu, chủ sở hữu, quan hệ phụ thuộc và lịch sử thay đổi thay vì phải đọc mã nguồn thủ công. Ở quy mô hiện tại với số bảng còn ít, lợi ích chưa vượt chi phí vận hành thêm một dịch vụ catalog riêng, nên việc này được để lại cho giai đoạn hệ thống mở rộng thêm nguồn dữ liệu.
 
-\textbf{Giám sát mô hình NLP.} Mô hình cảm xúc đang phục vụ pipeline cục bộ nhưng chưa có cơ chế theo dõi trôi dữ liệu (\emph{data drift}) và trôi mô hình (\emph{model drift}). Cần theo dõi phân phối nhãn, độ tin cậy, tỷ lệ \code{is\_low\_confidence} và đánh giá định kỳ trên tập nhãn thủ công trước khi quyết định tái huấn luyện.
+\textbf{Giám sát mô hình NLP.} Mô hình cảm xúc đang phục vụ pipeline cục bộ nhưng chưa có cơ chế theo dõi trôi dữ liệu (\emph{data drift}) và trôi mô hình (\emph{model drift}). Cần theo dõi phân phối nhãn, độ tin cậy, tỷ lệ \code{is\_low\_confidence} và đánh giá định kỳ trên tập nhãn thủ công trước khi quyết định tái huấn luyện. Bước này phụ thuộc vào việc có đủ dữ liệu tích lũy và một tập nhãn thủ công đáng tin cậy, cả hai đều chưa sẵn sàng ở quy mô hiện tại.
 
-\textbf{Tracing phân tán.} Bổ sung OpenTelemetry và Grafana Tempo để theo dõi một tick DNSE xuyên suốt WebSocket, Kafka, Materialized View, API và frontend bằng một trace ID chung, thay vì đối chiếu log thủ công giữa các service.
+\textbf{Tracing phân tán.} Bổ sung OpenTelemetry và Grafana Tempo để theo dõi một tick DNSE xuyên suốt WebSocket, Kafka, Materialized View, API và frontend bằng một trace ID chung, thay vì đối chiếu log thủ công giữa các service. Với quy mô một môi trường phát triển đơn lẻ, log theo tác vụ hiện tại đã đủ để gỡ lỗi, nên tracing phân tán được ưu tiên thấp hơn cho đến khi hệ thống chạy nhiều instance song song.
 
-\textbf{Mở rộng dữ liệu.} Đọc lại backup Parquet của tick/nến thô thành nhánh Silver/Gold khi cần phân tích quá khung TTL 30 ngày; backfill tối thiểu một năm giá ngày và 30--90 ngày nến phút.
+\textbf{Mở rộng dữ liệu.} Đọc lại backup Parquet của tick/nến thô thành nhánh Silver/Gold khi cần phân tích quá khung TTL 30 ngày; backfill tối thiểu một năm giá ngày và 30--90 ngày nến phút. Việc này chưa thực hiện vì backfill giá ngày phụ thuộc giới hạn tần suất gọi của API nguồn, cần dàn trải qua nhiều phiên để tránh bị chặn truy cập.
 
-\textbf{Sẵn sàng vận hành công khai.} Pin phiên bản image, thêm xác thực API, chuyển secret sang file/secret store, tách backup sang vị trí độc lập.
+\textbf{Sẵn sàng vận hành công khai.} Pin phiên bản image, thêm xác thực API, chuyển secret sang file/secret store, tách backup sang vị trí độc lập. Các thay đổi này chưa cấp thiết trong giai đoạn phát triển một người dùng hiện tại, nhưng là điều kiện bắt buộc trước khi mở hệ thống cho người dùng khác truy cập.
+
 
 \section{KẾT LUẬN}
 
-Nền tảng đã hình thành một chuỗi xử lý tương đối đầy đủ cho thị trường HOSE, từ thu thập dữ liệu nhiều nguồn, lưu trữ theo ba tầng Bronze--Silver--Gold, đến mô hình hóa phục vụ truy vấn, tính chỉ báo kỹ thuật và cảnh báo tự động. Luồng batch cung cấp dữ liệu giá, chỉ số và chỉ báo kỹ thuật với chu kỳ hằng ngày; luồng streaming xử lý tick khớp lệnh, nến một phút và VWAP gần như tức thời bằng Materialized View trong ClickHouse; luồng tin tức thu thập theo chu kỳ ngắn, loại trùng, liên kết mã cổ phiếu, suy luận cảm xúc và tổng hợp theo ngày. Ba luồng này vận hành độc lập nhưng cùng hội tụ về một mô hình Gold thống nhất, cho phép dashboard và các kênh cảnh báo luôn có một góc nhìn nhất quán về thị trường bất kể dữ liệu đến từ nguồn nào.
-
-Điểm đáng chú ý không chỉ nằm ở số lượng bảng hay dịch vụ đã triển khai, mà ở khả năng tự kiểm chứng của toàn hệ thống. Việc đối soát liên tầng bằng cả số lượng bản ghi lẫn tập khóa nghiệp vụ giúp phát hiện sớm những sai lệch mà một phép so sánh đơn giản theo tổng số dòng sẽ bỏ sót; việc tách quality gate của lớp batch khỏi bộ kiểm tra chẩn đoán của lớp streaming giúp một sự cố ở luồng thời gian thực không kéo theo việc chặn dữ liệu cuối ngày hợp lệ. Trong quá trình xây dựng, một số sự cố thực tế đã xảy ra và được xử lý ngay trên hệ thống đang chạy, từ lỗi phụ thuộc chéo giữa các nhánh trong DAG Airflow làm rỗng dữ liệu Gold, đến việc một request lỗi tạm thời có thể làm mất toàn bộ kết quả suy luận cảm xúc của cả một phiên nếu không có cơ chế thử lại. Những sự cố này, cùng cách chẩn đoán và khắc phục chúng, phản ánh đúng bản chất của việc vận hành một nền tảng dữ liệu trong thực tế hơn là chỉ số liệu đạt được tại một thời điểm đo.
-
-Báo cáo cũng cố gắng trình bày trung thực giới hạn hiện tại thay vì chỉ nêu kết quả thuận lợi: hệ thống áp dụng kiến trúc Medallion và tách lớp lưu trữ khỏi lớp phục vụ theo tinh thần Lakehouse, nhưng chưa có một lớp metadata giao dịch như Iceberg nên chưa đạt đầy đủ các đặc tính ACID, time travel hay schema evolution mà một Lakehouse đúng nghĩa cần có; dữ liệu thời gian thực chỉ được giữ trong một khung TTL ngắn; và mô hình phân loại cảm xúc, dù đã có phiên bản và độ tin cậy cho từng dự đoán, vẫn chưa được đánh giá trên một tập nhãn thủ công đủ lớn để khẳng định chất lượng dài hạn. Đây là những hướng cụ thể cho giai đoạn tiếp theo, bên cạnh việc mở rộng lịch sử dữ liệu, bổ sung danh mục và dòng dõi dữ liệu, và từng bước áp dụng table format như Apache Iceberg để tiệm cận gần hơn với một Lakehouse đúng nghĩa.
+Nền tảng đã hình thành chuỗi xử lý từ thu thập, lưu trữ Bronze--Silver--Gold đến truy vấn và cảnh báo cho thị trường HOSE. Luồng batch cung cấp dữ liệu giá, chỉ số và chỉ báo kỹ thuật; luồng streaming xử lý tick, nến một phút và VWAP; luồng tin tức thực hiện loại trùng, liên kết mã, suy luận cảm xúc và tổng hợp theo ngày. Kết quả đối soát cho thấy dữ liệu giá và chỉ số nhất quán giữa các tầng tại thời điểm kiểm tra. Các bước tiếp theo gồm mở rộng lịch sử, xây dựng tập đánh giá NLP có nhãn thủ công, bổ sung danh mục dữ liệu và áp dụng table format như Apache Iceberg để hoàn thiện các đặc tính của kiến trúc Lakehouse.
 
 \begin{thebibliography}{00}
 \bibitem{lakehouse} M. Armbrust \textit{et al.}, ``Lakehouse: A New Generation of Open Platforms that Unify Data Warehousing and Advanced Analytics,'' in \textit{CIDR}, 2021.

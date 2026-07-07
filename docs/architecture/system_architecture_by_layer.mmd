@@ -1,0 +1,93 @@
+%%{init: {"theme":"base","layout":"elk","htmlLabels":false,"flowchart":{"htmlLabels":false,"curve":"linear","nodeSpacing":48,"rankSpacing":88,"diagramPadding":16},"themeVariables":{"background":"#ffffff","primaryTextColor":"#172033","lineColor":"#526070","clusterBkg":"#ffffff","clusterBorder":"#cbd5e1","edgeLabelBackground":"#ffffff","fontFamily":"Arial"}}}%%
+flowchart LR
+  classDef source fill:#E8F1FF,stroke:#2563EB,color:#10213B,stroke-width:1.5px;
+  classDef ingest fill:#FFF4D6,stroke:#D97706,color:#3B2600,stroke-width:1.5px;
+  classDef process fill:#F1ECFF,stroke:#7048C8,color:#27164D,stroke-width:1.5px;
+  classDef storage fill:#E8F7EE,stroke:#16803C,color:#12351F,stroke-width:1.5px;
+  classDef serving fill:#E9F7F7,stroke:#087F8C,color:#12383B,stroke-width:1.5px;
+  classDef output fill:#F2F4F7,stroke:#64748B,color:#263244,stroke-width:1.5px;
+  classDef alert fill:#FCEAEC,stroke:#C43B55,color:#4A1620,stroke-width:1.5px;
+
+  subgraph L1[1. NGUỒN DỮ LIỆU]
+    direction TB
+    MARKET["vnstock VCI / KBS<br/>OHLCV, index, listing, profile"]:::source
+    NEWS["VnExpress / Vietstock / CafeF<br/>Tin tức tài chính"]:::source
+    DNSE["DNSE WebSocket<br/>Trade tick và candle 1 phút"]:::source
+    MODEL["Hugging Face Hub<br/>PhoBERT sentiment model"]:::source
+  end
+
+  subgraph L2[2. THU THẬP & ĐIỀU PHỐI]
+    direction TB
+    DAILY["Airflow Daily DAG<br/>18:00, thứ 2 đến thứ 6"]:::ingest
+    NEWSDAG["Airflow News DAG<br/>Mỗi 5 phút, 24/7"]:::ingest
+    PRODUCER["DNSE Trade Producer<br/>Kafka producer"]:::ingest
+    KAFKA["Kafka + ZooKeeper<br/>Trade topic"]:::ingest
+    CANDLE["DNSE OHLC Consumer<br/>Không qua Kafka"]:::ingest
+  end
+
+  subgraph L3[3. XỬ LÝ & CHẤT LƯỢNG]
+    direction TB
+    BATCH["Batch Pipeline<br/>Polars Transform → Quality Gate<br/>Gold Loader → Reconciliation → dbt"]:::process
+    NEWSPROC["News/NLP Pipeline<br/>Transform → News Quality → Entity Linking<br/>PhoBERT → Sentiment Quality → Gold Loader"]:::process
+    STREAM["Realtime Pipeline<br/>Kafka Engine + Materialized Views<br/>Chuẩn hóa candle 1 phút"]:::process
+  end
+
+  subgraph L4[4. LƯU TRỮ & NỀN TẢNG DỮ LIỆU]
+    direction TB
+    MINIO[("MinIO Lakehouse<br/>Bronze / Silver / Gold Parquet")]:::storage
+    CLICKHOUSE[("ClickHouse<br/>Gold dimensions/facts<br/>Realtime tables/views")]:::storage
+    POSTGRES[("PostgreSQL<br/>Airflow metadata<br/>Watchlist và alert rules")]:::storage
+    BACKUP[("MinIO Backups<br/>ClickHouse Native + pg_dump")]:::storage
+  end
+
+  subgraph L5[5. LỚP PHỤC VỤ]
+    direction TB
+    API["FastAPI<br/>Market, stock, news, VWAP,<br/>watchlist, alert, pipeline APIs"]:::serving
+    ALERT["Alert Engine<br/>14 rules, state, cooldown<br/>Ghi fact_alert_event"]:::alert
+  end
+
+  subgraph L6[6. TIÊU THỤ & GIÁM SÁT]
+    direction TB
+    REACT["React Dashboard<br/>7 màn hình nghiệp vụ"]:::output
+    SUPERSET["Superset<br/>Phân tích BI"]:::output
+    GRAFANA["Grafana<br/>Giám sát vận hành"]:::output
+    CHANNEL["Telegram / Email<br/>Cảnh báo chứng khoán"]:::alert
+    SLACK["Slack<br/>Trạng thái Airflow"]:::alert
+  end
+
+  MARKET --> DAILY --> BATCH
+  NEWS --> NEWSDAG --> NEWSPROC
+  MODEL --> NEWSPROC
+
+  DNSE --> PRODUCER --> KAFKA --> STREAM
+  DNSE --> CANDLE --> STREAM
+
+  BATCH -->|raw, clean và Gold| MINIO
+  BATCH -->|batch Gold| CLICKHOUSE
+  NEWSPROC -->|news Bronze/Silver/Gold| MINIO
+  NEWSPROC -->|sentiment Gold| CLICKHOUSE
+  STREAM -. "raw Parquet backup" .-> MINIO
+  STREAM -->|VWAP và candle 1 phút| CLICKHOUSE
+
+  CLICKHOUSE --> API
+  POSTGRES --> API
+  CLICKHOUSE --> ALERT
+  POSTGRES --> ALERT
+  CLICKHOUSE --> BACKUP
+  POSTGRES --> BACKUP
+
+  API --> REACT
+  ALERT --> CHANNEL
+  CLICKHOUSE --> SUPERSET
+  CLICKHOUSE --> GRAFANA
+  POSTGRES --> GRAFANA
+
+  DAILY -. "thành công hoặc lỗi" .-> SLACK
+  NEWSDAG -. "chỉ khi lỗi" .-> SLACK
+
+  style L1 fill:#F8FAFC,stroke:#2563EB,color:#172033
+  style L2 fill:#FFFFFF,stroke:#D97706,color:#172033
+  style L3 fill:#F8FAFC,stroke:#7048C8,color:#172033
+  style L4 fill:#FFFFFF,stroke:#16803C,color:#172033
+  style L5 fill:#F8FAFC,stroke:#087F8C,color:#172033
+  style L6 fill:#FFFFFF,stroke:#64748B,color:#172033

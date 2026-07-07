@@ -11,7 +11,11 @@ import polars as pl
 
 sys.path.append(str(Path(__file__).resolve().parents[1]))
 
-from scripts.run_dnse_realtime_ingest import DEFAULT_TICKER_FILE, resolve_symbols
+from scripts.run_dnse_realtime_ingest import (
+    DEFAULT_TICKER_FILE,
+    resolve_symbols,
+    upload_bronze_backup,
+)
 from src.common.clickhouse_client import create_client, execute
 from src.streaming.dnse_websocket import DNSEOhlcCandle, DNSEWebSocketConfig, stream_market_events
 
@@ -88,6 +92,11 @@ def save_bronze_batch(candles: list[DNSEOhlcCandle]) -> None:
         frame.unique(subset=["ticker", "minute_ts", "resolution"], keep="last").sort(
             ["minute_ts", "ticker"]
         ).write_parquet(output_path)
+        # ClickHouse is the primary store (finalized candles land in
+        # fact_intraday_ohlcv directly above), so this MinIO copy is only a
+        # durability backstop for the raw source -- same pattern as
+        # run_dnse_realtime_ingest.py's upload_bronze_backup for trade ticks.
+        upload_bronze_backup(output_path, bucket_prefix="dnse/ohlcv_1m")
 
 
 def flush_candles(client: object, candles: list[DNSEOhlcCandle]) -> int:
