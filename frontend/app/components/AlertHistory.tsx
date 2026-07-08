@@ -44,6 +44,13 @@ export function AlertHistory({ onNavigate, initialTicker }: AlertHistoryProps) {
   const [alertHistory, setAlertHistory] = useState<AlertEvent[]>(mockAlertHistory);
   const [alertsByDay, setAlertsByDay] = useState<AlertByDay[]>(mockAlertsByDay);
   const [alertsByCondition, setAlertsByCondition] = useState<AlertByCondition[]>(mockAlertsByCondition);
+  const [summary, setSummary] = useState({
+    total: mockAlertHistory.length,
+    sent: mockAlertHistory.filter((a) => a.status === "sent").length,
+    failed: mockAlertHistory.filter((a) => a.status === "failed").length,
+    skipped: mockAlertHistory.filter((a) => a.status === "skipped").length,
+    tickerCount: new Set(mockAlertHistory.map((a) => a.ticker)).size,
+  });
   const [apiStatus, setApiStatus] = useState("Snapshot local");
 
   useEffect(() => {
@@ -52,6 +59,7 @@ export function AlertHistory({ onNavigate, initialTicker }: AlertHistoryProps) {
       .then((payload) => {
         if (cancelled) return;
         setAlertHistory(payload.data);
+        setSummary(payload.summary);
         setAlertsByDay(payload.byDay);
         setAlertsByCondition(payload.byCondition);
         setApiStatus("ClickHouse live query");
@@ -70,10 +78,6 @@ export function AlertHistory({ onNavigate, initialTicker }: AlertHistoryProps) {
     if (filterChannel !== "all" && a.channel !== filterChannel) return false;
     return true;
   });
-
-  const totalSent = alertHistory.filter((a) => a.status === "sent").length;
-  const totalFailed = alertHistory.filter((a) => a.status === "failed").length;
-  const totalSkipped = alertHistory.filter((a) => a.status === "skipped").length;
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
@@ -117,11 +121,11 @@ export function AlertHistory({ onNavigate, initialTicker }: AlertHistoryProps) {
       {/* KPI */}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(5, 1fr)", gap: 12 }}>
         {[
-          { label: "Tổng cảnh báo", value: alertHistory.length, color: "#e2e8f0" },
-          { label: "Đã gửi", value: totalSent, color: "#00d97e" },
-          { label: "Lỗi gửi", value: totalFailed, color: "#ff4d6d" },
-          { label: "Bỏ qua (spam)", value: totalSkipped, color: "#6b7fa3" },
-          { label: "Mã active", value: new Set(alertHistory.map((a) => a.ticker)).size, color: "#8b5cf6" },
+          { label: "Tổng cảnh báo", value: summary.total, color: "#e2e8f0" },
+          { label: "Đã gửi", value: summary.sent, color: "#00d97e" },
+          { label: "Lỗi gửi", value: summary.failed, color: "#ff4d6d" },
+          { label: "Bỏ qua (spam)", value: summary.skipped, color: "#6b7fa3" },
+          { label: "Mã đã cảnh báo", value: summary.tickerCount, color: "#8b5cf6" },
         ].map((kpi) => (
           <div key={kpi.label} style={CARD}>
             <div style={{ ...INTER, color: "#6b7fa3", fontSize: 10, textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 4 }}>{kpi.label}</div>

@@ -175,12 +175,12 @@ services:
   # per-minute VWAP state directly in ClickHouse (fact_realtime_vwap_1m_state)
   # and the fact_realtime_vwap view on top of it. No standalone Python
   # consumer polls/aggregates VWAP anymore -- ClickHouse does it on ingest.
-  realtime-vwap-consumer:
+  init-realtime-streaming:
     build:
       context: .
       dockerfile: docker/vwap-consumer.Dockerfile
     image: stock-vwap-consumer:local
-    container_name: stock-realtime-vwap-consumer
+    container_name: stock-init-realtime-streaming
     restart: "no"
     depends_on:
       clickhouse:
@@ -303,7 +303,8 @@ services:
       AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://${POSTGRES_USER:-stock_user}:${POSTGRES_PASSWORD:-stock_password}@postgres:5432/${POSTGRES_DB:-stock_lakehouse}
       AIRFLOW__WEBSERVER__SECRET_KEY: ${AIRFLOW_WEBSERVER_SECRET_KEY:-change_me_airflow}
       AIRFLOW__API__AUTH_BACKENDS: airflow.api.auth.backend.basic_auth,airflow.api.auth.backend.session
-      SLACK_WEBHOOK_URL: ${SLACK_WEBHOOK_URL:-}
+      TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN:-}
+      TELEGRAM_CHAT_ID: ${TELEGRAM_CHAT_ID:-}
     volumes:
       - ./dags:/opt/airflow/dags
       - .:/opt/airflow/project
@@ -344,7 +345,8 @@ services:
       AIRFLOW__CORE__LOAD_EXAMPLES: "false"
       AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://${POSTGRES_USER:-stock_user}:${POSTGRES_PASSWORD:-stock_password}@postgres:5432/${POSTGRES_DB:-stock_lakehouse}
       AIRFLOW__WEBSERVER__SECRET_KEY: ${AIRFLOW_WEBSERVER_SECRET_KEY:-change_me_airflow}
-      SLACK_WEBHOOK_URL: ${SLACK_WEBHOOK_URL:-}
+      TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN:-}
+      TELEGRAM_CHAT_ID: ${TELEGRAM_CHAT_ID:-}
     volumes:
       - ./dags:/opt/airflow/dags
       - .:/opt/airflow/project
@@ -395,12 +397,6 @@ services:
       GF_SECURITY_ADMIN_USER: ${GF_SECURITY_ADMIN_USER:-admin}
       GF_SECURITY_ADMIN_PASSWORD: ${GF_SECURITY_ADMIN_PASSWORD:-admin}
       GF_INSTALL_PLUGINS: grafana-clickhouse-datasource
-      GF_SMTP_ENABLED: "true"
-      GF_SMTP_HOST: smtp.gmail.com:587
-      GF_SMTP_USER: ${GF_SMTP_USER:-}
-      GF_SMTP_PASSWORD: ${GF_SMTP_PASSWORD:-}
-      GF_SMTP_FROM_ADDRESS: ${GF_SMTP_FROM:-}
-      GF_SMTP_FROM_NAME: "Grafana - Stock Lakehouse"
     volumes:
       - grafana_data:/var/lib/grafana
       - ./docker/grafana/provisioning:/etc/grafana/provisioning

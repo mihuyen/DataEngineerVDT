@@ -1,0 +1,73 @@
+%%{init: {"theme":"base","htmlLabels":false,"flowchart":{"curve":"basis","nodeSpacing":30,"rankSpacing":46},"themeVariables":{"background":"#ffffff","primaryTextColor":"#172033","lineColor":"#526070","fontFamily":"Arial"}}}%%
+flowchart LR
+  classDef source fill:#E8F1FF,stroke:#2563EB,color:#10213B,stroke-width:1.4px;
+  classDef task fill:#FFF4D6,stroke:#D97706,color:#3B2600,stroke-width:1.4px;
+  classDef store fill:#E8F7EE,stroke:#16803C,color:#12351F,stroke-width:1.4px;
+  classDef quality fill:#F1ECFF,stroke:#7048C8,color:#27164D,stroke-width:1.4px;
+  classDef nlp fill:#FCECF5,stroke:#C03C83,color:#4A1734,stroke-width:1.4px;
+  classDef serving fill:#E9F7F7,stroke:#087F8C,color:#12383B,stroke-width:1.4px;
+  classDef ops fill:#FCEAEC,stroke:#C43B55,color:#4A1620,stroke-width:1.4px;
+
+  subgraph CONTROL[ĐIỀU PHỐI TIN TỨC]
+    direction TB
+    DAG["Airflow: news_crawl_5m<br/>Mỗi 5 phút, 24/7<br/>max_active_runs=1"]:::task
+    LOOP["run_news_crawl_loop.py<br/>--run-once --load-gold"]:::task
+    DAG --> LOOP
+  end
+
+  subgraph SOURCES[BA NGUỒN BÁO]
+    direction TB
+    VNEXP["VnExpress<br/>RSS và trang bài viết"]:::source
+    VIET["Vietstock<br/>Danh mục và HTML"]:::source
+    CAFEF["CafeF<br/>API và HTML"]:::source
+  end
+
+  subgraph INGEST[THU THẬP VÀ CHỐNG TRÙNG]
+    direction TB
+    REG[("URL Registry - SQLite<br/>URL, trạng thái, retry, thời điểm crawl")]:::store
+    CRAWL["run_news_ingest.py<br/>Chỉ tải URL mới, parse nội dung,<br/>chuẩn hóa metadata"]:::task
+    BRONZE[("MinIO Bronze<br/>news/source/year/month/day<br/>Dữ liệu bài viết thô")]:::store
+  end
+
+  subgraph CLEAN[CHUẨN HÓA VÀ QUALITY]
+    direction TB
+    TRANS["run_news_silver.py<br/>Làm sạch title/content,<br/>chuẩn publisher và publication time"]:::task
+    SILVER[("MinIO Silver<br/>news/year/month<br/>Grain: một URL bài viết")]:::store
+    Q1["run_news_quality_check.py<br/>--fail-on-error<br/>Schema, URL, nội dung, duy nhất, freshness"]:::quality
+  end
+
+  subgraph ENRICH[ENTITY LINKING VÀ NLP]
+    direction TB
+    PROFILE[("Danh mục HOSE và alias doanh nghiệp")]:::store
+    LINK["run_news_entity_linking.py<br/>Liên kết bài viết với ticker HOSE"]:::nlp
+    MODEL["NLP service - PhoBERT<br/>predict/batch, model version,<br/>confidence và fallback"]:::nlp
+    INFER["run_news_nlp_inference.py<br/>positive, neutral, negative"]:::nlp
+    Q2["run_news_sentiment_quality.py<br/>Kiểm tra nhãn, confidence và độ phủ"]:::quality
+  end
+
+  subgraph GOLD[GOLD VÀ PHỤC VỤ]
+    direction TB
+    LOAD["load_news_sentiment_gold.py"]:::task
+    DETAIL[("fact_news_sentiment_detail<br/>Mức bài viết và ticker")]:::store
+    DAILY[("fact_news_sentiment_daily<br/>Tổng hợp theo ticker và ngày")]:::store
+    API["FastAPI"]:::serving
+    DASH["Dashboard tin tức<br/>và cảm xúc thị trường"]:::serving
+  end
+
+  LOOP --> CRAWL
+  VNEXP & VIET & CAFEF --> CRAWL
+  REG <--> CRAWL
+  CRAWL --> BRONZE --> TRANS --> SILVER --> Q1 --> LINK
+  PROFILE --> LINK --> INFER
+  MODEL --> INFER --> Q2 --> LOAD
+  LOAD --> DETAIL --> DAILY
+  DETAIL & DAILY --> API --> DASH
+
+  DAG -. "task thất bại" .-> FAIL["Slack: trạng thái DAG thất bại<br/>Chu kỳ hiện tại dừng, chu kỳ sau chạy lại"]:::ops
+
+  style CONTROL fill:#F8FAFC,stroke:#94A3B8
+  style SOURCES fill:#F8FAFC,stroke:#94A3B8
+  style INGEST fill:#FFFFFF,stroke:#EF6A6A
+  style CLEAN fill:#FFFFFF,stroke:#94A3B8
+  style ENRICH fill:#FFFFFF,stroke:#C03C83
+  style GOLD fill:#F8FAFC,stroke:#D97706

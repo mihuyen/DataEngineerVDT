@@ -30,3 +30,8 @@ frontend/.vite/
 
 .pids/
 logs/
+
+# Contains a real Telegram bot token + chat ID (Grafana does not support
+# $__env{} expansion for contact point settings, so these have to be
+# literal values in the file, not pulled from .env at runtime).
+docker/grafana/provisioning/alerting/contactpoints.yml

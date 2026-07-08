@@ -1,0 +1,42 @@
+%%{init: {"theme":"base","htmlLabels":false,"flowchart":{"curve":"basis","nodeSpacing":20,"rankSpacing":35},"themeVariables":{"background":"#ffffff","primaryTextColor":"#172033","lineColor":"#526070","fontFamily":"Arial"}}}%%
+flowchart LR
+  classDef source fill:#E8F1FF,stroke:#2563EB,color:#10213B,stroke-width:1.5px;
+  classDef process fill:#FFF4D6,stroke:#D97706,color:#3B2600,stroke-width:1.5px;
+  classDef storage fill:#E8F7EE,stroke:#16803C,color:#12351F,stroke-width:1.5px;
+  classDef serving fill:#E9F7F7,stroke:#087F8C,color:#12383B,stroke-width:1.5px;
+  classDef ops fill:#FCEAEC,stroke:#C43B55,color:#4A1620,stroke-width:1.5px;
+
+  ORCH["Airflow · Docker Compose"]:::process
+
+  BATCH["VNSTOCK"]:::source
+  NEWS["VnExpress · Vietstock · CafeF"]:::source
+  REALTIME["DNSE WebSocket"]:::source
+
+  subgraph LAKEHOUSE["DATA LAKEHOUSE"]
+    direction LR
+    LAKE["DATA LAKE<br/>MinIO · Parquet"]:::storage
+    PROCESS["PROCESSING<br/>Polars · PhoBERT"]:::process
+    WAREHOUSE["DATA WAREHOUSE<br/>ClickHouse · dbt"]:::storage
+    LAKE --> PROCESS --> WAREHOUSE
+  end
+
+  KAFKA["Apache Kafka"]:::process
+  POSTGRES["PostgreSQL"]:::storage
+  APP["FastAPI · React"]:::serving
+  MONITOR["Grafana"]:::ops
+  SLACK["Slack"]:::ops
+  NOTIFY["Telegram · Email"]:::ops
+
+  BATCH --> LAKE
+  NEWS --> LAKE
+  REALTIME -->|trade tick| KAFKA --> WAREHOUSE
+  REALTIME -->|OHLC 1 phút| WAREHOUSE
+
+  WAREHOUSE --> APP
+  POSTGRES --> APP
+  WAREHOUSE --> MONITOR
+  APP --> NOTIFY
+  ORCH -.-> LAKEHOUSE
+  ORCH -.-> SLACK
+
+  style LAKEHOUSE fill:#FFFFFF,stroke:#475569,color:#172033,stroke-width:2px

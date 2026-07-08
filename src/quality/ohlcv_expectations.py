@@ -47,9 +47,10 @@ def _failed_count(frame: pl.DataFrame, condition: pl.Expr) -> int:
 def validate_ohlcv(frame: pl.DataFrame, source_name: str = "vnstock_ohlcv") -> QualityReport:
     """Validate OHLCV data using Great Expectations-style rules.
 
-    The project keeps the checks in Polars so validation can run without creating a
-    persistent Great Expectations context. The module still depends on
-    Great Expectations and records its version for reproducibility.
+    Checks are implemented directly in Polars, not the great-expectations
+    library -- this module has no dependency on it. The report schema keeps
+    an expectation-suite-style shape (including a ``gx_version`` field,
+    always "n/a") for familiarity, not for actual GX compatibility.
     """
     expectations: list[ExpectationResult] = []
     columns = set(frame.columns)

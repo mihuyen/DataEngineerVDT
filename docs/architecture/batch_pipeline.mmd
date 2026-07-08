@@ -1,0 +1,88 @@
+%%{init: {"theme":"base","htmlLabels":false,"flowchart":{"curve":"basis","nodeSpacing":30,"rankSpacing":46},"themeVariables":{"background":"#ffffff","primaryTextColor":"#172033","lineColor":"#526070","fontFamily":"Arial"}}}%%
+flowchart LR
+  classDef source fill:#E8F1FF,stroke:#2563EB,color:#10213B,stroke-width:1.4px;
+  classDef task fill:#FFF4D6,stroke:#D97706,color:#3B2600,stroke-width:1.4px;
+  classDef store fill:#E8F7EE,stroke:#16803C,color:#12351F,stroke-width:1.4px;
+  classDef quality fill:#F1ECFF,stroke:#7048C8,color:#27164D,stroke-width:1.4px;
+  classDef serving fill:#E9F7F7,stroke:#087F8C,color:#12383B,stroke-width:1.4px;
+  classDef ops fill:#FCEAEC,stroke:#C43B55,color:#4A1620,stroke-width:1.4px;
+
+  subgraph SCHEDULE[ĐIỀU PHỐI]
+    direction TB
+    DAG["Airflow: stock_lakehouse_daily<br/>18:00, thứ 2 đến thứ 6<br/>catchup=false, max_active_runs=1"]:::task
+    INIT["Khởi tạo bucket MinIO"]:::task
+    DAG --> INIT
+  end
+
+  subgraph SOURCES[NGUỒN BATCH]
+    direction TB
+    VCI1["vnstock - VCI<br/>OHLCV ngày HOSE"]:::source
+    VCI2["vnstock - VCI<br/>VNINDEX và VN30"]:::source
+    KBS["vnstock - KBS<br/>Danh sách HOSE và hồ sơ doanh nghiệp"]:::source
+  end
+
+  subgraph INGEST[INGEST SONG SONG]
+    direction TB
+    I1["bronze_ohlcv<br/>Bỏ qua file đã tồn tại"]:::task
+    I2["bronze_market_index"]:::task
+    I3["bronze_company_profile_listing"]:::task
+  end
+
+  subgraph BRONZE[MINIO BRONZE - PARQUET THÔ]
+    direction TB
+    B1[("ohlcv/year/month/day")]:::store
+    B2[("market_index/index_code/year/month/day")]:::store
+    B3[("company_profile<br/>listing và profile snapshot")]:::store
+  end
+
+  subgraph SILVER[CHUẨN HÓA SILVER]
+    direction TB
+    T1["silver_ohlcv<br/>Chuẩn kiểu, mã, ngày và khóa"]:::task
+    T2["silver_market_index<br/>Chỉ giữ VNINDEX và VN30"]:::task
+    T3["silver_company_profile<br/>Chuẩn hóa listing và profile"]:::task
+    S1[("MinIO Silver<br/>Parquet sạch theo partition")]:::store
+  end
+
+  subgraph CONTROL[QUALITY VÀ NẠP GOLD]
+    direction TB
+    Q["quality_all --exclude-news<br/>Schema, null, miền giá trị,<br/>duy nhất, freshness, reconciliation"]:::quality
+    MIG["migrate_gold_schema --skip-news"]:::task
+    LOAD["load_gold --skip-news<br/>Watermark lùi 35 ngày<br/>Nạp lại partition tháng bị ảnh hưởng"]:::task
+    CH[("ClickHouse Gold<br/>dim_* và fact_*")]:::store
+    REC["reconcile_gold<br/>Đếm dòng và anti-join hai chiều"]:::quality
+  end
+
+  subgraph DOWNSTREAM[XỬ LÝ SAU GOLD]
+    direction TB
+    DBT["dbt run<br/>Chỉ báo SMA, EMA, RSI, MACD, Bollinger"]:::task
+    DBTTEST["dbt test"]:::quality
+    ALERT["Khởi tạo rule và kiểm tra cảnh báo"]:::ops
+    EXPORT["Export Gold sang MinIO Parquet"]:::task
+    BACKUP["Backup ClickHouse và PostgreSQL"]:::task
+    INTRA["Backfill nến intraday<br/>và kiểm tra realtime"]:::task
+    FRONT["Xuất snapshot dữ liệu frontend"]:::serving
+    OK["Thông báo DAG thành công qua Slack"]:::ops
+  end
+
+  INIT --> I1 & I2 & I3
+  VCI1 --> I1 --> B1 --> T1
+  VCI2 --> I2 --> B2 --> T2
+  KBS --> I3 --> B3 --> T3
+  T1 & T2 & T3 --> S1 --> Q --> MIG --> LOAD --> CH --> REC
+
+  REC --> DBT --> DBTTEST
+  REC --> ALERT
+  REC --> EXPORT
+  REC --> BACKUP
+  REC --> INTRA
+  DBTTEST & ALERT & EXPORT --> FRONT --> OK
+
+  DAG -. "task thất bại" .-> FAIL["Slack: trạng thái DAG thất bại"]:::ops
+
+  style SCHEDULE fill:#F8FAFC,stroke:#94A3B8
+  style SOURCES fill:#F8FAFC,stroke:#94A3B8
+  style INGEST fill:#FFFFFF,stroke:#94A3B8
+  style BRONZE fill:#FFFFFF,stroke:#EF6A6A
+  style SILVER fill:#FFFFFF,stroke:#94A3B8
+  style CONTROL fill:#FFFFFF,stroke:#7048C8
+  style DOWNSTREAM fill:#F8FAFC,stroke:#94A3B8

@@ -8,7 +8,7 @@ from airflow.operators.bash import BashOperator
 from airflow.operators.python import PythonOperator
 from airflow.utils.trigger_rule import TriggerRule
 
-from slack_notifications import notify_failure, notify_success
+from telegram_notifications import notify_failure, notify_success
 
 
 PROJECT_DIR = "/opt/airflow/project"

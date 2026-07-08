@@ -44,10 +44,11 @@ DIM_TABLES = [
     "dim_index",
 ]
 
-# fact_realtime_vwap and fact_alert_event are owned by the continuous
-# realtime-vwap-consumer and alert-engine services respectively, not by this
-# batch job. They must never be truncated here: a daily load_gold run would
-# otherwise wipe live VWAP/alert history accumulated between DAG runs.
+# fact_realtime_vwap and fact_alert_event are owned by ClickHouse's own
+# Kafka Engine + Materialized Views and the alert-engine service
+# respectively, not by this batch job. They must never be truncated here: a
+# daily load_gold run would otherwise wipe live VWAP/alert history
+# accumulated between DAG runs.
 # fact_news_sentiment_daily keeps the previous truncate-and-reload path (news
 # processing is out of scope for this change).
 BATCH_FACT_PARTITIONS = {
@@ -163,9 +164,9 @@ def main() -> None:
     """Load Gold Layer dimensions and available batch facts.
 
     fact_realtime_vwap and fact_alert_event are intentionally never touched
-    here: they are owned by the realtime-vwap-consumer and alert-engine
-    services, which write to them continuously and independently of this
-    daily batch run.
+    here: they are owned by ClickHouse's own Kafka Engine + Materialized
+    Views and the alert-engine service, which write to them continuously
+    and independently of this daily batch run.
     """
     args = parse_args()
     client = create_client()

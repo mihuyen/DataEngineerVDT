@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from concurrent.futures import ThreadPoolExecutor, TimeoutError as FutureTimeoutError
 from datetime import date, datetime, time
 import json
 import logging
@@ -66,6 +67,14 @@ PIPELINE_TABLES = [
 
 
 app = FastAPI(title="VNStock Dashboard API")
+
+# kafka-python's own timeout configs are unreliable when the broker's
+# advertised listener is only reachable slowly/not at all (e.g. running this
+# API on the host instead of inside the Docker network) -- it has been
+# observed to block for 30s+ regardless of request_timeout_ms. Running it in
+# a worker thread with a hard wall-clock deadline keeps /api/pipeline/status
+# responsive even when Kafka lag can't be read.
+_kafka_lag_executor = ThreadPoolExecutor(max_workers=2, thread_name_prefix="kafka-lag")
 
 app.add_middleware(
     CORSMiddleware,
@@ -1277,6 +1286,25 @@ def get_alerts(limit: int = Query(200, ge=1, le=2000)) -> dict[str, Any]:
         }
         for row in raw
     ]
+    summary_rows = rows(
+        """
+        SELECT
+          count(*) AS total,
+          countIf(delivery_status = 'sent') AS sent,
+          countIf(delivery_status != 'sent') AS failed,
+          uniqExact(ticker) AS tickerCount
+        FROM fact_alert_event
+        """
+    )
+    summary = summary_rows[0] if summary_rows else {
+        "total": 0,
+        "sent": 0,
+        "failed": 0,
+        "tickerCount": 0,
+    }
+    # Cooldown-suppressed triggers are intentionally not persisted in
+    # fact_alert_event, so there is no durable all-time skipped count yet.
+    summary["skipped"] = 0
     by_day = rows(
         """
         SELECT formatDateTime(triggered_at, '%m-%d') AS date, count(*) AS total
@@ -1296,7 +1324,13 @@ def get_alerts(limit: int = Query(200, ge=1, le=2000)) -> dict[str, Any]:
             """
         )
     ]
-    return {"count": len(alerts), "data": alerts, "byDay": by_day, "byCondition": by_condition}
+    return {
+        "count": len(alerts),
+        "summary": summary,
+        "data": alerts,
+        "byDay": by_day,
+        "byCondition": by_condition,
+    }
 
 
 TASK_RECORD_TABLES = {
@@ -1456,7 +1490,7 @@ def get_pipeline_status() -> dict[str, Any]:
         # the array wholesale every 60s, it does not accumulate client-side),
         # so this reports one current point -- total lag right now -- rather
         # than fabricating a multi-point trend with no real history behind it.
-        partition_lags = get_consumer_group_lag()
+        partition_lags = _kafka_lag_executor.submit(get_consumer_group_lag).result(timeout=5)
         kafka_lag = (
             [
                 {

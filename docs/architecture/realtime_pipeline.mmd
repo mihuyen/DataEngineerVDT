@@ -1,0 +1,82 @@
+%%{init: {"theme":"base","htmlLabels":false,"flowchart":{"curve":"basis","nodeSpacing":30,"rankSpacing":46},"themeVariables":{"background":"#ffffff","primaryTextColor":"#172033","lineColor":"#526070","fontFamily":"Arial"}}}%%
+flowchart LR
+  classDef source fill:#E8F1FF,stroke:#2563EB,color:#10213B,stroke-width:1.4px;
+  classDef task fill:#FFF4D6,stroke:#D97706,color:#3B2600,stroke-width:1.4px;
+  classDef store fill:#E8F7EE,stroke:#16803C,color:#12351F,stroke-width:1.4px;
+  classDef stream fill:#FFF7E6,stroke:#E3951A,color:#3D2A05,stroke-width:1.4px;
+  classDef quality fill:#F1ECFF,stroke:#7048C8,color:#27164D,stroke-width:1.4px;
+  classDef serving fill:#E9F7F7,stroke:#087F8C,color:#12383B,stroke-width:1.4px;
+  classDef ops fill:#FCEAEC,stroke:#C43B55,color:#4A1620,stroke-width:1.4px;
+
+  DNSE["DNSE WebSocket<br/>Hai kênh dữ liệu độc lập"]:::source
+
+  subgraph TICK[LUỒNG A - TRADE TICK VÀ VWAP]
+    direction LR
+    TRADE["Kênh trade ticks"]:::source
+    PROD["dnse-producer<br/>Xác thực, subscribe, normalize"]:::task
+    TOPIC[("Kafka topic<br/>dnse-trades-raw")]:::stream
+    KENGINE["ClickHouse Kafka Engine<br/>Consumer group"]:::stream
+    RAW[("realtime_trade_ticks_raw<br/>MergeTree, TTL 30 ngày")]:::store
+    MV["Materialized View<br/>Tổng hợp theo ticker và phút"]:::stream
+    STATE[("fact_realtime_vwap_1m_state<br/>AggregatingMergeTree, TTL 30 ngày")]:::store
+    VWAP[("fact_realtime_vwap<br/>VIEW: VWAP phút và VWAP phiên")]:::store
+    TRADE --> PROD --> TOPIC --> KENGINE
+    KENGINE --> RAW
+    KENGINE --> MV --> STATE --> VWAP
+  end
+
+  subgraph CANDLE[LUỒNG B - NẾN MỘT PHÚT]
+    direction LR
+    OHLC["Kênh ohlc_closed.1"]:::source
+    CONS["dnse-ohlc-consumer<br/>Chuẩn hóa nến đã đóng"]:::task
+    FACT[("fact_intraday_ohlcv<br/>ReplacingMergeTree(ingested_at)<br/>Grain: ticker, minute_ts, source<br/>TTL 30 ngày")]:::store
+    OHLC --> CONS --> FACT
+  end
+
+  subgraph TRACE[RAW BACKUP VÀ KHÔI PHỤC]
+    direction TB
+    LOCAL[("Parquet cục bộ tạm thời")]:::store
+    MINIO[("MinIO Bronze best-effort<br/>dnse/trades hoặc dnse/ohlcv_1m<br/>year/month/day")]:::store
+    BACKFILL["Backfill intraday từ vnstock/KBS<br/>Luồng dự phòng trong DAG ngày"]:::task
+    LOCAL --> MINIO
+    BACKFILL --> FACT
+  end
+
+  subgraph CHECK[QUALITY THỜI GIAN THỰC]
+    direction TB
+    Q["Realtime Quality Check<br/>Duy nhất, freshness, miền giá trị"]:::quality
+    CROSS["Đối chiếu chéo độc lập<br/>Khối lượng trade tick với nến DNSE"]:::quality
+    OBS["Độ trễ ingest (SQL ClickHouse)<br/>và trạng thái dịch vụ"]:::quality
+    Q --> CROSS
+  end
+
+  subgraph SERVE[PHỤC VỤ VÀ CẢNH BÁO]
+    direction TB
+    API["FastAPI<br/>Intraday chart và VWAP"]:::serving
+    DASH["React Dashboard<br/>Giá, nến 1 phút, VWAP phiên"]:::serving
+    ALERT["Alert Engine<br/>VWAP deviation/cross,<br/>volume spike, breakout"]:::ops
+    RULES[("PostgreSQL<br/>Watchlist, rule, cooldown")]:::store
+    CHANNEL["Telegram và Email"]:::ops
+    GRAF["Grafana<br/>Lag, freshness, service health"]:::serving
+    API --> DASH
+    RULES --> ALERT --> CHANNEL
+  end
+
+  DNSE --> TRADE
+  DNSE --> OHLC
+  PROD -. "raw tick" .-> LOCAL
+  CONS -. "raw candle" .-> LOCAL
+
+  VWAP --> Q
+  FACT --> Q
+  TOPIC --> OBS
+  VWAP & FACT --> API
+  VWAP & FACT --> ALERT
+  OBS --> GRAF
+  CROSS --> GRAF
+
+  style TICK fill:#FFFFFF,stroke:#E3951A
+  style CANDLE fill:#FFFFFF,stroke:#2563EB
+  style TRACE fill:#F8FAFC,stroke:#94A3B8
+  style CHECK fill:#FFFFFF,stroke:#7048C8
+  style SERVE fill:#F8FAFC,stroke:#087F8C

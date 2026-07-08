@@ -304,6 +304,13 @@ export type AlertByCondition = { type: string; count: number; fill: string };
 
 export type AlertsPayload = {
   count: number;
+  summary: {
+    total: number;
+    sent: number;
+    failed: number;
+    skipped: number;
+    tickerCount: number;
+  };
   data: AlertEvent[];
   byDay: AlertByDay[];
   byCondition: AlertByCondition[];

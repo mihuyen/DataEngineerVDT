@@ -63,8 +63,8 @@ flowchart TB
     API["FastAPI"]:::serving
     REACT["Dashboard React"]:::serving
     ALERT["Alert Engine"]:::ops
-    SUPERSET["Superset<br/>đọc thẳng ClickHouse"]:::observe
-    GRAFANA["Grafana<br/>đọc thẳng ClickHouse + Postgres"]:::observe
+    SUPERSET["Superset (optional)<br/>BI, đọc thẳng ClickHouse"]:::observe
+    GRAFANA["Grafana (optional)<br/>Giám sát vận hành, đọc ClickHouse + Postgres"]:::observe
     CHANNEL["Telegram + Email"]:::ops
     SLACK["Slack Webhook"]:::ops
   end

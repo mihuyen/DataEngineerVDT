@@ -6,7 +6,7 @@ import pendulum
 from airflow import DAG
 from airflow.operators.bash import BashOperator
 
-from slack_notifications import notify_failure
+from telegram_notifications import notify_failure
 
 
 PROJECT_DIR = "/opt/airflow/project"

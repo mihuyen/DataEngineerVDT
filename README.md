@@ -34,11 +34,11 @@ Dữ liệu chứng khoán đến từ nhiều nguồn, nhiều định dạng v
 
 - Python, uv
 - MinIO, Apache Parquet
-- Polars, Great Expectations
+- Polars (transform + quality rules kiểu Great Expectations, không phụ thuộc thư viện great-expectations)
 - ClickHouse, dbt
 - Airflow
 - Kafka
-- Superset, Grafana
+- Grafana (optional, giám sát vận hành); Superset (optional, BI)
 - PostgreSQL cho bảng `user_alerts`
 - Telegram Bot API hoặc SMTP Email cho cảnh báo
 
@@ -473,12 +473,12 @@ Hoặc publish tick DNSE thật lên Kafka khi đang trong phiên:
 uv run python scripts/run_dnse_realtime_ingest.py --symbols ALL --produce-to-kafka --timeout-seconds 300
 ```
 
-Chạy consumer để tổng hợp tick thành VWAP (đã đóng gói sẵn trong service `realtime-vwap-consumer` của docker-compose, chạy liên tục mỗi 15s):
+Áp dụng SQL cho Kafka Engine + Materialized View tính VWAP (job chạy một lần rồi thoát, đóng gói sẵn trong service `init-realtime-streaming` của docker-compose; ClickHouse tự tổng hợp VWAP khi nhận message, không có consumer Python nào chạy liên tục):
 
 ```bash
-docker compose up -d realtime-vwap-consumer
+docker compose up init-realtime-streaming
 # hoặc chạy tay:
-uv run python scripts/run_realtime_vwap_kafka_consumer.py --interval-seconds 15
+uv run python scripts/init_realtime_streaming.py
 ```
 
 ## Superset dashboard thật

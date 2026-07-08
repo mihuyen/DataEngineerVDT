@@ -1,0 +1,33 @@
+%%{init: {"theme":"base","htmlLabels":false,"flowchart":{"curve":"basis","nodeSpacing":40,"rankSpacing":30},"themeVariables":{"background":"#ffffff","primaryTextColor":"#172033","lineColor":"#526070","fontFamily":"Arial"}}}%%
+flowchart TB
+  classDef step fill:#FFFFFF,stroke:#94A3B8,color:#172033,stroke-width:1.3px;
+  classDef note fill:#FFF4D6,stroke:#D97706,color:#3B2600,stroke-width:1.3px;
+  classDef plain fill:none,stroke:none,color:#172033;
+
+  subgraph TICK[Nhánh trade tick]
+    direction TB
+    A1(["1. DNSE WebSocket<br/>Kafka Producer chuẩn hóa tick"]):::step
+    A2(["2. Kafka<br/>dnse-trades-raw"]):::step
+    A3(["3. ClickHouse Kafka Engine"]):::step
+    A4(["4. Materialized View"]):::step
+    A5(["5. fact_realtime_vwap_1m_state"]):::step
+    A6(["6. fact_realtime_vwap"]):::step
+    A1 --> A2 --> A3 --> A4 --> A5 --> A6
+  end
+
+  subgraph CANDLE[Nhánh nến 1 phút]
+    direction TB
+    B1(["1. DNSE ohlc_closed.1"]):::step
+    B2(["2. Normalize"]):::step
+    B3(["3. fact_intraday_ohlcv"]):::step
+    B1 --> B2 --> B3
+  end
+
+  NOTE1["Không tự sinh nến từ trade tick:<br/>đối chiếu khối lượng giữa hai kênh độc lập<br/>để phát hiện mất kết nối hoặc rớt dữ liệu."]:::note
+  NOTE2["Kafka Engine ghi đồng thời raw tick TTL 30 ngày<br/>và trạng thái tổng hợp VWAP qua Materialized View.<br/>Kênh nến ghi trực tiếp ClickHouse, không qua Kafka."]:::note
+
+  A6 --- NOTE1
+  B3 --- NOTE2
+
+  style TICK fill:#FFFFFF,stroke:#94A3B8
+  style CANDLE fill:#FFFFFF,stroke:#94A3B8

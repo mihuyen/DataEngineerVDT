@@ -17,7 +17,7 @@ fi
 
 echo "Starting Docker services..."
 docker compose up -d clickhouse minio postgres zookeeper kafka nlp-service alert-engine \
-  realtime-vwap-consumer dnse-producer dnse-ohlc-consumer grafana superset \
+  init-realtime-streaming dnse-producer dnse-ohlc-consumer grafana \
   airflow-webserver airflow-scheduler
 
 echo "Waiting for Airflow webserver..."

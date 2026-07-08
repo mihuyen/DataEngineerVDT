@@ -73,10 +73,10 @@ groups:
                     type: gt
                     # 3600s: generous for demo/manual ticks, which are not
                     # published continuously outside trading hours. Tighten
-                    # this once the realtime-vwap-consumer runs against real
-                    # DNSE ticks during market hours (see report limitations
-                    # on realtime VWAP coverage not yet being verified
-                    # end-to-end with live market data).
+                    # this once dnse-producer streams real DNSE ticks
+                    # continuously during market hours (see report
+                    # limitations on realtime VWAP coverage not yet being
+                    # verified end-to-end with live market data).
                     params: [3600]
                   operator:
                     type: and

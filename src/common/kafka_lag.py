@@ -30,7 +30,14 @@ def get_consumer_group_lag(
     servers = (bootstrap_servers or os.getenv("KAFKA_BOOTSTRAP_SERVERS", "localhost:9092")).split(",")
 
     try:
-        consumer = KafkaConsumer(bootstrap_servers=servers, group_id=None, consumer_timeout_ms=5000)
+        consumer = KafkaConsumer(
+            bootstrap_servers=servers,
+            group_id=None,
+            consumer_timeout_ms=5000,
+            request_timeout_ms=5000,
+            bootstrap_timeout_ms=5000,
+            api_version=(3, 6, 0),
+        )
         try:
             partitions = consumer.partitions_for_topic(topic)
             if not partitions:
@@ -40,7 +47,11 @@ def get_consumer_group_lag(
         finally:
             consumer.close()
 
-        admin = KafkaAdminClient(bootstrap_servers=servers)
+        admin = KafkaAdminClient(
+            bootstrap_servers=servers,
+            request_timeout_ms=5000,
+            api_version=(3, 6, 0),
+        )
         try:
             committed = admin.list_group_offsets(group_id).get(group_id, {})
         finally:
