@@ -8,6 +8,8 @@ from pathlib import Path
 import polars as pl
 
 from src.common.clickhouse_client import insert_dataframe
+from src.quality.news_sentiment_expectations import validate_news_sentiment_detail
+from src.transform.news_entity_linking import load_silver_company_profile
 
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
@@ -279,6 +281,17 @@ def load_fact_news_sentiment_daily(
             "No versioned NLP inference output found; refusing to publish lexicon demo sentiment."
         )
     detail = build_fact_news_sentiment_detail(nlp_detail)
+
+    # Gate before writing to Gold: the Silver-stage News Quality Gate never
+    # sees these columns (sentiment_score/confidence_score/sentiment_label
+    # don't exist until PhoBERT runs), so this is the only place that can
+    # catch a broken model output -- e.g. a bad checkpoint emitting scores
+    # outside [-1, 1] -- before it lands in ClickHouse.
+    company_profile = load_silver_company_profile()
+    validation = validate_news_sentiment_detail(detail, company_profile)
+    if validation["status"] != "PASS":
+        raise ValueError(f"News sentiment quality gate failed, refusing to publish to Gold: {validation['errors']}")
+
     frame = build_fact_news_sentiment_daily_from_nlp(nlp_detail)
     insert_dataframe(client, "fact_news_sentiment_detail", detail)  # type: ignore[arg-type]
     insert_dataframe(client, "fact_news_sentiment_daily", frame)  # type: ignore[arg-type]

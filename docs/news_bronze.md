@@ -1,6 +1,6 @@
 # Bronze Layer - Market News
 
-Ngày 7 theo `Report.md` ingest thử dữ liệu tin tức thị trường vào Bronze. Phạm vi chỉ gồm dữ liệu raw, chưa làm Silver, sentiment, entity linking, Gold hoặc dashboard.
+Tài liệu này mô tả riêng bước Bronze (crawl thô) của luồng Tin tức — bước đầu tiên trong DAG `news_crawl_5m`. Các bước sau (Silver, Entity Linking, PhoBERT sentiment, Gold) xem tại `architecture.md` và README phần "Luồng tin tức".
 
 ## Nguồn crawl
 

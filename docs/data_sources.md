@@ -1,9 +1,15 @@
 # Data Sources
 
-| Tên nguồn | Loại dữ liệu | Batch hay streaming | Tần suất thu thập | Dữ liệu thu thập | Đích lưu Bronze | Đích Silver | Đích Gold | Rủi ro khi thu thập |
-|---|---|---|---|---|---|---|---|---|
-| `vnstock` | OHLCV cổ phiếu | Batch | Hàng ngày sau giờ giao dịch | open, high, low, close, volume, trading_date, ticker | `bronze/vnstock/ohlcv/` | `silver/vnstock/ohlcv/` | `fact_daily_price`, `dim_stock`, `dim_date` | Thay đổi thư viện/API, thiếu dữ liệu lịch sử, ngày nghỉ giao dịch |
-| API niêm yết/Finnhub | Thông tin doanh nghiệp | Batch | Hàng ngày hoặc hàng tuần | ticker, company_name, exchange, sector, market_cap, P/E, EPS, ROE, ROA, shares_outstanding | `bronze/company/profile/` | `silver/company/profile/` | `dim_stock`, `dim_sector` | Rate limit, API key hết hạn, schema thay đổi |
-| VN-Index/HNX-Index/VN30 | Chỉ số thị trường | Batch | Hàng ngày sau giờ giao dịch | open, high, low, close, volume, trading_value, index_code | `bronze/market/index/` | `silver/market/index/` | `fact_market_index`, `dim_index`, `dim_date` | Nguồn không đồng nhất, mã chỉ số khác nhau giữa các provider |
-| Finnhub News/RSS/HTML crawl | Tin tức thị trường | Batch | Mỗi 30-60 phút hoặc theo lịch Airflow | title, content, url, published_at, source | `bronze/news/market/` | `silver/news/market/` | `fact_news_sentiment_daily`, `dim_stock`, `dim_date` | Website đổi HTML, trùng tin, thiếu mapping ticker, giới hạn API |
-| DNSE WebSocket API | Realtime/order book | Streaming | Realtime trong giờ giao dịch | bid/ask, matched price, volume, timestamp, ticker | `bronze/dnse/order_book/` hoặc Kafka raw topic | `silver/dnse/order_book/` | `fact_realtime_vwap`, `fact_alert_event` | Mất kết nối WebSocket, cần xác thực, message out-of-order, biến động tải cao |
+| Nguồn | Dữ liệu | Batch/Streaming | Tần suất | Trường chính | Bronze path | Đích Gold | Rủi ro |
+|---|---|---|---|---|---|---|---|
+| Vnstock (KBS) | Danh sách mã HOSE, hồ sơ doanh nghiệp | Batch | Sau giờ giao dịch | `symbol`, `organ_name`, `exchange`, `sector` | `bronze/company_profile/dataset=listing/` | `dim_stock`, `dim_sector` | Rate limit, thay đổi API |
+| Vnstock (VCI) | OHLCV ngày, VNINDEX/VN30 | Batch | Sau giờ giao dịch | `date`, `open/high/low/close`, `volume`, `ticker` | `bronze/ohlcv/`, `bronze/market_index/index_code=<CODE>/` | `fact_daily_price`, `fact_market_index` | Rate limit — nguyên nhân chính khiến không phải mã nào cũng có bản ghi mỗi ngày |
+| VnExpress, Vietstock, CafeF | Tin tức tài chính | Batch nhỏ | Crawl mỗi 5 phút, 24/7 | `url`, `title`, `content`, `published_at`, `source` | `bronze/news/source=multi/` | `fact_news_sentiment_detail`, `fact_news_sentiment_daily` | Website đổi HTML, trùng tin (chống bằng URL registry) |
+| DNSE WebSocket | Giao dịch khớp lệnh, nến 1 phút đã đóng | Streaming | Liên tục trong giờ giao dịch | Trade tick: `ticker`, `trade_ts`, `price`, `volume`. Nến: OHLCV theo phút | Parquet cục bộ, sao lưu MinIO theo khả năng | `fact_realtime_vwap` (qua Kafka), `fact_intraday_ohlcv` (ghi thẳng) | Rớt kết nối WebSocket tạm thời — phát hiện qua đối chiếu chéo khối lượng 2 kênh |
+
+## Ghi chú quan trọng
+
+- **Không dùng Finnhub** — nguồn tin tức là 3 báo Việt Nam (VnExpress/Vietstock/CafeF), không phải Finnhub News.
+- **Không có nguồn riêng cho HNX/UPCOM** — phạm vi hiện tại chỉ 404 mã HOSE.
+- 2 nguồn Vnstock (KBS + VCI) bổ sung nhau: KBS mạnh về hồ sơ doanh nghiệp, VCI mạnh về giá — không nguồn nào đủ cả 2, nên phải gọi cả 2 dù cùng dùng chung 1 thư viện Vnstock.
+- DNSE có 2 kênh độc lập (trade tick qua Kafka, nến ghi thẳng) — không suy nến từ tick để giữ khả năng đối chiếu chéo phát hiện sự cố kết nối.

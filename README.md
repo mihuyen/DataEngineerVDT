@@ -1,502 +1,235 @@
-# Data Lakehouse Stock
+# Data Lakehouse — Theo dõi thị trường Chứng khoán Việt Nam (HOSE)
 
-Project Data Lakehouse theo dõi thị trường chứng khoán Việt Nam, tập trung xây dựng nền tảng dữ liệu có thể mở rộng từ batch analytics đến realtime monitoring.
+Nền tảng dữ liệu hợp nhất giá cổ phiếu, hồ sơ doanh nghiệp, chỉ số thị trường, tin tức và giao dịch trong phiên của 404 mã HOSE vào cùng một hệ thống — theo kiến trúc Lakehouse 3 tầng Bronze–Silver–Gold, kết hợp 3 luồng xử lý độc lập (batch, tin tức, thời gian thực), có kiểm soát chất lượng tích hợp xuyên suốt và cảnh báo tự động qua Telegram.
 
-## Mục tiêu hệ thống
+Người thực hiện: Bùi Huyền Mi · Mentor: Bùi Lê Huy
 
-- Thu thập, lưu trữ và xử lý dữ liệu thị trường chứng khoán Việt Nam theo kiến trúc Lakehouse.
-- Tách rõ Bronze, Silver, Gold để dễ kiểm soát chất lượng dữ liệu.
-- Phục vụ dashboard phân tích thị trường, theo dõi pipeline và cảnh báo giao dịch.
-- Chuẩn bị nền tảng để Ngày 2 setup Docker Compose cho MinIO, ClickHouse, Airflow, Kafka, Superset và Grafana.
+## Mục lục
 
-## Vấn đề cần giải quyết
+- [Vấn đề & mục tiêu](#vấn-đề--mục-tiêu)
+- [Kiến trúc tổng quan](#kiến-trúc-tổng-quan)
+- [Nguồn dữ liệu](#nguồn-dữ-liệu)
+- [Ba luồng xử lý](#ba-luồng-xử-lý)
+- [Mô hình dữ liệu Gold (Star Schema)](#mô-hình-dữ-liệu-gold-star-schema)
+- [Kiểm soát chất lượng dữ liệu](#kiểm-soát-chất-lượng-dữ-liệu)
+- [Cảnh báo (Alert Engine)](#cảnh-báo-alert-engine)
+- [Giám sát vận hành](#giám-sát-vận-hành)
+- [Frontend & API](#frontend--api)
+- [Mô hình NLP phân tích cảm xúc](#mô-hình-nlp-phân-tích-cảm-xúc)
+- [Công nghệ sử dụng](#công-nghệ-sử-dụng)
+- [Cấu trúc thư mục](#cấu-trúc-thư-mục)
+- [Cài đặt & chạy thử](#cài-đặt--chạy-thử)
+- [Kiểm thử](#kiểm-thử)
+- [Hạn chế & hướng phát triển](#hạn-chế--hướng-phát-triển)
 
-Dữ liệu chứng khoán đến từ nhiều nguồn, nhiều định dạng và có độ tin cậy khác nhau. Hệ thống cần lưu dữ liệu thô, làm sạch có kiểm soát, tổng hợp thành mô hình phân tích và cung cấp dashboard kịp thời cho người dùng.
+## Vấn đề & mục tiêu
+
+Dữ liệu thị trường chứng khoán có nhiều nhịp cập nhật khác nhau: giá và chỉ báo kỹ thuật theo phiên, hồ sơ doanh nghiệp thay đổi chậm, tin tức phát sinh trong ngày, còn giao dịch khớp lệnh và nến phút phát sinh liên tục trong giờ giao dịch. Dữ liệu cũng phân mảnh trên nhiều nguồn, và thiếu cơ chế cảnh báo chủ động khi thị trường biến động.
+
+4 mục tiêu chính:
+
+1. **Hợp nhất & chuẩn hóa** — gộp dữ liệu đa nguồn qua 3 tầng Bronze–Silver–Gold.
+2. **Tách biệt xử lý** — 3 luồng độc lập theo đúng nhịp cập nhật của từng loại dữ liệu.
+3. **Kiểm soát chất lượng** — validate tích hợp ở mọi bước, đối soát tự động liên tầng.
+4. **Truy vấn & phục vụ** — tối ưu cho ClickHouse, dashboard React/FastAPI và cảnh báo Telegram.
 
 ## Kiến trúc tổng quan
 
-- Bronze Layer: lưu dữ liệu thô trong MinIO dưới dạng Parquet hoặc JSON.
-- Silver Layer: làm sạch, chuẩn hóa schema và kiểm tra chất lượng bằng Polars + Great Expectations.
-- Gold Layer: tạo mô hình phân tích và chỉ báo kỹ thuật bằng dbt trên ClickHouse.
-- Serving Layer: Superset dashboard, Grafana monitoring và Alert Engine.
-- Orchestration: Airflow quản lý batch pipeline.
-- Streaming: Kafka, ClickHouse Kafka Engine và Materialized View cho dữ liệu realtime/order book.
+```
+                         ┌────────────────────────────┐
+Vnstock (KBS/VCI) ──┐    │   MinIO (Bronze→Silver→Gold) │
+CafeF/Vietstock/    ├───▶│         Data Lake            │──▶ ClickHouse ──▶ FastAPI/React
+VnExpress            │    └────────────────────────────┘         │
+                      │                                            ├──▶ Alert Engine ──▶ Telegram
+DNSE WebSocket ───────┴──▶ Kafka ──▶ ClickHouse (Kafka Engine + MV)│
+                                                                    └──▶ PostgreSQL (watchlist/rule)
+```
 
-## 5 luồng dữ liệu chính
+Airflow điều phối 2 DAG (batch hằng ngày, tin tức mỗi 5 phút). Luồng Realtime ghi thẳng vào ClickHouse qua Kafka Engine, bỏ qua Silver để giữ độ trễ thấp.
 
-1. OHLCV cổ phiếu từ `vnstock`.
-2. Thông tin doanh nghiệp niêm yết từ API niêm yết hoặc Finnhub.
-3. Chỉ số thị trường như VN-Index, HNX-Index, VN30.
-4. Tin tức thị trường từ Finnhub News, RSS hoặc HTML crawl.
-5. Dữ liệu realtime/order book từ DNSE WebSocket API.
+## Nguồn dữ liệu
+
+| Nguồn | Dữ liệu | Nhịp cập nhật |
+|---|---|---|
+| Vnstock (KBS) | Danh sách mã HOSE, hồ sơ doanh nghiệp | Sau giờ giao dịch |
+| Vnstock (VCI) | OHLCV ngày, VNINDEX/VN30 | Sau giờ giao dịch |
+| VnExpress, Vietstock, CafeF | Tin tức tài chính | Crawl mỗi 5 phút |
+| DNSE WebSocket | Giao dịch khớp lệnh, nến 1 phút | Liên tục trong phiên |
+
+## Ba luồng xử lý
+
+### 1. Luồng theo lô (Batch) — DAG `stock_lakehouse_daily`, chạy 18:00 T2–T6
+
+```
+Ingest song song (OHLCV, listing HOSE, VNINDEX/VN30) → Bronze
+  → Silver Transform (Polars) → Quality Gate
+  → Gold Loader (giá + EMA) → ClickHouse/MinIO
+  → Reconciliation (đối soát liên tầng, 10 điều kiện)
+  → 5 nhánh song song: dbt (SMA/RSI/Bollinger/MACD + dbt test)
+                         · export Gold → MinIO
+                         · Alert Engine (init + check)
+                         · backup toàn bộ lakehouse (ClickHouse + PostgreSQL)
+                         · backfill nến phút còn thiếu (Vnstock)
+```
+
+### 2. Luồng tin tức — DAG `news_crawl_5m`, chạy mỗi 5 phút, 24/7
+
+```
+Crawl (VnExpress/Vietstock/CafeF) → Bronze
+  → Silver Transform → News Quality Gate
+  → Entity Linking (gán ticker HOSE) → PhoBERT (phân tích cảm xúc)
+  → Sentiment Quality Gate → News Gold Loader → ClickHouse
+  → Reconciliation (kiểu "không mồ côi", 4 điều kiện)
+```
+
+### 3. Luồng thời gian thực — bỏ qua Silver, ghi thẳng ClickHouse
+
+- **Nhánh trade tick**: DNSE → chuẩn hóa → Kafka → ClickHouse (Kafka Engine + Materialized View) → gộp theo phút (`AggregatingMergeTree`) → VWAP phút/phiên.
+- **Nhánh nến 1 phút**: DNSE → chuẩn hóa → ghi thẳng `fact_intraday_ohlcv` (`ReplacingMergeTree`, tự ghi đè khi có nến hiệu chỉnh).
+- 2 nhánh đối chiếu chéo khối lượng để phát hiện rớt kết nối WebSocket (`expect_vwap_volume_matches_intraday_volume`, ngưỡng lệch 15%).
+
+## Mô hình dữ liệu Gold (Star Schema)
+
+**4 bảng chiều**: `dim_date`, `dim_stock`, `dim_sector`, `dim_index`
+
+**Bảng sự kiện**: `fact_daily_price`, `fact_daily_price_indicators` (dbt), `fact_market_index`, `fact_news_sentiment_daily`, `fact_news_sentiment_detail`, `fact_intraday_ohlcv`, `fact_realtime_vwap` (view), `fact_alert_event`, `fact_alert_rule_state`
+
+DDL đầy đủ tại `sql/ddl/`, luồng streaming tại `sql/streaming/realtime_vwap_kafka_engine.sql`.
+
+## Kiểm soát chất lượng dữ liệu
+
+Tích hợp xuyên suốt từng bước, không phải 1 cổng chặn duy nhất:
+
+| Tầng | Kiểm tra | Chặn nếu fail |
+|---|---|---|
+| Bronze | Schema, đọc được | Không |
+| Silver | Completeness, Validity, Uniqueness (Quality Gate) | Có — không công bố sang Gold |
+| Gold (giá trị) | dbt test: RSI∈[0,100], MACD đúng công thức, Bollinger đúng thứ tự / Sentiment Quality Gate: score∈[-1,1], confidence∈[0,1] | Có — không ghi ClickHouse |
+| Gold (liên tầng) | Reconciliation: tỷ lệ giảm Bronze→Silver ≤5%, Silver→Gold khớp tuyệt đối (Batch) hoặc không "mồ côi" (Tin tức), không trùng khóa, freshness | Chặn 5 nhánh song song phía sau, không rollback tự động |
+| Realtime | Đối chiếu chéo tick–nến, giờ giao dịch hợp lệ, độ phủ HOSE | Chẩn đoán, không chặn công bố |
+
+Chạy đối soát thủ công: `uv run python scripts/run_reconciliation_check.py`
+
+## Cảnh báo (Alert Engine)
+
+- Cấu hình theo người dùng lưu ở PostgreSQL (`watchlist`, `user_alerts`).
+- **14 loại quy tắc**: giá trên/dưới ngưỡng, RSI, phá dải Bollinger, độ lệch VWAP, tăng vọt khối lượng, phá vùng trong phiên, cắt lỗ/chốt lời và 4 điều kiện cắt ngưỡng.
+- 2 hành vi: **cảnh báo tĩnh** (gửi lại mỗi cooldown) vs **cắt ngưỡng** (chỉ gửi đúng khoảnh khắc vượt ngưỡng).
+- Đọc chỉ báo từ `fact_daily_price_indicators` (đã qua dbt test), không dùng bản Python độc lập trong `fact_daily_price`.
+- Gửi qua Telegram, ghi log `fact_alert_event` với trạng thái `sent`/`send_failed`/`channel_not_configured`/`unknown_channel`.
+
+## Giám sát vận hành
+
+3 nguồn cảnh báo độc lập, cùng gửi về 1 kênh Telegram:
+
+- **Grafana** — giám sát hạ tầng, đọc độc lập từ ClickHouse/Postgres (không phụ thuộc Airflow còn sống hay không) — lưới an toàn cuối cùng.
+- **Airflow** — callback tự động khi task hết retry hoặc DAG hoàn tất — phát hiện nhanh, chi tiết đến từng task.
+- **Alert Engine** — cảnh báo nghiệp vụ theo rule người dùng.
+
+## Frontend & API
+
+React (Vite) + FastAPI, các trang chính: Tổng quan thị trường, Bảng giá & Watchlist, Chi tiết cổ phiếu (nến ngày/nến trong phiên 1m–1h), Bộ lọc tín hiệu kỹ thuật, Tin tức & cảm xúc, Lịch sử cảnh báo, Giám sát pipeline. API trả kèm `dataMode`/`isRealtime`/`liveAsOf` để phân biệt dữ liệu cuối ngày với dữ liệu đang cập nhật.
+
+## Mô hình NLP phân tích cảm xúc
+
+Fine-tune PhoBERT (`vinai/phobert-base-v2`) trên dữ liệu tài chính tiếng Việt, 3 lớp positive/negative/neutral:
+
+- **Gán nhãn train**: kết hợp LLM (Gemini/DeepSeek/GPT-4o-mini) và model PhoBERT có sẵn đối chiếu với từ điển từ khóa tài chính — chỉ giữ mẫu 2 nguồn đồng thuận để giảm nhiễu.
+- **Train**: Focal Loss, oversampling lớp hiếm, đánh giá bằng accuracy ≥0.80 và macro F1 ≥0.78 trên tập test tách riêng.
+- **Serving**: model đẩy lên Hugging Face Hub (`mihuyen/VDT2026-sentiment`), `nlp-service` tải về và suy luận cục bộ — không gọi API ngoài lúc chạy thật. Có fallback luật đơn giản nếu tải model lỗi, và pipeline từ chối công bố kết quả từ fallback.
+
+Chi tiết tại `nlp/`.
 
 ## Công nghệ sử dụng
 
-- Python, uv
-- MinIO, Apache Parquet
-- Polars (transform + quality rules kiểu Great Expectations, không phụ thuộc thư viện great-expectations)
-- ClickHouse, dbt
-- Airflow
-- Kafka
-- Grafana (optional, giám sát vận hành); Superset (optional, BI)
-- PostgreSQL cho bảng `user_alerts`
-- Telegram Bot API hoặc SMTP Email cho cảnh báo
+| Nhóm | Công nghệ |
+|---|---|
+| Lưu trữ | MinIO (Parquet), ClickHouse, PostgreSQL |
+| Điều phối | Apache Airflow |
+| Streaming | Apache Kafka, ClickHouse Kafka Engine |
+| Transform | Polars, dbt |
+| NLP | PhoBERT (fine-tuned), Hugging Face Transformers |
+| Phục vụ | FastAPI, React (Vite) |
+| Cảnh báo & giám sát | Telegram Bot API, Grafana |
+| Ngôn ngữ/Build | Python, uv, TypeScript |
 
 ## Cấu trúc thư mục
 
 ```text
-data-lakehouse-stock/
-├── README.md
-├── docs/
-├── configs/
-├── src/
-├── dags/
-├── dbt/
-├── sql/
-├── docker/
-├── tests/
-└── scripts/
+DataEngineerVDT/
+├── src/               # ingestion, transform, loaders, quality, alert_engine, api, streaming
+├── dags/              # Airflow DAG: stock_lakehouse_daily, news_crawl_5m
+├── dbt/               # models (marts) + tests (RSI/MACD/Bollinger)
+├── sql/               # ddl/ (Gold), streaming/ (Kafka Engine + MV), ddl_postgres/
+├── nlp/                # train/evaluate PhoBERT, serving (FastAPI), data_preparation
+├── frontend/           # React + Vite dashboard
+├── services/           # alert-engine, vwap-consumer, dnse-producer (container riêng)
+├── scripts/            # entrypoint CLI cho từng bước pipeline (46 script)
+├── docker/             # provisioning Grafana
+├── tests/              # pytest (231 test)
+├── docs/               # tài liệu chi tiết từng tầng/luồng
+└── docker-compose.yml
 ```
 
-## Setup môi trường bằng uv
+## Cài đặt & chạy thử
 
-TODO Ngày 1: máy hiện tại cần có `uv` trong PATH để chạy các lệnh bên dưới.
+### Yêu cầu
+
+- `uv` (Python package manager), Docker + Docker Compose
+- File `.env` (copy từ `.env.example`, điền `HF_TOKEN`/`DNSE_API_KEY` nếu cần)
+
+### Khởi động hạ tầng
 
 ```bash
-uv sync
-uv run python scripts/check_env.py
-uv run pytest
-uv run ruff check .
-```
-
-Không dùng `pip install` và không tạo `requirements.txt`.
-
-## Roadmap 4 tuần
-
-- Tuần 1: phân tích yêu cầu, setup project, chuẩn bị môi trường, ingest Bronze cho OHLCV, thông tin doanh nghiệp, chỉ số thị trường và thử nghiệm tin tức.
-- Tuần 2: xây dựng Silver Layer bằng Polars, Great Expectations, làm sạch dữ liệu chính và tạo Airflow DAG.
-- Tuần 3: xây dựng Gold Layer trong ClickHouse, dbt models, Star Schema, chỉ báo kỹ thuật, sentiment demo và realtime VWAP demo.
-- Tuần 4: xây dựng Superset dashboard, Data Pipeline Monitor, Alert Engine, báo cáo và demo.
-
-## TODO cho Ngày 2
-
-- Cài hoặc đưa `uv` vào PATH nếu môi trường chưa có.
-- Sinh `uv.lock` bằng `uv sync` sau khi dependency được resolve.
-- Setup Docker Compose cho MinIO, ClickHouse, PostgreSQL, Kafka, Airflow, Superset và Grafana.
-- Tạo bucket/path Bronze trong MinIO.
-- Viết ingestion skeleton cho OHLCV batch đầu tiên.
-
-## Ngày 2 - Docker Compose nền tảng
-
-Ngày 2 bổ sung `docker-compose.yml` để chạy local các service nền tảng:
-
-| Service | Port | Mục đích |
-|---|---:|---|
-| MinIO | `9000`, `9001` | Lưu Bronze/Silver data |
-| ClickHouse | `8123`, `9002` | OLAP database cho Gold Layer |
-| PostgreSQL | `5432` | Airflow metadata và cấu hình alert |
-| Zookeeper | `2181` | Điều phối Kafka local |
-| Kafka | `9092` | Streaming broker cho realtime/order book |
-| Airflow Webserver | `8080` | UI orchestration |
-| Airflow Scheduler | internal | Lập lịch DAG |
-| Superset | `8088` | Dashboard phân tích |
-| Grafana | `3000` | Monitoring |
-
-### Setup bằng uv
-
-```powershell
-uv sync
-uv run python scripts/check_env.py
-uv run pytest
-uv run ruff check .
-```
-
-### Start service bằng Docker Compose
-
-```powershell
 docker compose up -d
 ```
 
-Nếu máy yếu, có thể start trước nhóm service nền tảng:
+Gồm: MinIO, ClickHouse, PostgreSQL, Kafka/ZooKeeper, Airflow (webserver+scheduler), NLP service, Alert Engine, DNSE producer/consumer, Grafana, Superset.
 
-```powershell
-docker compose up -d minio clickhouse postgres zookeeper kafka grafana
-```
-
-### Kiểm tra service
-
-```powershell
-uv run python scripts/check_services.py
-```
-
-### Kiểm tra cấu hình Docker Compose
-
-```powershell
-docker compose config
-```
-
-Chi tiết xem thêm tại `docs/docker_setup.md`.
-
-## Bronze Layer
-
-Bronze Layer lưu dữ liệu thô trong MinIO. Ngày 3 tập trung duy nhất vào dữ liệu OHLCV từ `vnstock`, ghi Parquet vào bucket `bronze`.
-
-### OHLCV ingestion
-
-Luồng xử lý:
-
-```text
-vnstock -> DataFrame -> Polars DataFrame -> Parquet -> MinIO Bronze
-```
-
-Module chính:
-
-- `src/ingestion/vnstock_ohlcv.py`
-- `src/common/minio_client.py`
-- `scripts/init_minio.py`
-- `scripts/run_ohlcv_ingest.py`
-
-### MinIO bucket structure
-
-```text
-bronze/
-└── ohlcv/
-    └── ticker=<SYMBOL>/
-        └── year=2026/
-            └── month=06/
-                └── day=10/
-                    └── data.parquet
-```
-
-Partition theo ticker và ngày ingest.
-
-### Cách chạy Bronze OHLCV
-
-Start MinIO:
-
-```powershell
-docker compose up -d minio
-```
-
-Tạo bucket:
-
-```powershell
-uv run python scripts/init_minio.py
-```
-
-Chạy ingest thử mã `VCB` trong 30 ngày gần nhất:
-
-```powershell
-uv run python scripts/run_ohlcv_ingest.py
-```
-
-Mặc định script lấy danh sách mã thuộc `HOSE`, `HNX`, `UPCOM` từ `vnstock` và ingest từng mã vào Bronze. Có thể test nhanh trước:
-
-```powershell
-uv run python scripts/run_ohlcv_ingest.py --exchanges HOSE HNX UPCOM --limit 10
-```
-
-Hoặc chỉ chạy một nhóm mã cụ thể:
-
-```powershell
-uv run python scripts/run_ohlcv_ingest.py --tickers VCB ACB FPT
-```
-
-Chi tiết xem thêm tại `docs/bronze_layer.md`.
-
-### Company profile Bronze ingestion
-
-Company profile Bronze lấy thông tin tổng quan doanh nghiệp cho toàn bộ mã cổ phiếu thuộc `HOSE`, `HNX`, `UPCOM` từ `vnstock`.
-
-Layout:
-
-```text
-bronze/
-└── company_profile/
-    └── dataset=listing/
-        └── year=2026/
-        └── month=06/
-            └── day=14/
-                └── data.parquet
-```
-
-Chạy nhanh danh mục doanh nghiệp toàn bộ universe:
-
-```powershell
-uv run python scripts/run_company_profile_ingest.py --mode listing
-```
-
-Chạy profile chi tiết cho một vài mã:
-
-```powershell
-uv run python scripts/run_company_profile_ingest.py --mode profile --tickers VCB ACB FPT
-```
-
-Chi tiết xem thêm tại `docs/company_profile_bronze.md`.
-
-### Market index Bronze ingestion
-
-Ngày 6 ingest dữ liệu chỉ số thị trường vào Bronze cho các mã:
-
-- `VNINDEX`
-- `VN30`
-- `HNXINDEX`
-
-Layout:
-
-```text
-bronze/
-└── market_index/
-    └── index_code=VNINDEX/
-        └── year=2026/
-            └── month=06/
-                └── day=14/
-                    └── data.parquet
-```
-
-Chạy ingest:
-
-```powershell
-uv run python scripts/run_market_index_ingest.py
-```
-
-Chi tiết xem thêm tại `docs/market_index_bronze.md`.
-
-### Market news Bronze ingestion
-
-Ngày 7 crawl tin tức thị trường từ 3 nguồn:
-
-- VnExpress
-- Vietstock
-- CafeF
-
-Raw fields:
-
-- `url`
-- `title`
-- `published_at`
-- `description`
-- `content`
-- `tags`
-- `source`
-- `category`
-- `crawl_at`
-
-Chạy ingest:
-
-```powershell
-uv run python scripts/run_news_ingest.py
-```
-
-Chi tiết xem thêm tại `docs/news_bronze.md`.
-
-## Silver Layer
-
-Silver Layer chuẩn hóa OHLCV từ Bronze bằng Polars, kiểm tra chất lượng dữ liệu và ghi Parquet sạch xuống bucket `silver`.
-
-### Data Quality
-
-Các rule chính:
-
-- Cột bắt buộc: `ticker`, `date`, `open`, `high`, `low`, `close`, `volume`.
-- `date` và `close` không được null.
-- Giá OHLC phải dương.
-- `volume >= 0`.
-- `high >= low`, `high >= open`, `high >= close`.
-- `low <= open`, `low <= close`.
-- `ticker + date` phải unique.
-
-### Great Expectations
-
-Project dùng dependency `great-expectations` cho hướng validation dài hạn. Module Ngày 4 đặt các expectation tại `src/quality/ohlcv_expectations.py` và sinh JSON report trong `quality_reports/`.
-
-### Cách chạy Silver OHLCV
-
-Chạy transform Bronze -> Silver:
-
-```powershell
-uv run python scripts/run_silver_transform.py
-```
-
-Chỉ chạy quality check:
-
-```powershell
-uv run python scripts/run_quality_check.py
-```
-
-Chi tiết xem thêm tại `docs/silver_layer.md`.
-
-## Gold Layer
-
-Gold Layer v1 dùng ClickHouse và mô hình Star Schema để phục vụ phân tích OLAP.
-
-### ClickHouse
-
-Service ClickHouse được cấu hình trong `docker-compose.yml`:
-
-- HTTP port: `8123`
-- Native port: `9002`
-- Database mặc định: `stock_lakehouse`
-
-### Star Schema
-
-Dimension tables:
-
-- `dim_date`
-- `dim_stock`
-- `dim_sector`
-- `dim_index`
-
-Fact tables:
-
-- `fact_daily_price`
-- `fact_market_index`
-- `fact_news_sentiment_daily`
-- `fact_realtime_vwap`
-
-### Cách khởi tạo
-
-```powershell
-uv run python scripts/init_clickhouse.py
-```
-
-### Cách load dữ liệu
-
-```powershell
-uv run python scripts/load_gold.py
-```
-
-### Cách validate Gold
-
-```powershell
-uv run python scripts/validate_gold.py
-```
-
-Query mẫu:
-
-```sql
-SELECT *
-FROM fact_daily_price
-LIMIT 10;
-```
-
-Chi tiết xem thêm tại `docs/star_schema.md` và `docs/gold_layer.md`.
-
-## Realtime DNSE WebSocket
-
-Project có connector DNSE Market Data WebSocket thật để lấy trade tick và tính realtime VWAP.
-
-Biến môi trường cần có:
+### Cài dependency & chạy pipeline lần đầu
 
 ```bash
-export DNSE_API_KEY=...
-export DNSE_API_SECRET=...
-export DNSE_WS_SYMBOLS=ALL
+uv sync
+uv run python scripts/migrate_gold_schema.py     # tạo schema ClickHouse
+uv run python scripts/load_gold.py                # nạp Gold từ Silver (cần Bronze/Silver có dữ liệu trước)
+uv run python scripts/run_reconciliation_check.py # đối soát liên tầng
+cd dbt && uv run dbt run && uv run dbt test        # chỉ báo kỹ thuật + kiểm tra công thức
 ```
 
-Chạy ingest DNSE thật và lưu Bronze local:
+### Chạy frontend cục bộ
 
 ```bash
-uv run python scripts/run_dnse_realtime_ingest.py --symbols ALL --max-messages 100 --timeout-seconds 300
+cd frontend
+npm install
+npm run dev        # http://localhost:5173
 ```
 
-Chạy ingest DNSE thật và load `fact_realtime_vwap`:
+### Chạy API cục bộ (ngoài Docker, cho hot-reload)
 
 ```bash
-uv run python scripts/run_dnse_realtime_ingest.py --symbols ALL --max-messages 100 --timeout-seconds 300 --load-vwap
+uv run uvicorn src.api.dashboard_api:app --host 0.0.0.0 --port 8000
 ```
 
-Chi tiết xem thêm tại `docs/realtime_vwap_day21.md`.
+Airflow UI: `http://localhost:8080` · Grafana: `http://localhost:3000` · MinIO Console: `http://localhost:9001`
 
-## Alert Engine
-
-Alert Engine tách cấu hình và lịch sử cảnh báo theo đúng kiến trúc trong `docs/architecture.md`:
-
-- `user_alerts` (PostgreSQL): cấu hình cảnh báo của người dùng — `ticker`, `condition_type`, `threshold_value`, `channel`, `cooldown_minutes`, `is_active`.
-- `fact_alert_event` (ClickHouse): lịch sử mọi lần điều kiện được kích hoạt, bao gồm cả lần bị bỏ qua do cooldown (`is_sent = 0`) để giữ đầy đủ audit trail.
-
-Loại điều kiện hỗ trợ: `PRICE_ABOVE`, `PRICE_BELOW`, `RSI_ABOVE`, `RSI_BELOW`, `BB_BREAK`, `VWAP_DEVIATION`.
-
-Module chính:
-
-- `src/alert_engine/rules.py` — logic đánh giá điều kiện (pure function, không phụ thuộc DB).
-- `src/alert_engine/engine.py` — đọc rule đang active, lấy dữ liệu mới nhất từ `fact_daily_price`/`fact_realtime_vwap`, kiểm tra cooldown qua `fact_alert_event`, ghi log.
-- `src/alert_engine/notifier.py` — gửi Telegram (`TELEGRAM_BOT_TOKEN`, `TELEGRAM_CHAT_ID`); nếu chưa cấu hình, cảnh báo vẫn được ghi log với `is_sent = 0`.
-
-Khởi tạo bảng `user_alerts` và seed vài rule demo:
+## Kiểm thử
 
 ```bash
-uv run python scripts/init_user_alerts.py
+uv run pytest                    # 231 test (unit, không cần Docker chạy)
+cd dbt && uv run dbt test        # 5 test SQL trên ClickHouse thật
 ```
 
-Chạy kiểm tra một lần:
+## Hạn chế & hướng phát triển
 
-```bash
-uv run python scripts/run_alert_engine.py --run-once
-```
+**Hạn chế đã biết:**
+- Chiều sâu lịch sử chưa đồng đều giữa các mã, backfill bị giới hạn bởi rate limit nguồn.
+- ClickHouse chỉ giữ dữ liệu realtime 30 ngày (TTL); có backup Parquet nhưng chưa có luồng khôi phục tự động.
+- Mô hình cảm xúc chưa được đánh giá trên tập nhãn tài chính tiếng Việt gán tay quy mô lớn.
+- Chưa có Accuracy (theo DAMA-DMBOK) do thiếu nguồn tham chiếu giá độc lập bên ngoài.
+- Phù hợp môi trường một người dùng: API chưa xác thực, một số image Docker còn dùng tag `latest`.
 
-Chạy liên tục mỗi 60 giây (đúng thiết kế Alert Checker):
-
-```bash
-uv run python scripts/run_alert_engine.py --interval-seconds 60
-```
-
-Service `alert-engine` trong `docker-compose.yml` đã đóng gói sẵn vòng lặp này (tự `init_user_alerts.py` rồi `run_alert_engine.py --interval-seconds ${ALERT_CHECK_INTERVAL_SECONDS:-60}`), chạy độc lập với lịch Airflow:
-
-```bash
-docker compose up -d alert-engine
-docker logs -f stock-alert-engine
-```
-
-DAG `stock_lakehouse_daily` vẫn có task `init_user_alerts >> check_alerts` chạy sau `load_gold` mỗi lần pipeline daily chạy — đó là lớp batch dự phòng; `alert-engine` service mới là nơi cảnh báo chạy gần thời gian thực.
-
-## Realtime VWAP qua Kafka Engine (streaming thật)
-
-Ngoài luồng demo/DNSE-bronze trực tiếp, project có pipeline streaming thật: `Kafka topic -> ClickHouse Kafka Engine -> Materialized View -> bảng raw -> Python consumer tính VWAP đúng (cumulative session VWAP) -> fact_realtime_vwap`.
-
-Khởi tạo các object ClickHouse (Kafka Engine table, bảng raw, Materialized View):
-
-```bash
-uv run python scripts/init_realtime_streaming.py
-uv run python scripts/create_realtime_kafka_topic.py
-```
-
-Bơm tick demo vào Kafka thật (khi ngoài giờ giao dịch hoặc chưa có `DNSE_API_KEY`):
-
-```bash
-uv run python scripts/produce_demo_ticks_to_kafka.py --tickers VCB,FPT,HPG --minutes 10
-```
-
-Hoặc publish tick DNSE thật lên Kafka khi đang trong phiên:
-
-```bash
-uv run python scripts/run_dnse_realtime_ingest.py --symbols ALL --produce-to-kafka --timeout-seconds 300
-```
-
-Áp dụng SQL cho Kafka Engine + Materialized View tính VWAP (job chạy một lần rồi thoát, đóng gói sẵn trong service `init-realtime-streaming` của docker-compose; ClickHouse tự tổng hợp VWAP khi nhận message, không có consumer Python nào chạy liên tục):
-
-```bash
-docker compose up init-realtime-streaming
-# hoặc chạy tay:
-uv run python scripts/init_realtime_streaming.py
-```
-
-## Superset dashboard thật
-
-```bash
-docker compose up -d superset
-uv run python scripts/setup_superset_day22.py
-uv run python scripts/setup_superset_dashboard.py
-```
-
-Tạo dashboard "Stock Lakehouse Gold Overview" với 3 chart thật query trực tiếp ClickHouse Gold: VN-Index theo ngày, Top 10 mã theo thanh khoản, News sentiment trung bình theo ngày. Truy cập `http://localhost:8088` (admin/admin).
-
-## Grafana monitoring thật
-
-Khác với Superset (phân tích nghiệp vụ trên Gold), Grafana phục vụ đúng vai trò ban đầu trong `docs/architecture.md`: giám sát vận hành — pipeline, service health, Kafka lag và trạng thái alert.
-
-```bash
-docker compose up -d grafana
-```
-
-Service tự cài plugin `grafana-clickhouse-datasource` qua `GF_INSTALL_PLUGINS`, tự provision 2 datasource (ClickHouse Gold + Airflow Metadata trên Postgres) và 1 dashboard "Stock Lakehouse Ops Monitor" từ `docker/grafana/provisioning/` và `docker/grafana/dashboards/` — không cần bấm tay. Dashboard gồm 7 panel: số cảnh báo 24h, độ trễ Kafka trung bình (60 tick gần nhất), độ tuổi dữ liệu giá, tổng số sự kiện cảnh báo, độ tươi/số dòng từng bảng Gold, cảnh báo theo loại điều kiện, và lịch sử DAG run của Airflow (đọc trực tiếp từ Postgres metadata, không qua API). Truy cập `http://localhost:3000` (admin/admin).
+**Hướng phát triển:**
+- Apache Iceberg cho quản lý phiên bản bảng, giảm vấn đề file nhỏ trên MinIO.
+- OpenMetadata/DataHub cho danh mục và dòng dõi dữ liệu khi số bảng tăng.
+- OpenTelemetry + Grafana Tempo cho distributed tracing xuyên suốt WebSocket→Kafka→ClickHouse.
+- Giám sát Data/Model Drift cho pipeline NLP.

@@ -1,6 +1,6 @@
 import { useState } from "react";
 import {
-  BarChart2, TrendingUp, ScanLine, Database, Star,
+  BarChart2, TrendingUp, ScanLine, Star,
   Newspaper, Bell, ChevronLeft, Menu, Clock, Wifi
 } from "lucide-react";
 
@@ -16,13 +16,6 @@ const navItems: NavItem[] = [
   { id: "screener", label: "Bộ lọc cổ phiếu", labelShort: "Bộ lọc", icon: <ScanLine size={18} /> },
   { id: "news", label: "Tin tức & cảm xúc", labelShort: "Tin tức", icon: <Newspaper size={18} /> },
   { id: "alerts", label: "Lịch sử cảnh báo", labelShort: "Cảnh báo", icon: <Bell size={18} /> },
-];
-
-// Operational pages: how the data behind the app is doing, not market data
-// itself -- kept visually separate so it doesn't compete with investor
-// workflows above it.
-const adminNavItems: NavItem[] = [
-  { id: "pipeline", label: "Giám sát pipeline", labelShort: "Pipeline", icon: <Database size={18} /> },
 ];
 
 const INTER: React.CSSProperties = { fontFamily: "Inter, sans-serif" };
@@ -153,14 +146,6 @@ export function Layout({ currentPage, onNavigate, children }: LayoutProps) {
           }}
         >
           {navItems.map((item) => renderNavButton(item, currentPage, collapsed, onNavigate))}
-
-          {!collapsed && (
-            <div style={{ ...INTER, color: "#3f4a63", fontSize: 11, textTransform: "uppercase", letterSpacing: "0.06em", padding: "16px 14px 4px" }}>
-              Quản trị dữ liệu
-            </div>
-          )}
-          {collapsed && <div style={{ borderTop: "1px solid rgba(255,255,255,0.07)", margin: "8px 6px" }} />}
-          {adminNavItems.map((item) => renderNavButton(item, currentPage, collapsed, onNavigate))}
         </nav>
 
         {/* Collapse button */}

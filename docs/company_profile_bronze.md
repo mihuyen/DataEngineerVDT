@@ -1,13 +1,13 @@
 # Bronze Layer - Company Profile
 
-Tầng Bronze cho `company_profile` lưu thông tin thô/tổng quan doanh nghiệp niêm yết theo danh sách mã thuộc `HOSE`, `HNX`, `UPCOM`.
+Tầng Bronze cho `company_profile` lưu thông tin thô/tổng quan doanh nghiệp niêm yết theo danh sách mã thuộc `HOSE`.
 
 ## Nguồn dữ liệu
 
 - Provider: `vnstock`
 - Listing source: `kbs`
 - Profile source: `kbs`
-- Universe mặc định: toàn bộ cổ phiếu trên `HOSE`, `HNX`, `UPCOM`
+- Universe mặc định: toàn bộ cổ phiếu trên `HOSE`
 
 ## Schema tối thiểu
 
@@ -69,7 +69,7 @@ company_profile/
 
 ## Cách chạy
 
-Chạy nhanh toàn bộ danh mục doanh nghiệp `HOSE`, `HNX`, `UPCOM` từ listing source:
+Chạy nhanh toàn bộ danh mục doanh nghiệp `HOSE` từ listing source:
 
 ```powershell
 uv run python scripts/run_company_profile_ingest.py --mode listing
@@ -90,7 +90,7 @@ uv run python scripts/run_company_profile_ingest.py --mode profile --tickers VCB
 Chạy profile chi tiết cho toàn bộ universe sẽ gọi API từng mã, nên thời gian lâu hơn và có thể bị provider giới hạn:
 
 ```powershell
-uv run python scripts/run_company_profile_ingest.py --mode profile --exchanges HOSE HNX UPCOM --request-delay-seconds 5 --skip-existing
+uv run python scripts/run_company_profile_ingest.py --mode profile --exchanges HOSE --request-delay-seconds 5 --skip-existing
 ```
 
 Nếu API listing lỗi, có thể truyền file CSV có cột `symbol` hoặc `ticker`:

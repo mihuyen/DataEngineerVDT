@@ -110,10 +110,24 @@ Rules:
 | Table | Primary grain | Main checks |
 | --- | --- | --- |
 | `fact_daily_price` | `ticker`, `trading_date` | ticker/date not null, OHLC positive, volume non-negative, ticker-date unique |
+| `fact_daily_price_indicators` | `ticker`, `date_id` | `dbt test`: RSI∈[0,100], MACD = EMA12−EMA26, Bollinger upper≥middle≥lower, not-null, unique |
 | `fact_market_index` | `index_id`, `trading_date` | index/date not null, expected index universe, index-date unique |
-| `fact_news_sentiment_daily` | `ticker`, `news_date` | counts non-negative, sentiment score in expected range when enforced |
-| `fact_realtime_vwap` | `ticker`, `minute_ts` | ticker/minute unique, prices and volumes non-negative |
-| `fact_alert_event` | `alert_id` | alert id unique, ticker/time/condition present |
+| `fact_news_sentiment_detail` | `article_id`, `ticker`, `model_version` | Sentiment Quality Gate: score∈[-1,1], confidence∈[0,1], nhãn hợp lệ, ticker∈HOSE, key không trùng — **chặn không ghi Gold nếu fail** |
+| `fact_news_sentiment_daily` | `ticker`, `news_date` | counts non-negative |
+| `fact_intraday_ohlcv` | `ticker`, `resolution`, `minute_ts` | trong giờ giao dịch, quan hệ OHLC hợp lệ, volume non-negative, không trùng key |
+| `fact_realtime_vwap` | `ticker`, `minute_ts` (VIEW, không phải bảng lưu trữ) | tính lúc đọc từ `fact_realtime_vwap_1m_state`; đối chiếu khối lượng chéo với `fact_intraday_ohlcv` |
+| `fact_alert_event` | `alert_id` | alert id unique, ticker/time/condition present, `delivery_status` ghi rõ kết quả gửi |
+| `fact_alert_rule_state` | `alert_id`, `ticker` | bảng trạng thái (không phải fact sự kiện), phục vụ cảnh báo cắt ngưỡng |
+
+## Reconciliation — đối soát liên tầng (chạy sau khi ghi Gold)
+
+Khác với các rule ở trên (validate nội dung dữ liệu), Reconciliation (`src/quality/reconciliation.py`) kiểm tra **việc di chuyển dữ liệu giữa các tầng có toàn vẹn hay không**:
+
+- **Batch (10 điều kiện)**: tỷ lệ giảm Bronze→Silver ≤5% (OHLCV + Market Index), Silver→Gold khớp tuyệt đối qua anti-join 2 chiều, không trùng khóa, freshness theo ngày làm việc.
+- **Tin tức (4 điều kiện)**: tỷ lệ giảm Bronze→Silver ≤5%, Gold không có bản ghi "mồ côi" so Silver (không đòi khớp tuyệt đối vì Entity Linking chủ động lọc bài ngoài HOSE), không trùng khóa, freshness theo lịch dương.
+- Realtime không nằm trong Reconciliation — dùng `src/quality/realtime_expectations.py` đối chiếu chéo khối lượng giữa nhánh VWAP và nhánh nến.
+
+Chạy: `uv run python scripts/run_reconciliation_check.py`. Nếu fail: chặn 5 nhánh song song phía sau trong DAG Batch, không rollback tự động.
 
 ## Recommended Maintenance
 

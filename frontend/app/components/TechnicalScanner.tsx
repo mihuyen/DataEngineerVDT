@@ -31,7 +31,6 @@ interface TechnicalScannerProps { onNavigate: (page: string, ticker?: string) =>
 
 export function TechnicalScanner({ onNavigate }: TechnicalScannerProps) {
   const [filterSignal, setFilterSignal] = useState<string>("all");
-  const [filterExchange, setFilterExchange] = useState("ALL");
   const [timeframe, setTimeframe] = useState<Timeframe>("EOD");
   const [technicalSignals, setTechnicalSignals] = useState<TechnicalSignal[]>(mockTechnicalSignals);
   const [trackedTickerCount, setTrackedTickerCount] = useState(930);
@@ -123,14 +122,10 @@ export function TechnicalScanner({ onNavigate }: TechnicalScannerProps) {
             }}>{tf === "EOD" ? "Theo ngày" : tf}</button>
           ))}
           <span style={{ width: 1, background: "rgba(255,255,255,0.1)", margin: "2px 4px" }} />
-          {["ALL", "HOSE", "HNX", "UPCOM"].map((ex) => (
-            <button key={ex} onClick={() => setFilterExchange(ex)} style={{
-              padding: "5px 12px", borderRadius: 5, border: "1px solid rgba(255,255,255,0.1)",
-              background: filterExchange === ex ? "#8b5cf6" : "transparent",
-              color: filterExchange === ex ? "#0b0f1a" : "#6b7fa3",
-              fontSize: 12, ...INTER, cursor: "pointer", fontWeight: filterExchange === ex ? 600 : 400,
-            }}>{ex}</button>
-          ))}
+          <span style={{
+            padding: "5px 12px", borderRadius: 5, border: "1px solid rgba(255,255,255,0.1)",
+            color: "#6b7fa3", fontSize: 12, ...INTER,
+          }}>HOSE</span>
         </div>
       </div>
 
@@ -216,7 +211,12 @@ export function TechnicalScanner({ onNavigate }: TechnicalScannerProps) {
             <thead>
               <tr style={{ borderBottom: "1px solid rgba(255,255,255,0.07)" }}>
                 {["Mã CK", "Tên", "Tín hiệu", "RSI14", "MACD", "Giá đóng", "BB Upper", "BB Lower", "Vol/SMA20", "% Ngày"].map((h) => (
-                  <th key={h} style={{ color: "#6b7fa3", fontSize: 10, textAlign: "left", padding: "6px 10px", ...INTER, textTransform: "uppercase", letterSpacing: "0.05em", fontWeight: 500, whiteSpace: "nowrap" }}>{h}</th>
+                  <th key={h} style={{ color: "#6b7fa3", fontSize: 10, textAlign: "left", padding: "6px 10px", ...INTER, textTransform: "uppercase", letterSpacing: "0.05em", fontWeight: 500, whiteSpace: "nowrap" }}>
+                    {h}
+                    {timeframe !== "EOD" && (h === "MACD" || h === "% Ngày") && (
+                      <span title="Chỉ có ở chế độ theo ngày (cần EMA/giá đóng hôm trước)" style={{ marginLeft: 4, cursor: "help" }}>•</span>
+                    )}
+                  </th>
                 ))}
               </tr>
             </thead>
@@ -238,7 +238,7 @@ export function TechnicalScanner({ onNavigate }: TechnicalScannerProps) {
                       <span style={{ background: cfg.bg, color: cfg.color, fontSize: 11, padding: "2px 10px", borderRadius: 3, ...INTER, fontWeight: 600, whiteSpace: "nowrap" }}>{cfg.label}</span>
                     </td>
                     <td style={{ padding: "9px 10px", color: s.rsi > 70 ? "#ff4d6d" : s.rsi < 30 ? "#00d97e" : "#e2e8f0", fontSize: 12, ...MONO, textAlign: "right" }}>{formatNumber(s.rsi, 2)}</td>
-                    <td style={{ padding: "9px 10px", color: s.macd > 0 ? "#00d97e" : "#ff4d6d", fontSize: 12, ...MONO, textAlign: "right" }}>{formatSigned(s.macd, 2)}</td>
+                    <td style={{ padding: "9px 10px", color: timeframe === "EOD" ? (s.macd > 0 ? "#00d97e" : "#ff4d6d") : "#6b7fa3", fontSize: 12, ...MONO, textAlign: "right" }}>{timeframe === "EOD" ? formatSigned(s.macd, 2) : "—"}</td>
                     <td style={{ padding: "9px 10px", color: "#e2e8f0", fontSize: 12, ...MONO, textAlign: "right" }}>{formatNumber(s.close, 2)}</td>
                     <td style={{ padding: "9px 10px", color: "#6b7fa3", fontSize: 11, ...MONO, textAlign: "right" }}>{formatNumber(s.bbUpper, 2)}</td>
                     <td style={{ padding: "9px 10px", color: "#6b7fa3", fontSize: 11, ...MONO, textAlign: "right" }}>{formatNumber(s.bbLower, 2)}</td>
@@ -250,9 +250,13 @@ export function TechnicalScanner({ onNavigate }: TechnicalScannerProps) {
                       }}>{volRatio}x</span>
                     </td>
                     <td style={{ padding: "9px 10px", textAlign: "right" }}>
-                      <span style={{ color: s.pct >= 0 ? "#00d97e" : "#ff4d6d", fontSize: 12, ...MONO, fontWeight: 600 }}>
-                        {formatSigned(s.pct, 2)}%
-                      </span>
+                      {timeframe === "EOD" ? (
+                        <span style={{ color: s.pct >= 0 ? "#00d97e" : "#ff4d6d", fontSize: 12, ...MONO, fontWeight: 600 }}>
+                          {formatSigned(s.pct, 2)}%
+                        </span>
+                      ) : (
+                        <span style={{ color: "#6b7fa3", fontSize: 12, ...MONO }}>—</span>
+                      )}
                     </td>
                   </tr>
                 );

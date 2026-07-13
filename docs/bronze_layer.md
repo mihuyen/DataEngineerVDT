@@ -1,60 +1,47 @@
-# Bronze Layer - OHLCV
+# Bronze Layer
 
-Bronze Layer là tầng lưu dữ liệu thô nhất của hệ thống Data Lakehouse. Với Ngày 3, phạm vi chỉ gồm ingest dữ liệu OHLCV từ `vnstock` và lưu vào MinIO dưới dạng Parquet.
+Bronze là tầng lưu dữ liệu gần nguyên trạng nhất, chỉ thêm nguồn, thời điểm thu thập và khóa truy vết — chưa làm sạch nghiệp vụ. Phạm vi hiện tại: 404 mã HOSE (không gồm HNX/UPCOM), dữ liệu giá từ Vnstock (VCI), hồ sơ doanh nghiệp từ Vnstock (KBS), chỉ số thị trường, tin tức, và giao dịch DNSE.
 
 ## Nguyên tắc Bronze
 
-- Lưu dữ liệu gần nhất với nguồn, chưa làm sạch nghiệp vụ.
+- Lưu dữ liệu gần nhất với nguồn, chưa lọc nội dung.
 - Không tính chỉ báo kỹ thuật.
-- Không ghi vào Silver, Gold, ClickHouse hoặc dashboard.
-- Dữ liệu được partition để dễ truy vết theo mã cổ phiếu và ngày ingest.
+- Chỉ validate tối thiểu: đọc được, đúng schema (tương ứng chiều Completeness).
+- Giữ nguyên gốc để có thể chạy lại Silver bất kỳ lúc nào mà không cần gọi lại API nguồn (rate limit).
 - Credential MinIO đọc từ environment, không hardcode trong code.
 
-## Partition strategy
-
-Bucket sử dụng:
+## Partition strategy — gộp theo ngày thu thập, không tách theo từng mã
 
 ```text
-bronze
+bronze/ohlcv/year=2026/month=07/day=10/data.parquet
 ```
 
-Object path chuẩn:
+**Quyết định thiết kế quan trọng**: toàn bộ 404 mã của 1 ngày thu thập nằm trong **1 file duy nhất** (`ticker` là 1 cột dữ liệu bên trong, không phải segment đường dẫn). Nếu tách theo từng mã (`ticker=VCB/year=.../...`) sẽ tạo ra hàng trăm file nhỏ mỗi ngày, gây tốn chi phí liệt kê và mở file trên MinIO.
 
-```text
-ohlcv/
-└── ticker=VCB/
-    └── year=2026/
-        └── month=06/
-            └── day=10/
-                └── data.parquet
-```
+`year/month/day` là **ngày thu thập (ingest)**, không nhất thiết là ngày giao dịch — trả lời câu hỏi "chu kỳ nào đã lấy dữ liệu này", phục vụ truy vết/replay.
 
-Ý nghĩa:
+Các dataset khác dùng partition tương tự, chỉ thêm cột phân biệt:
 
-- `ticker`: mã cổ phiếu.
-- `year/month/day`: ngày ingest vào Bronze, không nhất thiết là ngày giao dịch.
-- `data.parquet`: file dữ liệu thô đã lấy từ nguồn.
+| Dataset | Path | Ghi chú |
+|---|---|---|
+| OHLCV | `ohlcv/year=/month=/day=/data.parquet` | `ticker` là cột |
+| Chỉ số thị trường | `market_index/index_code=<CODE>/year=/month=/day=/data.parquet` | tách theo `index_code` vì số lượng chỉ số rất ít |
+| Hồ sơ doanh nghiệp | `company_profile/dataset=listing\|profile/year=/month=/day=/data.parquet` | |
+| Tin tức | `news/source=multi/year=/month=/day=/data.parquet` | nguồn báo là cột dữ liệu |
+| DNSE (Realtime) | Ghi Parquet cục bộ, sao lưu lên MinIO Bronze theo khả năng | không chặn luồng Kafka/ClickHouse nếu MinIO lỗi tạm thời |
 
 ## Luồng ingest
 
 ```text
-vnstock
-↓
-DataFrame
-↓
-Polars DataFrame
-↓
-Parquet local
-↓
-MinIO bucket bronze
+Vnstock/Nguồn báo/DNSE → DataFrame → Polars → Parquet → MinIO bucket bronze
 ```
 
 ## Module chính
 
-- `src/ingestion/vnstock_ohlcv.py`: ingest OHLCV từ `vnstock`.
-- `src/common/minio_client.py`: helper kết nối và upload MinIO.
-- `scripts/init_minio.py`: tạo bucket `bronze`, `silver`, `gold` nếu thiếu.
-- `scripts/run_ohlcv_ingest.py`: chạy ingest một mã, một nhóm mã, hoặc toàn bộ `HOSE/HNX/UPCOM`.
+- `src/ingestion/vnstock_ohlcv.py` — OHLCV từ Vnstock (VCI)
+- `src/ingestion/market_news.py` — crawl tin tức
+- `src/common/minio_client.py` — helper kết nối/upload MinIO
+- `scripts/run_ohlcv_ingest.py`, `scripts/run_market_index_ingest.py`, `scripts/run_company_profile_ingest.py`, `scripts/run_news_ingest.py`
 
 ## Biến môi trường cần có
 
@@ -65,63 +52,23 @@ MINIO_SECRET_KEY=minioadmin
 MINIO_SECURE=false
 ```
 
-Có thể dùng `MINIO_ROOT_USER` và `MINIO_ROOT_PASSWORD` thay cho access key/secret key trong môi trường local.
+## Cách chạy (thủ công, ngoài Airflow)
 
-## Cách chạy
-
-Start MinIO trước:
-
-```powershell
+```bash
 docker compose up -d minio
+uv run python scripts/run_ohlcv_ingest.py --tickers VCB ACB FPT   # thử vài mã
+uv run python scripts/run_ohlcv_ingest.py                        # toàn bộ HOSE (đọc từ dim_stock/ClickHouse)
 ```
 
-Tạo bucket:
-
-```powershell
-uv run python scripts/init_minio.py
-```
-
-Chạy ingest toàn bộ các mã thuộc `HOSE`, `HNX`, `UPCOM`:
-
-```powershell
-uv run python scripts/run_ohlcv_ingest.py
-```
-
-Chạy thử một vài mã cụ thể:
-
-```powershell
-uv run python scripts/run_ohlcv_ingest.py --tickers VCB ACB FPT
-```
-
-Test nhanh 10 mã đầu tiên trước khi chạy toàn thị trường:
-
-```powershell
-uv run python scripts/run_ohlcv_ingest.py --exchanges HOSE HNX UPCOM --limit 10
-```
-
-Khi chạy toàn bộ thị trường, giữ delay để tránh quota `vnstock` và bật resume nếu phải chạy lại:
-
-```powershell
-uv run python scripts/run_ohlcv_ingest.py --exchanges HOSE HNX UPCOM --request-delay-seconds 3.5 --skip-existing
-```
-
-Nếu API listing của `vnstock` bị lỗi hoặc bị chặn, có thể chuẩn bị file CSV có cột `symbol` hoặc `ticker` rồi chạy:
-
-```powershell
-uv run python scripts/run_ohlcv_ingest.py --ticker-file configs/tickers.csv
-```
+Bình thường luồng này chạy tự động qua DAG `stock_lakehouse_daily` (18:00 T2–T6), không cần chạy tay trừ khi debug hoặc bù dữ liệu bị lỡ.
 
 ## Kiểm thử
 
-Test không gọi API thật và không kết nối MinIO thật. Các phần fetch/upload được mock khi cần.
-
-```powershell
+```bash
 uv run pytest
-uv run ruff check .
 ```
 
-## TODO
+## Hạn chế đã biết
 
-- Ngày 4: xây dựng Silver Layer đọc từ Bronze.
-- Bổ sung retry/backoff cho fetch `vnstock`.
-- Bổ sung metadata file như `ingested_at`, `source_name`, `ticker`, `start_date`, `end_date` nếu cần truy vết sâu hơn.
+- Không phải mã nào cũng có bản ghi mỗi ngày — mã vốn hóa nhỏ/thanh khoản thấp có thể không giao dịch, hoặc bị rate limit khi gọi API nguồn.
+- Backfill lịch sử xa bị giới hạn bởi rate limit Vnstock.

@@ -3,7 +3,7 @@ import {
   LineChart, Line, BarChart, Bar, XAxis, YAxis, Tooltip,
   ResponsiveContainer, Cell,
 } from "recharts";
-import { CheckCircle, XCircle, Loader, AlertTriangle, Database, Server, Activity, HardDrive, CircleAlert } from "lucide-react";
+import { CheckCircle, XCircle, Loader, AlertTriangle, CircleAlert } from "lucide-react";
 import { fetchPipelineStatus, DagStatusRow, DataQualityError, IngestHistoryPoint, KafkaLagPoint } from "./api";
 
 const CARD: React.CSSProperties = { background: "#111827", border: "1px solid rgba(255,255,255,0.07)", borderRadius: 8, padding: 16 };
@@ -21,20 +21,6 @@ const StatusBadge = ({ status }: { status: string }) => {
     <span style={{ display: "inline-flex", alignItems: "center", gap: 4, background: c.bg, color: c.color, fontSize: 11, padding: "3px 8px", borderRadius: 4, ...INTER, fontWeight: 600 }}>
       {c.icon}{status.toUpperCase()}
     </span>
-  );
-};
-
-const ServiceCard = ({ name, status, metric, unit, icon }: { name: string; status: string; metric: string; unit: string; icon: React.ReactNode }) => {
-  const up = status === "healthy";
-  return (
-    <div style={{ ...CARD, display: "flex", flexDirection: "column", gap: 8 }}>
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 8, color: "#6b7fa3" }}>{icon}<span style={{ ...INTER, fontSize: 12 }}>{name}</span></div>
-        <div style={{ width: 8, height: 8, borderRadius: "50%", background: up ? "#00d97e" : "#ff4d6d" }} />
-      </div>
-      <div style={{ ...MONO, color: up ? "#00d97e" : "#ff4d6d", fontSize: 20, fontWeight: 700 }}>{metric}</div>
-      <div style={{ ...INTER, color: "#6b7fa3", fontSize: 11 }}>{unit}</div>
-    </div>
   );
 };
 
@@ -111,7 +97,11 @@ export function PipelineMonitor() {
   const totalErrors = dataQualityErrors.reduce((acc, e) => acc + e.count, 0);
   const latestIngestRecords = ingestHistory[ingestHistory.length - 1]?.records ?? 0;
   const latestLag = kafkaLag[kafkaLag.length - 1]?.lag ?? 0;
-  const formatRecords = (n: number) => n >= 1_000_000 ? `${(n / 1_000_000).toFixed(1)}M` : `${(n / 1000).toFixed(0)}K`;
+  const formatRecords = (n: number) => {
+    if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
+    if (n >= 1_000) return `${(n / 1_000).toFixed(1)}K`;
+    return `${n}`;
+  };
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
@@ -138,15 +128,6 @@ export function PipelineMonitor() {
         ))}
       </div>
 
-      {/* Service health */}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(5, 1fr)", gap: 12 }}>
-        <ServiceCard name="Kafka" status="healthy" metric={`${latestLag}ms`} icon={<Activity size={14} />} unit="lag từ bảng realtime VWAP" />
-        <ServiceCard name="ClickHouse" status="healthy" metric={`${dagStatus.reduce((acc, d) => acc + d.records, 0).toLocaleString("vi-VN")}`} icon={<Database size={14} />} unit="bản ghi trong Gold snapshot" />
-        <ServiceCard name="MinIO" status="healthy" metric="OK" icon={<HardDrive size={14} />} unit="raw/silver objects đã ingest" />
-        <ServiceCard name="Airflow" status="healthy" metric={`${dagStatus.length}/${dagStatus.length}`} icon={<Server size={14} />} unit="pipeline snapshot" />
-        <ServiceCard name="Realtime" status="healthy" metric={formatRecords(latestIngestRecords)} icon={<Activity size={14} />} unit="records phiên mới nhất" />
-      </div>
-
       {/* Charts row */}
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
         {/* Ingest volume */}
@@ -155,8 +136,8 @@ export function PipelineMonitor() {
           <ResponsiveContainer width="100%" height={160}>
             <BarChart data={ingestHistory} margin={{ left: 10, right: 10 }}>
               <XAxis dataKey="date" tick={{ fill: "#6b7fa3", fontSize: 10, ...MONO }} axisLine={false} tickLine={false} />
-              <YAxis tick={{ fill: "#6b7fa3", fontSize: 10, ...MONO }} axisLine={false} tickLine={false} tickFormatter={(v) => (v / 1000).toFixed(0) + "K"} />
-              <Tooltip contentStyle={{ background: "#1e2535", border: "1px solid rgba(255,255,255,0.1)", fontSize: 12, ...MONO }} formatter={(v: any) => [(v / 1000).toFixed(0) + "K", "Records"]} />
+              <YAxis tick={{ fill: "#6b7fa3", fontSize: 10, ...MONO }} axisLine={false} tickLine={false} tickFormatter={formatRecords} />
+              <Tooltip contentStyle={{ background: "#1e2535", border: "1px solid rgba(255,255,255,0.1)", fontSize: 12, ...MONO }} formatter={(v: any) => [formatRecords(v), "Records"]} />
               <Bar dataKey="records" fill="#3b82f6" radius={[3, 3, 0, 0]} />
             </BarChart>
           </ResponsiveContainer>

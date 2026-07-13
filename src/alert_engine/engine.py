@@ -83,11 +83,16 @@ def fetch_latest_market_data(ch_client: Any, tickers: list[str]) -> dict[str, di
     tickers_sql = quote_tickers(tickers)
     market: dict[str, dict[str, Any]] = {}
 
+    # Reads rsi_14/bb_upper/bb_lower from fact_daily_price_indicators (dbt),
+    # not fact_daily_price's own independently Python-computed columns of
+    # the same name -- only the dbt table's values are covered by dbt test's
+    # formula checks (RSI range, Bollinger ordering), so alert rules should
+    # trigger off those, not the unvalidated Python copy.
     daily = ch_client.query(
         f"""
         SELECT ticker, close, rsi_14, bb_upper, bb_lower
-        FROM fact_daily_price
-        WHERE trading_date = (SELECT max(trading_date) FROM fact_daily_price)
+        FROM fact_daily_price_indicators
+        WHERE trading_date = (SELECT max(trading_date) FROM fact_daily_price_indicators)
           AND ticker IN ({tickers_sql})
         """
     )

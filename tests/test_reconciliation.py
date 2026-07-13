@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from src.quality.reconciliation import _anti_join_check
+from src.quality.reconciliation import _anti_join_check, _no_orphan_check
 
 
 def test_anti_join_check_passes_on_identical_key_sets() -> None:
@@ -36,3 +36,22 @@ def test_anti_join_check_catches_swapped_keys_that_exact_count_match_would_miss(
     result = _anti_join_check("name", silver, gold)
     assert result.success is False
     assert result.failed_count == 2
+
+
+def test_no_orphan_check_passes_when_gold_is_a_subset_of_silver() -> None:
+    """News Gold is expected to drop Silver rows that Entity Linking couldn't match to a ticker."""
+    silver = {"https://a", "https://b", "https://c"}
+    gold = {"https://a"}
+    result = _no_orphan_check("name", silver, gold)
+    assert result.success is True
+    assert result.failed_count == 0
+
+
+def test_no_orphan_check_fails_when_gold_has_a_key_absent_from_silver() -> None:
+    silver = {"https://a"}
+    gold = {"https://a", "https://z"}
+    result = _no_orphan_check("name", silver, gold)
+    assert result.success is False
+    assert result.failed_count == 1
+    assert "extra_in_gold_count=1" in result.details
+    assert "https://z" in result.details

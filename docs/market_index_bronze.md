@@ -1,16 +1,15 @@
 # Bronze Layer - Market Index
 
-Ngày 6 theo `Report.md` tập trung ingest dữ liệu chỉ số thị trường vào Bronze. Phạm vi chỉ gồm dữ liệu thô, chưa làm Silver, Gold, Kafka hoặc dashboard.
+Ingest dữ liệu chỉ số thị trường vào Bronze, là 1 trong 3 nhánh song song của DAG Batch (cùng OHLCV và danh sách/hồ sơ doanh nghiệp).
 
 ## Nguồn dữ liệu
 
-Nguồn chính: `vnstock`.
+Nguồn chính: Vnstock (VCI).
 
-Chỉ số mặc định:
+Chỉ số theo dõi:
 
 - `VNINDEX`
 - `VN30`
-- `HNXINDEX`
 
 ## Schema raw tối thiểu
 

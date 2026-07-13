@@ -1,20 +1,25 @@
-# Docker setup Ngày 2
+# Docker Setup
 
-Tài liệu này mô tả Docker Compose local cho các service nền tảng của project Data Lakehouse chứng khoán Việt Nam.
+Tài liệu này mô tả Docker Compose local cho toàn bộ service của hệ thống.
 
 ## Danh sách service
 
 | Service | Port | Vai trò |
 |---|---:|---|
-| MinIO | `9000`, `9001` | Object storage cho Bronze/Silver data |
+| MinIO | `9000`, `9001` | Object storage Bronze/Silver/Gold |
 | ClickHouse | `8123`, `9002` | OLAP database cho Gold Layer |
-| PostgreSQL | `5432` | Airflow metadata, `user_alerts`, cấu hình cảnh báo |
-| Zookeeper | `2181` | Điều phối Kafka local |
-| Kafka | `9092` | Streaming broker cho `raw_trades` và dữ liệu realtime |
-| Airflow Webserver | `8080` | UI orchestration batch pipeline |
-| Airflow Scheduler | internal | Scheduler chạy DAG |
-| Superset | `8088` | Dashboard phân tích kết nối ClickHouse ở các ngày sau |
-| Grafana | `3000` | Monitoring pipeline, Kafka lag, service health |
+| PostgreSQL | `5432` | `watchlist`, `user_alerts`, Airflow metadata |
+| Zookeeper | `2181` | Điều phối Kafka |
+| Kafka | `9092` | Streaming broker cho trade tick Realtime |
+| `init-realtime-streaming` | — | Job chạy 1 lần: tạo Kafka Engine table + Materialized View trong ClickHouse |
+| `dnse-producer` | — | Kết nối DNSE WebSocket (trade tick), đẩy vào Kafka |
+| `dnse-ohlc-consumer` | — | Kết nối DNSE WebSocket (nến 1 phút), ghi thẳng ClickHouse |
+| `nlp-service` | `8002` | Serving PhoBERT (tải model từ Hugging Face Hub, suy luận cục bộ) |
+| `alert-engine` | — | Vòng lặp quét rule cảnh báo, gửi Telegram |
+| Airflow Webserver | `8080` | UI orchestration |
+| Airflow Scheduler | internal | Chạy DAG `stock_lakehouse_daily` + `news_crawl_5m` |
+| Grafana | `3000` | Giám sát vận hành — hạ tầng, Kafka lag, trạng thái DAG |
+| Superset | `8088` | Dashboard BI (tùy chọn) |
 
 ## Cách chạy
 
@@ -76,9 +81,7 @@ uv run python scripts/check_services.py
 
 ## Kafka topic
 
-Kafka bật `KAFKA_AUTO_CREATE_TOPICS_ENABLE=true`, vì vậy topic demo `raw_trades` có thể được tạo tự động khi producer/consumer đầu tiên sử dụng.
-
-TODO Ngày 3: tạo script chính thức để quản lý topic như `raw_trades`, `raw_order_book` và các topic realtime khác.
+Topic chính: `dnse-trades-raw` (trade tick từ `dnse-producer`, ClickHouse Kafka Engine đọc trực tiếp). `KAFKA_AUTO_CREATE_TOPICS_ENABLE=true` nên topic tự tạo khi producer/consumer đầu tiên dùng tới.
 
 ## Ghi chú bảo mật
 

@@ -25,6 +25,8 @@ every variable with no real values — copy it to `.env` and fill it in.
 | `POSTGRES_PASSWORD`, `CLICKHOUSE_PASSWORD` | Set when standing up the stack; also baked into `docker-compose.yml` as the container's own credential, so they must match. |
 | `MINIO_ROOT_USER` / `MINIO_ROOT_PASSWORD` | Set when standing up the stack. |
 | `DNSE_API_KEY` / `DNSE_API_SECRET` | Issued by DNSE for market data API access. |
+| `HF_TOKEN` | Hugging Face access token, used to push/pull the fine-tuned sentiment model (`HF_MODEL_REPO`). |
+| `GEMINI_API_KEY` / `OPENAI_API_KEY` / `DEEPSEEK_API_KEY` | LLM providers used only offline, during weak-label dataset creation for the sentiment model — not called at runtime. |
 | `TELEGRAM_BOT_TOKEN` | From `@BotFather` on Telegram when creating the alert bot. |
 | `SMTP_PASSWORD` | App password for the SMTP account used to send alert emails (e.g. a Gmail App Password, not the account password). |
 | `AIRFLOW_WEBSERVER_SECRET_KEY`, `SUPERSET_SECRET_KEY` | Generated locally (`openssl rand -hex 32`), used only to sign that app's own sessions. |

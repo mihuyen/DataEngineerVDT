@@ -1,173 +1,76 @@
 # Silver Layer
 
-## Trạng thái hiện tại
-
-Silver Layer hiện đã được mở rộng từ mẫu `VCB` sang các nhóm dữ liệu chính:
-
-- OHLCV: transform toàn bộ ticker đã có trong Bronze local.
-- Company profile: transform dữ liệu listing/profile doanh nghiệp.
-- Market index: transform `VNINDEX`, `VN30`, `HNXINDEX`, `UPCOMINDEX`.
-- News: transform tin tức đã crawl từ VnExpress, Vietstock, CafeF.
-
-Các script chính:
-
-```powershell
-uv run python scripts/run_silver_transform.py --skip-existing
-uv run python scripts/run_company_profile_silver.py
-uv run python scripts/run_market_index_silver.py
-uv run python scripts/run_news_silver.py
-```
-
-## OHLCV
-
-Silver Layer là tầng dữ liệu đã được chuẩn hóa và kiểm tra chất lượng. Với Ngày 4, phạm vi chỉ gồm dữ liệu OHLCV đã ingest từ Bronze.
+Silver là tầng chuẩn hóa lược đồ, khóa nghiệp vụ và kiểm tra chất lượng — nơi thực sự có logic nghiệp vụ, khác với Bronze (gần như giữ nguyên gốc). Bao phủ: OHLCV, hồ sơ doanh nghiệp, chỉ số thị trường, tin tức.
 
 ## Mục đích
 
-- Đọc dữ liệu OHLCV thô từ Bronze.
-- Chuẩn hóa tên cột và kiểu dữ liệu.
-- Loại bỏ bản ghi lỗi cơ bản.
-- Loại bỏ duplicate theo `ticker + date`.
-- Chạy validation theo bộ rule kiểu Great Expectations.
-- Ghi dữ liệu sạch xuống Silver.
+- Đọc Bronze bằng Polars, ép kiểu, chuẩn hóa mã viết hoa.
+- Loại bản ghi sai miền giá trị (giá âm, `high < low`...).
+- Khử trùng theo khóa nghiệp vụ (giữ bản ghi cuối nếu trùng).
+- Chuẩn hóa URL, làm sạch nội dung văn bản (riêng tin tức).
+- Chạy **Quality Gate** — cổng chặn thật sự, fail thì không công bố sang Gold.
+- Ghi Parquet sạch xuống Silver.
 
-Không thực hiện ClickHouse, dbt, dashboard, Kafka, Alert Engine hoặc Airflow DAG trong Ngày 4.
-
-## Bronze input
+## Partition — gộp thô hơn Bronze, gộp toàn bộ mã vào 1 file/tháng
 
 ```text
-bronze/
-└── ohlcv/
-    └── ticker=VCB/
-        └── year=2026/
-            └── month=06/
-                └── day=10/
-                    └── data.parquet
+silver/ohlcv/year=2026/month=07/data.parquet
 ```
 
-## Silver output
+Không tách theo `ticker`, chỉ theo `year/month` (thô hơn Bronze — vốn theo `year/month/day`). Lý do không phải vì dữ liệu giảm nhiều (Quality Gate chỉ loại rất ít bản ghi lỗi), mà vì **Gold Loader luôn quét toàn bộ file Silver để gộp và khử trùng, không lọc theo ngày cụ thể** — nếu vẫn giữ partition theo ngày như Bronze sẽ tạo hàng trăm file nhỏ mỗi tháng, tốn chi phí I/O mà không mang lại lợi ích gì. Bronze giữ theo ngày vì khớp nhịp ingest hàng ngày, cần replay đúng 1 ngày khi sửa lỗi.
+
+Grain theo từng loại dữ liệu:
+
+| Dataset | Grain | Khóa khử trùng |
+|---|---|---|
+| OHLCV | `ticker + date` | |
+| Chỉ số thị trường | `index_code + date` | |
+| Hồ sơ doanh nghiệp | `ticker + snapshot` | |
+| Tin tức | 1 dòng / URL bài viết | `url` (→ `article_id`) |
+
+## Transform rules — khác nhau tùy loại dữ liệu
+
+**OHLCV/chỉ số:**
+- Chuẩn hóa tên cột lowercase snake_case, alias `time`/`trading_date` → `date`, `vol` → `volume`.
+- Ép kiểu: `date: Date`, `open/high/low/close: Float64`, `volume: Int64`.
+- Loại bản ghi: `volume < 0`, `open/high/low/close <= 0`, `high < low`.
+- Khử trùng theo `ticker + date`, giữ bản ghi cuối.
+
+**Tin tức:**
+- Chuẩn hóa nguồn báo, tiêu đề, nội dung, `published_at`.
+- Tạo `article_id` từ hash URL.
+- Loại HTML tag còn sót, khoảng trắng thừa.
+- Khử trùng theo `url`.
+
+Thêm metadata chung: `ticker`/`article_id`, `ingested_at`, `processed_at`, `source_name`.
+
+## Quality Gate — Validate, gắn với 6 chiều DAMA-DMBOK
+
+Bộ validation: `src/quality/ohlcv_expectations.py` (OHLCV), `src/quality/news_expectations.py` (tin tức). **Không dùng thư viện Great Expectations thật** — quality rule tự viết bằng Polars theo phong cách tương tự, có `gx_version="n/a"` để đánh dấu.
+
+| Kiểm tra | OHLCV | Tin tức | Chiều DAMA |
+|---|---|---|---|
+| Không rỗng | `ticker + date` | `url`, `published_at` | Completeness |
+| Miền giá trị | `open/high/low/close > 0`, `volume >= 0`, `high >= low` | Đủ nội dung, đúng định dạng | Validity |
+| Không trùng | `ticker + date` | `url` | Uniqueness |
+
+**Nếu fail → KHÔNG công bố sang Gold.** Cần lưu ý thứ tự đúng: Silver được ghi ra đĩa xong trước, Quality Gate chạy sau đó để đọc lại và xác nhận — không phải "validate trước rồi mới ghi Silver". Nếu fail, dữ liệu Silver vẫn tồn tại trên đĩa, chỉ là không được phép đi tiếp sang Gold.
+
+## Luồng
 
 ```text
-silver/
-└── ohlcv/
-    └── ticker=VCB/
-        └── year=2026/
-            └── month=06/
-                └── data.parquet
-```
-
-Silver partition theo `ticker`, `year`, `month` để chuẩn bị cho Gold Layer và truy vấn theo giai đoạn.
-
-## Transform rules
-
-- Chuẩn hóa tên cột về lowercase snake_case.
-- Alias hỗ trợ: `time`, `trading_date`, `tradingdate` -> `date`; `vol`, `match_volume` -> `volume`.
-- Cast schema:
-  - `date`: `Date`
-  - `open`, `high`, `low`, `close`: `Float64`
-  - `volume`: `Int64`
-- Thêm metadata:
-  - `ticker`
-  - `ingested_at`
-  - `processed_at`
-  - `source_name`
-- Loại duplicate theo `ticker + date`.
-- Loại invalid records:
-  - `volume < 0`
-  - `open <= 0`
-  - `high <= 0`
-  - `low <= 0`
-  - `close <= 0`
-  - `high < low`
-
-## Quality rules
-
-Bộ validation được đặt tại `src/quality/ohlcv_expectations.py`.
-
-Schema bắt buộc:
-
-- `ticker`
-- `date`
-- `open`
-- `high`
-- `low`
-- `close`
-- `volume`
-
-Null validation:
-
-- `date` không được null.
-- `close` không được null.
-
-Range validation:
-
-- `open > 0`
-- `high > 0`
-- `low > 0`
-- `close > 0`
-- `volume >= 0`
-
-Consistency validation:
-
-- `high >= low`
-- `high >= open`
-- `high >= close`
-- `low <= open`
-- `low <= close`
-
-Duplicate validation:
-
-- `ticker + date` phải unique.
-
-## Great Expectations workflow
-
-Project thêm dependency `great-expectations` để chuẩn bị chuẩn validation dài hạn. Trong Ngày 4, validation được viết bằng Polars theo format expectation rõ ràng và report có ghi `gx_version` để truy vết phiên bản Great Expectations.
-
-Luồng:
-
-```text
-Bronze parquet
-↓
-Polars transform
-↓
-OHLCV expectations
-↓
-quality_reports/YYYY-MM-DD_validation.json
-↓
-Silver parquet
+Bronze parquet → Polars transform → Ghi Silver parquet
+                                   → Quality Gate (đọc lại Silver vừa ghi)
+                                   → quality_reports/*.json
 ```
 
 ## Cách chạy
 
-Chạy transform Bronze -> Silver:
-
-```powershell
+```bash
 uv run python scripts/run_silver_transform.py
-```
-
-Chỉ chạy quality check:
-
-```powershell
-uv run python scripts/run_quality_check.py
-```
-
-Chạy kiểm thử:
-
-```powershell
+uv run python scripts/run_quality_check.py       # OHLCV
+uv run python scripts/run_news_quality_check.py  # Tin tức
 uv run pytest
-uv run ruff check .
 ```
 
-## Quality report mẫu
-
-```json
-{
-  "source_name": "vnstock_ohlcv",
-  "record_count": 2,
-  "error_count": 0,
-  "success": true,
-  "expectations": []
-}
-```
-
-Report thực tế có đầy đủ từng expectation, `failed_count`, `details` và `generated_at`.
+Bình thường chạy tự động trong DAG (Batch: sau ingest; Tin tức: mỗi 5 phút), không cần chạy tay trừ khi debug.

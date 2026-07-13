@@ -13,47 +13,40 @@ Xây dựng hệ thống Data Lakehouse theo dõi thị trường chứng khoán
 
 ## Input của hệ thống
 
-- OHLCV cổ phiếu từ `vnstock`.
-- Thông tin doanh nghiệp niêm yết từ API niêm yết hoặc Finnhub.
-- Chỉ số thị trường như VN-Index, HNX-Index, VN30.
-- Tin tức thị trường từ Finnhub News, RSS hoặc HTML crawl.
-- Dữ liệu realtime/order book từ DNSE WebSocket API.
+- OHLCV cổ phiếu và VNINDEX/VN30 từ Vnstock (VCI).
+- Danh sách mã HOSE và hồ sơ doanh nghiệp từ Vnstock (KBS).
+- Tin tức thị trường từ VnExpress, Vietstock, CafeF (crawl HTML).
+- Dữ liệu realtime (trade tick + nến 1 phút) từ DNSE WebSocket API.
 
 ## Output của hệ thống
 
 - Dữ liệu Bronze thô trong MinIO.
 - Dữ liệu Silver đã làm sạch và kiểm tra chất lượng.
-- Bảng Gold trong ClickHouse theo Star Schema.
-- Dashboard Superset cho phân tích thị trường.
-- Monitoring Grafana cho pipeline và service.
-- Alert event gửi qua Telegram hoặc Email.
+- Bảng Gold trong ClickHouse theo Star Schema, một phần export lại Parquet.
+- Dashboard React/FastAPI cho phân tích thị trường và cổ phiếu.
+- Monitoring Grafana cho hạ tầng; Airflow callback cho trạng thái pipeline.
+- Alert event gửi qua Telegram.
 
-## 5 luồng dữ liệu chính
+## Ba luồng dữ liệu chính
 
-1. OHLCV cổ phiếu theo ngày.
-2. Hồ sơ và chỉ tiêu cơ bản của doanh nghiệp niêm yết.
-3. Chỉ số thị trường.
-4. Tin tức và sentiment theo mã cổ phiếu.
-5. Realtime/order book để tính VWAP và cảnh báo.
+1. Batch — OHLCV, hồ sơ doanh nghiệp, chỉ số thị trường (18:00 T2–T6).
+2. Tin tức — crawl, entity linking, phân tích cảm xúc (mỗi 5 phút, 24/7).
+3. Realtime — trade tick (VWAP qua Kafka) và nến 1 phút (ghi thẳng), bỏ qua Silver.
 
 ## Phạm vi bắt buộc
 
-- Pipeline OHLCV batch.
-- Bronze/Silver/Gold.
-- Great Expectations.
+- Pipeline OHLCV batch qua Bronze/Silver/Gold.
+- Quality rule tự viết bằng Polars (không dùng thư viện Great Expectations thật).
 - ClickHouse + Star Schema.
-- Chỉ báo kỹ thuật.
-- Market Overview.
-- Stock Detail.
-- Technical Signal Scanner.
-- Data Pipeline Monitor.
+- Chỉ báo kỹ thuật (dbt).
+- Market Overview, Stock Detail, Technical Signal Scanner, Data Pipeline Monitor (frontend).
 
-## Phạm vi nâng cao
+## Phạm vi nâng cao — đã triển khai
 
-- Realtime VWAP.
-- News & Sentiment.
-- Alert Engine.
-- Text-to-SQL demo.
+- Realtime VWAP + nến 1 phút.
+- News & Sentiment (fine-tune PhoBERT riêng).
+- Alert Engine (14 loại rule).
+- Reconciliation liên tầng cho cả Batch và Tin tức.
 
 ## Các giả định
 

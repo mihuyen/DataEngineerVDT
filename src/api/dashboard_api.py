@@ -967,12 +967,17 @@ def get_realtime_vwap_series(ticker: str) -> dict[str, Any]:
 
 @app.get("/api/technical/signals")
 def get_technical_signals(limit: int = Query(150, ge=10, le=2000)) -> dict[str, Any]:
+    # Reads from fact_daily_price_indicators (dbt-computed, covered by dbt
+    # test formula checks) rather than fact_daily_price's own independently
+    # Python-computed indicator columns -- the two are computed by separate
+    # code paths and can drift apart, and only the dbt table's values are
+    # validated (RSI range, MACD formula, Bollinger ordering).
     tracked_ticker_count = scalar(
         """
         SELECT countDistinct(f.ticker)
-        FROM fact_daily_price f
+        FROM fact_daily_price_indicators f
         LEFT JOIN dim_stock s ON f.ticker = s.ticker
-        WHERE f.trading_date = (SELECT max(trading_date) FROM fact_daily_price)
+        WHERE f.trading_date = (SELECT max(trading_date) FROM fact_daily_price_indicators)
           AND s.exchange = 'HOSE'
         """,
         default=0,
@@ -995,9 +1000,9 @@ def get_technical_signals(limit: int = Query(150, ge=10, le=2000)) -> dict[str, 
           f.oversold_flag AS oversoldFlag,
           f.breakout_flag AS breakoutFlag,
           f.breakdown_flag AS breakdownFlag
-        FROM fact_daily_price f
+        FROM fact_daily_price_indicators f
         LEFT JOIN dim_stock s ON f.ticker = s.ticker
-        WHERE f.trading_date = (SELECT max(trading_date) FROM fact_daily_price)
+        WHERE f.trading_date = (SELECT max(trading_date) FROM fact_daily_price_indicators)
           AND s.exchange = 'HOSE'
           AND (
             f.overbought_flag = 1 OR f.oversold_flag = 1 OR f.breakout_flag = 1 OR f.breakdown_flag = 1

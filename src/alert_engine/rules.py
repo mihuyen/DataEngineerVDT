@@ -51,7 +51,7 @@ def evaluate_condition(
     """Return the actual value that triggered the rule, or None if the condition is not met.
 
     `market` holds the latest known indicator values for `rule.ticker`:
-    close, rsi_14, bb_upper, bb_lower (from fact_daily_price) and
+    close, rsi_14, bb_upper, bb_lower (from fact_daily_price_indicators) and
     price_vs_session_vwap_pct (from fact_realtime_vwap).
 
     `previous_value` is only used by the *_CROSS_* condition types (see
